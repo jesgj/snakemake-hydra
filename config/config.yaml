@@ -1,0 +1,141 @@
+pipeline: "chip_cr"  # Change to "rnaseq" to change the pipeline
+rnaseq:
+  raw_fastqs_dir: "data/rnaseq_raw_fastqs"
+  samples_info:
+    Ctl_1:
+      R1: "data/rnaseq_raw_fastqs/Ctl_1_R1.fq.gz"
+      R2: "data/rnaseq_raw_fastqs/Ctl_1_R2.fq.gz"
+    Ctrl_1:
+      R1: "data/rnaseq_raw_fastqs/Ctrl_1_R1.fq.gz"
+      R2: "data/rnaseq_raw_fastqs/Ctrl_1_R2.fq.gz"
+    Tissue_1:
+      R1: "data/rnaseq_raw_fastqs/Tissue_1_R1.fq.gz"
+      R2: "data/rnaseq_raw_fastqs/Tissue_1_R2.fq.gz"
+  qc_dir: "results/rnaseq/qc_raw"
+  trimmed_dir: "results/rnaseq/trimmed_fastqs"
+  qc_trimmed_dir: "results/rnaseq/qc_trimmed"
+  # Kallisto pseudo-alignment
+  transcriptome_fasta: "ref/transcriptome.fa.gz"
+  kallisto_index: "ref/kallisto.idx"
+  kallisto_output_dir: "results/rnaseq/kallisto"
+  kallisto:
+    extra_args: "--bootstrap-samples=100" # Number of bootstrap samples for kallisto quant
+  # HISAT2 alignment
+  ref_genome: "ref/genome.fa"
+  hisat2_index_dir: "ref/hisat2"
+  alignment_dir: "results/rnaseq/aligned_bams"
+  hisat2:
+    extra_args: ""
+
+wgbs:
+  raw_fastqs_dir: "data/wgbs_raw_fastqs" # in this case we are going to obtain the fastqs programatically
+  samples_info:
+    Ctr_1:
+      R1: "data/wgbs_raw_fastqs/Ctr_1_S1_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/Ctr_1_S1_L003_R2_001.fastq.gz"
+    Ctr_2:
+      R1: "data/wgbs_raw_fastqs/Ctr_2_S2_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/Ctr_2_S2_L003_R2_001.fastq.gz"
+    dazl_1:
+      R1: "data/wgbs_raw_fastqs/dazl_1_S5_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/dazl_1_S5_L003_R2_001.fastq.gz"
+    dazl_2:
+      R1: "data/wgbs_raw_fastqs/dazl_2_S6_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/dazl_2_S6_L003_R2_001.fastq.gz"
+    ddx4_1:
+      R1: "data/wgbs_raw_fastqs/ddx4_1_S3_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/ddx4_1_S3_L003_R2_001.fastq.gz"
+    ddx4_2:
+      R1: "data/wgbs_raw_fastqs/ddx4_2_S4_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/ddx4_2_S4_L003_R2_001.fastq.gz"
+    elav2_1:
+      R1: "data/wgbs_raw_fastqs/elav2_1_S7_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/elav2_1_S7_L003_R2_001.fastq.gz"
+    elav2_2:
+      R1: "data/wgbs_raw_fastqs/elav2_2_S8_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/elav2_2_S8_L003_R2_001.fastq.gz"
+    zar1l_1:
+      R1: "data/wgbs_raw_fastqs/zar1l_1_S9_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/zar1l_1_S9_L003_R2_001.fastq.gz"
+    zar1l_2:
+      R1: "data/wgbs_raw_fastqs/zar1l_2_S10_L003_R1_001.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/zar1l_2_S10_L003_R2_001.fastq.gz"
+  qc_dir: "results/wgbs/qc"
+  trimmed_dir: "results/wgbs/trimmed_fastqs"
+  qc_trimmed_dir: "results/wgbs/qc_trimmed"
+  ref_genome: "ref/danrer11_lambda.fa"
+  alignment_dir: "data/wgbs/raw_bams"
+  dedup_dir: "data/wgbs/dedup_bams"
+  dedup_bam_qc_dir: "results/wgbs/dedup_bam_qc"
+  filtered_bam_dir: "data/wgbs/filtered_bams"
+  sorted_filtered_bam_dir: "data/wgbs/sorted_filtered_bams"
+  filtered_bam_qc_dir: "results/wgbs/filtered_bam_qc"
+  mbias_dir: "results/wgbs/mbias"
+  methyldackel_dir: "results/wgbs/methyldackel"
+  methyldackel_mergecontext_dir: "results/wgbs/methyldackel_mergecontext"
+  fastp:
+    extra_args: "-q 20 --trim_front1 10 --detect_adapter_for_pe --dont_eval_duplication --trim_poly_g --trim_poly_x --cut_tail"
+  bismark:
+    extra_args: "--local -X 2000"
+  sambamba:
+    extra_args: "mapping_quality >= 10 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
+  methyldackel_mbias:
+    extra_args: ""
+  methyldackel_extract:
+    extra_args: ""
+    extra_opts: "--minOppositeDepth 10 --maxVariantFrac 0.5"
+  picard:
+    java_opts: "-Xmx4g" # AÑADIR --IS_BISULFITE_SEQUENCED
+
+chip_cr:
+  raw_fastqs_dir: "data/chip_test_pipeline/"
+  samples_info:
+    Dome_ctrl_H3K4me3_rep1:
+      R1: "data/chip_test_pipeline/Dome_ctrl_H3K4me3_rep1_R1.sample.fastq.gz"
+      R2: "data/chip_test_pipeline/Dome_ctrl_H3K4me3_rep1_R2.sample.fastq.gz"
+      type: "PE"
+    Shield_ctrl_H3K27ac_rep1:
+      R1: "data/chip_test_pipeline/Shield_ctrl_H3K27ac_rep1_R1.sample.fastq.gz"
+      R2: "data/chip_test_pipeline/Shield_ctrl_H3K27ac_rep1_R2.sample.fastq.gz"
+      type: "PE"
+  gene_bed: "ref/genes.bed"
+  qc_dir: "results/chipseq_cutrun/qc_raw"
+  ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  trimmed_dir: "results/chipseq_cutrun/trimmed_fastqs"
+  qc_trimmed_dir: "results/chipseq_cutrun/qc_trimmed"
+  alignment_dir: "results/chipseq_cutrun/aligned_bams"
+  bowtie2_index_dir: "ref/bowtie2"
+  bam_qc_dir: "results/chipseq_cutrun/bam_qc"
+  filtered_bam_dir: "results/chipseq_cutrun/filtered_bams"
+  filtered_bam_qc_dir: "results/chipseq_cutrun/filtered_bam_qc"
+  deeptools_dir: "results/chipseq_cutrun/deeptools"
+  bigwig_dir: "results/chipseq_cutrun/bigwigs"
+  subtracted_bigwig_dir: "results/chipseq_cutrun/subtracted_bigwigs"
+  fastp:
+    extra_args: "-q 20 -l 50"
+  bowtie2:
+    extra_args: ""
+  sambamba:
+    markdup_extra_args: "-r"
+    view_extra_args: "not unmapped"
+  deeptools:
+    multiBamSummary:
+      extra_args: "--binSize 10000"
+    computeMatrix:
+      extra_args: ""
+      beforeRegionStartLength: 3000
+      regionBodyLength: 5000
+      afterRegionStartLength: 3000
+      skipZeros: True
+    plotCorrelation:
+      extra_args: "-p heatmap --corMethod spearman --skipZeros"
+    plotFingerprint:
+      extra_args: ""
+    bamCoverage:
+      normalize_using: "CPM"
+      extra_args: ""
+    bigwigCompare:
+      method: "subtract"
+      extra_args: ""
+  picard:
+    java_opts: "-Xmx4g"
