@@ -2,7 +2,7 @@
 import os
 
 # This rule assumes the following config variables are set by the parent workflow:
-# - pipeline_name: e.g., "chip_cr", "rnaseq", "wgbs"
+# - pipeline_name: e.g., "chip_cr", "rnaseq", "wgbs", "atacseq"
 # - multiqc_input_files: A list of all files that should be generated before multiqc runs.
 # - multiqc_results_dir: The top-level results directory for the pipeline.
 

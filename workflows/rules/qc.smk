@@ -56,6 +56,8 @@ rule fastqc_raw_se:
     output:
         html = os.path.join(QC_DIR, "{sample}_raw_fastqc.html"),
         zip = os.path.join(QC_DIR, "{sample}_raw_fastqc.zip")
+    wildcard_constraints:
+        sample=r"^(?!.*_R[12]$).*"
     params:
         outdir = QC_DIR
     threads: 1

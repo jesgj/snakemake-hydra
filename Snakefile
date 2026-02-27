@@ -22,6 +22,12 @@ module chip_cr:
     snakefile: "workflows/chip_cr.smk"
     config: chip_cr_config
 
+atacseq_config = config["atacseq"].copy()
+atacseq_config["pipeline"] = config["pipeline"]
+module atacseq:
+    snakefile: "workflows/atacseq.smk"
+    config: atacseq_config
+
 # Conditional rule import and rule_all definition
 if config["pipeline"] == "rnaseq":
     use rule * from rnaseq as rnaseq_*
@@ -42,6 +48,12 @@ elif config["pipeline"] == "chip_cr":
     
     rule all:
         input: rules.chip_cr_all.input
+elif config["pipeline"] == "atacseq":
+    use rule * from atacseq as atacseq_*
+    use rule all from atacseq as atacseq_all
+
+    rule all:
+        input: rules.atacseq_all.input
 else:
     rule all:
-        input: "ERROR: Write 'rnaseq', 'wgbs', or 'chip_cr' in config.yaml"
+        input: "ERROR: Write 'rnaseq', 'wgbs', 'chip_cr', or 'atacseq' in config.yaml"

@@ -1,4 +1,4 @@
-pipeline: "chip_cr"  # Change to "rnaseq" to change the pipeline
+pipeline: "chip_cr"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq" to change the pipeline
 rnaseq:
   raw_fastqs_dir: "data/rnaseq_raw_fastqs"
   samples_info:
@@ -139,3 +139,40 @@ chip_cr:
       extra_args: ""
   picard:
     java_opts: "-Xmx4g"
+
+atacseq:
+  raw_fastqs_dir: "data/atacseq_raw_fastqs"
+  samples_info:
+    Dome_ctrl_ATAC_rep1:
+      R1: "data/atacseq_raw_fastqs/Dome_ctrl_ATAC_rep1_R1.fastq.gz"
+      R2: "data/atacseq_raw_fastqs/Dome_ctrl_ATAC_rep1_R2.fastq.gz"
+      type: "PE"
+  qc_dir: "results/atacseq/qc_raw"
+  trimmed_dir: "results/atacseq/trimmed_fastqs"
+  qc_trimmed_dir: "results/atacseq/qc_trimmed"
+  ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  bowtie2_index_dir: "ref/bowtie2_atacseq"
+  alignment_dir: "results/atacseq/aligned_bams"
+  bam_qc_dir: "results/atacseq/bam_qc"
+  filtered_bam_dir: "results/atacseq/filtered_bams"
+  filtered_bam_qc_dir: "results/atacseq/filtered_bam_qc"
+  fragment_qc_dir: "results/atacseq/fragment_qc"
+  bigwig_dir: "results/atacseq/bigwigs"
+  peaks_dir: "results/atacseq/peaks"
+  fastp:
+    extra_args: "-q 20 -l 30"
+  bowtie2:
+    extra_args: "--very-sensitive -X 2000"
+  sambamba:
+    markdup_extra_args: "-r"
+    view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
+  deeptools:
+    bamCoverage:
+      normalize_using: "CPM"
+      extra_args: ""
+  macs3:
+    genome_size: "1.4e9"
+    qvalue: 0.05
+    extra_args: ""
+  picard:
+    java_opts: "-Xmx2g"

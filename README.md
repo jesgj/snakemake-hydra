@@ -1,6 +1,6 @@
 # CTA_TFM_UOC - Pipeline modular para NGS (Snakemake + Pixi)
 
-Pipeline bioinformática modular y reproducible para análisis de datos NGS con Snakemake y gestión de dependencias con Pixi. Soporta tres subpipelines seleccionables desde un único archivo de configuración: RNA-seq, WGBS y ChIP-seq/CUT&RUN.
+Pipeline bioinformática modular y reproducible para análisis de datos NGS con Snakemake y gestión de dependencias con Pixi. Soporta cuatro subpipelines seleccionables desde un único archivo de configuración: RNA-seq, WGBS, ChIP-seq/CUT&RUN y ATAC-seq.
 
 ## Características principales
 - Selección de pipeline por configuración (sin tocar el código).
@@ -41,7 +41,7 @@ La configuración vive en `config/config.yaml`. Lo mínimo es:
 
 ### Selección de pipeline
 ```yaml
-pipeline: "chip_cr"  # opciones: rnaseq, wgbs, chip_cr
+pipeline: "chip_cr"  # opciones: rnaseq, wgbs, chip_cr, atacseq
 ```
 
 ### Entrada de muestras (manual)
@@ -63,7 +63,7 @@ Si `samples_info` está vacío o no se define, se detectan muestras desde `raw_f
 ## Ejecución
 Dry run:
 ```bash
-pixi run snakemake -- -n
+pixi run snakemake -n --cores 1
 ```
 
 Ejecución estándar (ajusta cores):
@@ -83,7 +83,7 @@ pixi run snakemake --cores 8 --rerun-incomplete
 
 Generar DAG (requiere Graphviz):
 ```bash
-pixi run snakemake --dag | dot -Tpng > dag.png
+pixi run snakemake --dag --cores 1 | dot -Tpng > dag.png
 ```
 
 ## Tutoriales paso a paso
@@ -176,8 +176,32 @@ wgbs:
 - `results/wgbs/methyldackel_mergecontext/<sample>_CpG.bedGraph`
 - `results/wgbs/multiqc_report.html`
 
-### 5) Autodetección de muestras
-Si quieres evitar `samples_info`, deja solo `raw_fastqs_dir`. El pipeline detectará muestras con convenciones comunes. Ojo: `rnaseq` y `wgbs` requieren paired-end; `chip_cr` acepta PE o SE.
+### 5) ATAC-seq (paired-end)
+1. Coloca FASTQ PE en `data/atacseq_raw_fastqs/`.
+2. Configura `ref_genome` y `bowtie2_index_dir`.
+3. Ejemplo:
+```yaml
+pipeline: "atacseq"
+atacseq:
+  raw_fastqs_dir: "data/atacseq_raw_fastqs"
+  samples_info:
+    atac_rep1:
+      R1: "data/atacseq_raw_fastqs/atac_rep1_R1.fastq.gz"
+      R2: "data/atacseq_raw_fastqs/atac_rep1_R2.fastq.gz"
+      type: "PE"
+  ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  bowtie2_index_dir: "ref/bowtie2_atacseq"
+  macs3:
+    genome_size: "1.4e9"
+```
+4. Resultados clave:
+- `results/atacseq/peaks/<sample>_peaks.narrowPeak`
+- `results/atacseq/bigwigs/<sample>_pe.bw`
+- `results/atacseq/fragment_qc/<sample>_pe.insert_size_metrics.txt`
+- `results/atacseq/multiqc_report.html`
+
+### 6) Autodetección de muestras
+Si quieres evitar `samples_info`, deja solo `raw_fastqs_dir`. El pipeline detectará muestras con convenciones comunes. Ojo: `rnaseq`, `wgbs` y `atacseq` requieren paired-end; `chip_cr` acepta PE o SE.
 
 ## Salidas principales por pipeline
 
@@ -203,21 +227,32 @@ Si quieres evitar `samples_info`, deja solo `raw_fastqs_dir`. El pipeline detect
 - deepTools: `results/chipseq_cutrun/deeptools`
 - MultiQC: `results/chipseq_cutrun/multiqc_report.html`
 
+### ATAC-seq
+- QC: `results/atacseq/qc_raw`, `results/atacseq/qc_trimmed`
+- Trimming: `results/atacseq/trimmed_fastqs`
+- BAMs: `results/atacseq/aligned_bams`, `results/atacseq/filtered_bams`
+- Fragment QC: `results/atacseq/fragment_qc`
+- BigWig: `results/atacseq/bigwigs`
+- Peaks: `results/atacseq/peaks`
+- MultiQC: `results/atacseq/multiqc_report.html`
+
 ## Personalización de parámetros
 Los parámetros de herramientas están en `config/config.yaml`:
 - `fastp.extra_args`
 - `hisat2.extra_args`
 - `kallisto.extra_args`
 - `bismark.extra_args`
+- `bowtie2.extra_args`
 - `sambamba.*_extra_args`
 - `deeptools.*`
+- `macs3.*`
 - `picard.java_opts`
 
 Modifica esos campos para ajustar calidad, recorte, filtros, normalización de bigWig, etc.
 
 ## FAQ y resolución de problemas
 - **Single-end en ChIP/CUT&RUN:** usa `type: "SE"` y solo `R1`.
-- **RNA-seq/WGBS single-end:** no están implementados; usa paired-end.
+- **RNA-seq/WGBS/ATAC-seq single-end:** no están implementados; usa paired-end.
 - **No se detectan muestras:** revisa `raw_fastqs_dir` y el patrón de nombres.
 - **No hay sustracción de bigWig:** asegúrate de nombrar input como `base_input_repX`.
 - **Rutas de logs/resultados:** logs en `logs/<pipeline>`; para `chip_cr` los resultados están en `results/chipseq_cutrun`.
