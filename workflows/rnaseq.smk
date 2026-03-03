@@ -20,6 +20,7 @@ KALLISTO_INDEX = config["kallisto_index"]
 REF_GENOME = config["ref_genome"]
 HISAT2_INDEX_DIR = config["hisat2_index_dir"]
 ALIGNMENT_DIR = config["alignment_dir"]
+BIGWIG_DIR = config["bigwig_dir"]
 
 
 # Make config available to included rules
@@ -33,6 +34,7 @@ config["kallisto_index"] = KALLISTO_INDEX
 config["ref_genome"] = REF_GENOME
 config["hisat2_index_dir"] = HISAT2_INDEX_DIR
 config["alignment_dir"] = ALIGNMENT_DIR
+config["bigwig_dir"] = BIGWIG_DIR
 
 
 # Ensure output directories exist
@@ -42,6 +44,7 @@ os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
 os.makedirs(KALLISTO_OUTPUT_DIR, exist_ok=True)
 os.makedirs(HISAT2_INDEX_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
+os.makedirs(BIGWIG_DIR, exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
@@ -49,6 +52,7 @@ os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_quant"), exist_ok
 os.makedirs(os.path.join("logs", config["pipeline"], "hisat2_align"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "hisat2_build"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_index"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
 
 
 # --- SAMPLE DISCOVERY ---
@@ -64,6 +68,7 @@ def get_rnaseq_outputs(samples):
     outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.html"), sample=samples))
     outputs.extend(expand(os.path.join(KALLISTO_OUTPUT_DIR, "{sample}", "abundance.tsv"), sample=samples))
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=samples))
+    outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=samples))
     return outputs
 
 # --- MultiQC Configuration ---
@@ -86,7 +91,10 @@ include: "rules/rnaseq/pseudoalignment.smk"
 # 4. Alignment
 include: "rules/rnaseq/alignment.smk"
 
-# 5. MultiQC report
+# 5. BigWig generation
+include: "rules/rnaseq/bigwig.smk"
+
+# 6. MultiQC report
 include: "rules/multiqc.smk"
 
 
@@ -104,5 +112,7 @@ rule all:
         expand(os.path.join(KALLISTO_OUTPUT_DIR, "{sample}", "abundance.tsv"), sample=SAMPLES),
         # HISAT2 alignment files
         expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=SAMPLES),
+        # BigWig tracks
+        expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=SAMPLES),
         # MultiQC report
         os.path.join(config["multiqc_results_dir"], "multiqc_report.html")

@@ -24,8 +24,13 @@ rnaseq:
   ref_genome: "ref/genome.fa"
   hisat2_index_dir: "ref/hisat2"
   alignment_dir: "results/rnaseq/aligned_bams"
+  bigwig_dir: "results/rnaseq/bigwigs"
   hisat2:
     extra_args: ""
+  deeptools:
+    bamCoverage:
+      normalize_using: "RPKM"
+      extra_args: "--binSize 10"
 
 wgbs:
   raw_fastqs_dir: "data/wgbs_raw_fastqs" # in this case we are going to obtain the fastqs programatically
