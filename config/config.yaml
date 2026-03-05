@@ -81,12 +81,18 @@ wgbs:
   fastp:
     extra_args: "-q 20 --trim_front1 10 --detect_adapter_for_pe --dont_eval_duplication --trim_poly_g --trim_poly_x --cut_tail"
   bismark:
+    threads: 66
+    parallel: 8
     extra_args: "--local -X 2000"
   sambamba:
+    filter_threads: 8
+    sort_threads: 8
     extra_args: "mapping_quality >= 10 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
   methyldackel_mbias:
+    threads: 16
     extra_args: ""
   methyldackel_extract:
+    threads: 1
     extra_args: ""
     extra_opts: "--minOppositeDepth 10 --maxVariantFrac 0.5"
   picard:

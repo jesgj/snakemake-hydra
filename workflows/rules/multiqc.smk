@@ -11,9 +11,13 @@ _PIPELINE_NAME = config["pipeline_name"]
 _LOG_PIPELINE = config.get("pipeline", _PIPELINE_NAME)
 
 # Construct the paths to scan. MultiQC is efficient at finding relevant files.
-_ANALYSIS_DIRS = [f"results/{_PIPELINE_NAME}", f"logs/{_PIPELINE_NAME}"]
-if _LOG_PIPELINE != _PIPELINE_NAME:
-    _ANALYSIS_DIRS.append(f"logs/{_LOG_PIPELINE}")
+_ANALYSIS_DIRS = config.get("multiqc_analysis_dirs")
+if _ANALYSIS_DIRS:
+    _ANALYSIS_DIRS = list(dict.fromkeys(_ANALYSIS_DIRS))
+else:
+    _ANALYSIS_DIRS = [f"results/{_PIPELINE_NAME}", f"logs/{_PIPELINE_NAME}"]
+    if _LOG_PIPELINE != _PIPELINE_NAME:
+        _ANALYSIS_DIRS.append(f"logs/{_LOG_PIPELINE}")
 
 
 rule multiqc:

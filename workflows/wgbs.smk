@@ -1,6 +1,5 @@
 # WGBS module workflow
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
@@ -73,10 +72,30 @@ os.makedirs(os.path.join("logs", config["pipeline"], "picard_collect_alignment_m
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_stats_filtered"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_flagstat_filtered"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "picard_collect_alignment_metrics_filtered"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)
 
 
 # --- SAMPLE DISCOVERY ---
 SAMPLES_INFO, SAMPLES = prepare_sample_data(config)
+
+if not SAMPLES:
+    raise ValueError("No WGBS samples were found. Provide 'samples_info' or valid FASTQs in 'raw_fastqs_dir'.")
+
+invalid_samples = []
+for sample, info in SAMPLES_INFO.items():
+    has_pair = "R1" in info and "R2" in info
+    declared_type = info.get("type")
+    if has_pair and declared_type in [None, "PE"]:
+        info["type"] = "PE"
+        continue
+    invalid_samples.append(sample)
+
+config["samples_info"] = SAMPLES_INFO
+if invalid_samples:
+    raise ValueError(
+        "WGBS currently supports paired-end samples only (type=PE with R1 and R2). "
+        f"Invalid samples: {', '.join(invalid_samples)}"
+    )
 
 
 # --- HELPER FUNCTION FOR OUTPUTS ---
@@ -84,13 +103,18 @@ def get_wgbs_outputs(samples):
     outputs = []
     outputs.extend([os.path.join(config["qc_dir"], f"{sample}_{read}_raw_fastqc.html") for sample in samples for read in ["R1", "R2"]])
     outputs.extend([os.path.join(config["qc_trimmed_dir"], f"{sample}_{read}_trimmed_fastqc.html") for sample in samples for read in ["R1", "R2"]])
+    outputs.extend(expand(os.path.join(config["alignment_dir"], "{sample}_pe_report.txt"), sample=samples))
     outputs.extend(expand(os.path.join(config["dedup_dir"], "{sample}_pe.deduplicated.bam"), sample=samples))
+    outputs.extend(expand(os.path.join(config["dedup_dir"], "{sample}_pe.deduplication_report.txt"), sample=samples))
+    outputs.extend(expand(os.path.join(config["sorted_filtered_bam_dir"], "{sample}_pe.filtered.sorted.bam"), sample=samples))
+    outputs.extend(expand(os.path.join(config["sorted_filtered_bam_dir"], "{sample}_pe.filtered.sorted.bam.bai"), sample=samples))
     outputs.extend(expand(os.path.join(config["dedup_bam_qc_dir"], "{sample}.dedup.stats.txt"), sample=samples))
     outputs.extend(expand(os.path.join(config["dedup_bam_qc_dir"], "{sample}.dedup.flagstat.txt"), sample=samples))
     #outputs.extend(expand(os.path.join(config["dedup_bam_qc_dir"], "{sample}.dedup.alignment_summary_metrics.txt"), sample=samples))
     outputs.extend(expand(os.path.join(config["filtered_bam_qc_dir"], "{sample}.filtered.stats.txt"), sample=samples))
     outputs.extend(expand(os.path.join(config["filtered_bam_qc_dir"], "{sample}.filtered.flagstat.txt"), sample=samples))
     outputs.extend(expand(os.path.join(config["filtered_bam_qc_dir"], "{sample}.filtered.alignment_summary_metrics.txt"), sample=samples))
+    outputs.extend(expand(os.path.join(config["mbias_dir"], "{sample}.mbias.txt"), sample=samples))
     outputs.extend(expand(os.path.join(config["mbias_dir"], "{sample}.options.txt"), sample=samples))
     outputs.append(os.path.join(config["mbias_dir"], "all_samples_mbias_options.tsv"))
     outputs.extend(expand(os.path.join(config["methyldackel_dir"], "{sample}_CpG.methylKit"), sample=samples))
@@ -100,6 +124,16 @@ def get_wgbs_outputs(samples):
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "wgbs"
 config["multiqc_results_dir"] = "results/wgbs"
+config["multiqc_analysis_dirs"] = list(
+    dict.fromkeys(
+        [
+            config["multiqc_results_dir"],
+            os.path.join("logs", config["pipeline"]),
+            ALIGN_DIR,
+            DEDUP_DIR,
+        ]
+    )
+)
 config["multiqc_input_files"] = get_wgbs_outputs(SAMPLES)
 
 
@@ -132,7 +166,8 @@ include: "rules/multiqc.smk"
 
 # --- BAM QC INSTANTIATION ---
 
-# Deduplicated BAM (need to be ordered before add the sort)
+# Deduplicated BAM QC stays limited to samtools because deduplicate_bismark does
+# not guarantee coordinate-sorted output for Picard alignment metrics.
 use rule samtools_stats_generic as samtools_stats_dedup with:
     input:
         bam = os.path.join(DEDUP_DIR, "{sample}_pe.deduplicated.bam")
@@ -187,36 +222,8 @@ use rule picard_collect_alignment_metrics_generic as picard_collect_alignment_me
 
 # --- FINAL TARGETS ---
 
-# Final target rule for the wgbs workflow
 rule all:
     input:
-        # 1. FastQC reports for raw files
-        [os.path.join(QC_DIR, f"{sample}_{read}_raw_fastqc.html") for sample in SAMPLES for read in ["R1", "R2"]],
-
-        # 2. FastQC reports for trimmed files
-        [os.path.join(QC_TRIMMED_DIR, f"{sample}_{read}_trimmed_fastqc.html") for sample in SAMPLES for read in ["R1", "R2"]],
-        
-        # 3. Bismark deduplicated alignment files
-        expand(os.path.join(DEDUP_DIR, "{sample}_pe.deduplicated.bam"), sample=SAMPLES),
-
-        # 4. QC reports for deduplicated BAMs
-        expand(os.path.join(DEDUP_BAM_QC_DIR, "{sample}.dedup.stats.txt"), sample=SAMPLES),
-        expand(os.path.join(DEDUP_BAM_QC_DIR, "{sample}.dedup.flagstat.txt"), sample=SAMPLES),
-        #expand(os.path.join(DEDUP_BAM_QC_DIR, "{sample}.dedup.alignment_summary_metrics.txt"), sample=SAMPLES),
-
-        # 5. QC reports for filtered BAMs
-        expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}.filtered.stats.txt"), sample=SAMPLES),
-        expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}.filtered.flagstat.txt"), sample=SAMPLES),
-        expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}.filtered.alignment_summary_metrics.txt"), sample=SAMPLES),
-
-        # 6. Mbias reports
-        expand(os.path.join(MBIAS_DIR, "{sample}.options.txt"), sample=SAMPLES),
-        os.path.join(MBIAS_DIR, "all_samples_mbias_options.tsv"),
-
-        # 7. Methylation extraction reports
-        expand(os.path.join(METHYLDACKEL_DIR, "{sample}_CpG.methylKit"), sample=SAMPLES),
-        expand(os.path.join(METHYLDACKEL_MERGECONTEXT_DIR, "{sample}_CpG.bedGraph"), sample=SAMPLES),
-        
-        # MultiQC report
+        get_wgbs_outputs(SAMPLES),
         os.path.join(config["multiqc_results_dir"], "multiqc_report.html")
     default_target: True

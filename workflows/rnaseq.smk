@@ -52,11 +52,31 @@ os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_quant"), exist_ok
 os.makedirs(os.path.join("logs", config["pipeline"], "hisat2_align"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "hisat2_build"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_index"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
 
 
 # --- SAMPLE DISCOVERY ---
 SAMPLES_INFO, SAMPLES = prepare_sample_data(config)
+
+if not SAMPLES:
+    raise ValueError("No RNA-seq samples were found. Provide 'samples_info' or valid FASTQs in 'raw_fastqs_dir'.")
+
+invalid_samples = []
+for sample, info in SAMPLES_INFO.items():
+    has_pair = "R1" in info and "R2" in info
+    declared_type = info.get("type")
+    if has_pair and declared_type in [None, "PE"]:
+        info["type"] = "PE"
+        continue
+    invalid_samples.append(sample)
+
+config["samples_info"] = SAMPLES_INFO
+if invalid_samples:
+    raise ValueError(
+        "RNA-seq currently supports paired-end samples only (type=PE with R1 and R2). "
+        f"Invalid samples: {', '.join(invalid_samples)}"
+    )
 
 
 # --- HELPER FUNCTION FOR OUTPUTS ---

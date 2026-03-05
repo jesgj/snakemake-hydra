@@ -9,6 +9,11 @@ TRIMMED_DIR = config["trimmed_dir"]
 ALIGN_DIR = config["alignment_dir"]
 DEDUP_DIR = config["dedup_dir"]
 BISMARK_EXTRA_ARGS = config.get("bismark", {}).get("extra_args", "")
+BISMARK_THREADS = int(config.get("bismark", {}).get("threads", 66))
+BISMARK_PARALLEL = int(config.get("bismark", {}).get("parallel", 8))
+
+if BISMARK_THREADS < 1 or BISMARK_PARALLEL < 1:
+    raise ValueError("WGBS bismark.threads and bismark.parallel must be positive integers.")
 
 
 # --- RULES ---
@@ -44,15 +49,16 @@ rule bismark_alignment:
         report = os.path.join(ALIGN_DIR, "{sample}_pe_report.txt")
     params:
         ref_dir = REF_DIR,
-        parallel = 8,
+        parallel = BISMARK_PARALLEL,
         align_dir = ALIGN_DIR,
         extra = BISMARK_EXTRA_ARGS
-    threads: 66
+    threads: BISMARK_THREADS
     log:
         os.path.join("logs", config["pipeline"], "bismark", "{sample}.log")
     shell:
         """
-        pixi run bismark --bowtie2 -p {params.parallel} {params.extra} \
+        set -euo pipefail
+        pixi run bismark --bowtie2 --parallel {params.parallel} {params.extra} \
         --genome {params.ref_dir} \
         -1 {input.r1} -2 {input.r2} \
         -o {params.align_dir} --basename {wildcards.sample} > {log}.out 2> {log}.err

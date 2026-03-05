@@ -1,5 +1,46 @@
 # CTA_TFM_UOC - Pipeline modular para NGS (Snakemake + Pixi)
 
+![Snakemake Hydra logo](snakemake-hydra-logo.png)
+
+## English Overview
+This repository contains a modular and reproducible NGS analysis pipeline built with Snakemake and Pixi. A single configuration file selects one of four supported workflows: RNA-seq, WGBS, ChIP-seq/CUT&RUN, or ATAC-seq.
+
+### Main features
+- Pipeline selection from `config/config.yaml`.
+- Reproducible software environment with Pixi and `pixi.lock`.
+- Automatic sample discovery or manual sample declaration through `samples_info`.
+- Shared QC and trimming with FastQC and `fastp`.
+- Automatic reference indexing when required by the selected workflow.
+- Unified reporting through MultiQC and structured per-step logs.
+
+### Quick start
+Install dependencies:
+```bash
+pixi install
+```
+
+Dry run:
+```bash
+pixi run snakemake -n --cores 1
+```
+
+Standard execution:
+```bash
+pixi run snakemake --cores 8 --printshellcmds --latency-wait 60
+```
+
+### Repository layout
+- `Snakefile`: top-level entrypoint that dispatches to the selected subworkflow.
+- `config/config.yaml`: central configuration file.
+- `workflows/`: pipeline modules.
+- `workflows/rules/`: reusable rule files.
+- `src/utils.py`: sample discovery and input handling helpers.
+
+### Notes
+- `rnaseq`, `wgbs`, and `atacseq` currently support paired-end inputs only.
+- `chip_cr` supports both paired-end and single-end inputs.
+- Detailed step-by-step documentation continues below in Spanish.
+
 Pipeline bioinformática modular y reproducible para análisis de datos NGS con Snakemake y gestión de dependencias con Pixi. Soporta cuatro subpipelines seleccionables desde un único archivo de configuración: RNA-seq, WGBS, ChIP-seq/CUT&RUN y ATAC-seq.
 
 ## Características principales
@@ -170,11 +211,18 @@ wgbs:
       R1: "data/wgbs_raw_fastqs/Ctr_1_R1.fastq.gz"
       R2: "data/wgbs_raw_fastqs/Ctr_1_R2.fastq.gz"
   ref_genome: "ref/danrer11_lambda.fa"
+  bismark:
+    threads: 66
+    parallel: 8
 ```
 4. Resultados clave:
 - `results/wgbs/methyldackel/<sample>_CpG.methylKit`
 - `results/wgbs/methyldackel_mergecontext/<sample>_CpG.bedGraph`
 - `results/wgbs/multiqc_report.html`
+5. Ajustes opcionales de recursos:
+- `wgbs.bismark.threads` y `wgbs.bismark.parallel`
+- `wgbs.sambamba.filter_threads` y `wgbs.sambamba.sort_threads`
+- `wgbs.methyldackel_mbias.threads` y `wgbs.methyldackel_extract.threads`
 
 ### 5) ATAC-seq (paired-end)
 1. Coloca FASTQ PE en `data/atacseq_raw_fastqs/`.
@@ -215,7 +263,8 @@ Si quieres evitar `samples_info`, deja solo `raw_fastqs_dir`. El pipeline detect
 ### WGBS
 - QC: `results/wgbs/qc`, `results/wgbs/qc_trimmed`
 - Trimming: `results/wgbs/trimmed_fastqs`
-- BAMs: `data/wgbs/raw_bams`, `data/wgbs/dedup_bams`, `data/wgbs/filtered_bams`
+- BAMs: `data/wgbs/raw_bams`, `data/wgbs/dedup_bams`, `data/wgbs/filtered_bams`, `data/wgbs/sorted_filtered_bams`
+- mbias: `results/wgbs/mbias`
 - MethylDackel: `results/wgbs/methyldackel`, `results/wgbs/methyldackel_mergecontext`
 - MultiQC: `results/wgbs/multiqc_report.html`
 
@@ -242,8 +291,11 @@ Los parámetros de herramientas están en `config/config.yaml`:
 - `hisat2.extra_args`
 - `kallisto.extra_args`
 - `bismark.extra_args`
+- `bismark.threads`, `bismark.parallel`
 - `bowtie2.extra_args`
-- `sambamba.*_extra_args`
+- `sambamba.extra_args`, `sambamba.filter_threads`, `sambamba.sort_threads`
+- `methyldackel_mbias.*`
+- `methyldackel_extract.*`
 - `deeptools.*`
 - `macs3.*`
 - `picard.java_opts`
@@ -253,6 +305,7 @@ Modifica esos campos para ajustar calidad, recorte, filtros, normalización de b
 ## FAQ y resolución de problemas
 - **Single-end en ChIP/CUT&RUN:** usa `type: "SE"` y solo `R1`.
 - **RNA-seq/WGBS/ATAC-seq single-end:** no están implementados; usa paired-end.
+- **Validación de WGBS:** cada muestra WGBS debe tener `R1` y `R2`; el workflow falla al inicio si detecta muestras vacías o single-end.
 - **No se detectan muestras:** revisa `raw_fastqs_dir` y el patrón de nombres.
 - **No hay sustracción de bigWig:** asegúrate de nombrar input como `base_input_repX`.
 - **Rutas de logs/resultados:** logs en `logs/<pipeline>`; para `chip_cr` los resultados están en `results/chipseq_cutrun`.

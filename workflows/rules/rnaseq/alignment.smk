@@ -54,3 +54,17 @@ rule hisat2_align_pe:
         pixi run samtools view -bS - | \
         pixi run samtools sort -@ {threads} - -o {output.bam}) 2> {log}
         """
+
+rule samtools_index_aligned_bam:
+    """
+    Builds an index for a sorted RNA-seq BAM file.
+    """
+    input:
+        bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
+    output:
+        bai = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam.bai")
+    threads: 4
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_index", "{sample}_pe.log")
+    shell:
+        "pixi run samtools index -@ {threads} {input.bam} {output.bai} > {log}.out 2> {log}.err"
