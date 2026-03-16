@@ -9,9 +9,9 @@
 #SBATCH --time=48:00:00 # Tiempo máximo de ejecución (horas:minutos:segundos)
 
 
-wdir=/home/jlgarcia/CTA_TFM_UOC
-cd $wdir
-pwd
+#wdir=/home/user
+#cd $wdir
+#pwd
 # run snakemake
 #pixi run snakemake --cores 32 --until wgbs_picard_collect_alignment_metrics_filtered --printshellcmds --latency-wait 60
 

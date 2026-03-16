@@ -10,9 +10,8 @@
 #SBATCH --time=06:00:00 # Tiempo máximo de ejecución (horas:minutos:segundos)
 
 
-wdir=/home/jlgarcia/CTA_TFM_UOC
-cd $wdir
-pwd
+#cd $wdir
+#pwd
 
 # run snakemake
 pixi run snakemake --cores 22 -s Snakefile --until chip_cr_fastqc_raw_pe --latency-wait 60 --printshellcmds

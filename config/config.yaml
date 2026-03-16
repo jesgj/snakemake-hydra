@@ -24,13 +24,24 @@ rnaseq:
   ref_genome: "ref/genome.fa"
   hisat2_index_dir: "ref/hisat2"
   alignment_dir: "results/rnaseq/aligned_bams"
+  marked_bam_dir: "results/rnaseq/marked_bams"
+  duplication_qc_dir: "results/rnaseq/duplication_qc"
   bigwig_dir: "results/rnaseq/bigwigs"
+  gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
   hisat2:
     extra_args: ""
+  picard:
+    java_opts: "-Xmx4g"
+    markduplicates:
+      extra_args: ""
   deeptools:
     bamCoverage:
       normalize_using: "RPKM"
       extra_args: "--binSize 10"
+  gene_body_coverage:
+    refgene_bed: "ref/duumy.bed"
+    minimum_length: 100
+    format: "pdf"
 
 wgbs:
   raw_fastqs_dir: "data/wgbs_raw_fastqs" # in this case we are going to obtain the fastqs programatically

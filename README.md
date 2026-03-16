@@ -1,6 +1,6 @@
 # CTA_TFM_UOC - Modular NGS Pipeline (Snakemake + Pixi)
 
-![Snakemake Hydra logo](snakemake-hydra-logo.png)
+![Pipeline logo](logo.png)
 
 Language: [English](#english) | [Español](#espanol)
 
@@ -171,13 +171,33 @@ rnaseq:
   kallisto_index: "ref/kallisto.idx"
   ref_genome: "ref/genome.fa"
   hisat2_index_dir: "ref/hisat2"
+  marked_bam_dir: "results/rnaseq/marked_bams"
+  duplication_qc_dir: "results/rnaseq/duplication_qc"
+  gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
+  picard:
+    java_opts: "-Xmx4g"
+    markduplicates:
+      extra_args: ""
+  gene_body_coverage:
+    refgene_bed: "ref/duumy.bed"
+    minimum_length: 100
+    format: "pdf"
 ```
 
 4. Run and review:
 - `results/rnaseq/kallisto/<sample>/abundance.tsv`
 - `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
+- `results/rnaseq/marked_bams/<sample>_pe.markdup.bam`
+- `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt`
+- `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.curves.pdf`
+- `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.heatMap.pdf` when 3 or more BAMs are analyzed
 - `results/rnaseq/bigwigs/<sample>_pe.bw`
 - `results/rnaseq/multiqc_report.html`
+
+Duplicate marking is tracked in separate BAMs for QC and does not remove reads from the original RNA-seq alignment outputs.
+
+Use a real BED12 gene model matched to the RNA-seq genome assembly for production runs. `ref/duumy.bed` is only a placeholder for dry-run testing.
 
 #### 4) WGBS (paired-end)
 1. Place paired-end FASTQ files in `data/wgbs_raw_fastqs/`.
@@ -244,6 +264,8 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - Trimming: `results/rnaseq/trimmed_fastqs`
 - Kallisto: `results/rnaseq/kallisto/<sample>/abundance.tsv`
 - HISAT2: `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
+- Duplicate marking QC: `results/rnaseq/marked_bams/<sample>_pe.markdup.bam` and `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- Gene body coverage: `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt` plus curve and optional heatmap plots
 - BigWig: `results/rnaseq/bigwigs/<sample>_pe.bw`
 - MultiQC: `results/rnaseq/multiqc_report.html`
 
@@ -277,6 +299,8 @@ Tool parameters are configured in `config/config.yaml`:
 - `fastp.extra_args`
 - `hisat2.extra_args`
 - `kallisto.extra_args`
+- `gene_body_coverage.*`
+- `picard.markduplicates.extra_args`
 - `bismark.extra_args`
 - `bismark.threads`, `bismark.parallel`
 - `bowtie2.extra_args`
@@ -468,13 +492,33 @@ rnaseq:
   kallisto_index: "ref/kallisto.idx"
   ref_genome: "ref/genome.fa"
   hisat2_index_dir: "ref/hisat2"
+  marked_bam_dir: "results/rnaseq/marked_bams"
+  duplication_qc_dir: "results/rnaseq/duplication_qc"
+  gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
+  picard:
+    java_opts: "-Xmx4g"
+    markduplicates:
+      extra_args: ""
+  gene_body_coverage:
+    refgene_bed: "ref/duumy.bed"
+    minimum_length: 100
+    format: "pdf"
 ```
 
 4. Ejecuta y revisa:
 - `results/rnaseq/kallisto/<sample>/abundance.tsv`
 - `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
+- `results/rnaseq/marked_bams/<sample>_pe.markdup.bam`
+- `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt`
+- `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.curves.pdf`
+- `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.heatMap.pdf` cuando se analizan 3 o mas BAMs
 - `results/rnaseq/bigwigs/<sample>_pe.bw`
 - `results/rnaseq/multiqc_report.html`
+
+El marcado de duplicados se guarda en BAMs separados solo para QC y no elimina lecturas de los BAMs de alineamiento originales.
+
+Usa un modelo génico BED12 real y compatible con el ensamblado del genoma para ejecuciones reales. `ref/duumy.bed` es solo un archivo de prueba para el dry-run.
 
 #### 4) WGBS (paired-end)
 1. Coloca los FASTQ paired-end en `data/wgbs_raw_fastqs/`.
@@ -541,6 +585,8 @@ Si quieres evitar `samples_info`, deja solo `raw_fastqs_dir`. El pipeline detect
 - Trimming: `results/rnaseq/trimmed_fastqs`
 - Kallisto: `results/rnaseq/kallisto/<sample>/abundance.tsv`
 - HISAT2: `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
+- QC de duplicados: `results/rnaseq/marked_bams/<sample>_pe.markdup.bam` y `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- Cobertura del cuerpo genico: `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt` mas la curva y el mapa de calor opcional
 - BigWig: `results/rnaseq/bigwigs/<sample>_pe.bw`
 - MultiQC: `results/rnaseq/multiqc_report.html`
 
@@ -574,6 +620,8 @@ Los parámetros de herramientas se configuran en `config/config.yaml`:
 - `fastp.extra_args`
 - `hisat2.extra_args`
 - `kallisto.extra_args`
+- `gene_body_coverage.*`
+- `picard.markduplicates.extra_args`
 - `bismark.extra_args`
 - `bismark.threads`, `bismark.parallel`
 - `bowtie2.extra_args`

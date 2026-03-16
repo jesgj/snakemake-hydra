@@ -9,6 +9,8 @@ Track notable changes and implementation work here.
 - 2026-03-05: Add explicit RNA-seq BAM indexing before bamCoverage and fail fast for empty or non-paired RNA-seq sample sets.
 - 2026-03-05: Stabilize the WGBS workflow with PE-only validation, indexed filtered BAM dependencies, tracked Bismark/MethylDackel artifacts, and configurable WGBS runtime settings.
 - 2026-03-05: Rewrite the README as a full bilingual English/Spanish guide and remove stale documentation references.
+- 2026-03-16: Add RNA-seq RSeQC gene body coverage QC with configurable BED12 input, tracked outputs, and a dry-run placeholder BED file.
+- 2026-03-16: Add RNA-seq Picard MarkDuplicates QC to mark duplicate reads without removal and report duplication metrics in MultiQC.
 
 ## Planned
 - (Add upcoming work items here.)
