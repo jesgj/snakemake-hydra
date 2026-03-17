@@ -12,7 +12,8 @@ rule bamCoverage:
     Generates normalized bigWig tracks from filtered BAMs.
     """
     input:
-        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam")
+        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"),
+        bai = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai")
     output:
         bigwig = os.path.join(BIGWIG_DIR, "{sample}_pe.bw")
     params:

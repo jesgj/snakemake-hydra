@@ -245,7 +245,7 @@ wgbs:
 
 #### 5) ATAC-seq (paired-end)
 1. Place paired-end FASTQ files in `data/atacseq_raw_fastqs/`.
-2. Configure `ref_genome` and `bowtie2_index_dir`.
+2. Configure `ref_genome` and `bowtie2_index_dir`. Output directories default to `results/atacseq/*` unless you override them.
 3. Example:
 
 ```yaml
@@ -259,12 +259,11 @@ atacseq:
       type: "PE"
   ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
   bowtie2_index_dir: "ref/bowtie2_atacseq"
-  marked_bam_dir: "results/atacseq/marked_bams"
-  duplication_qc_dir: "results/atacseq/duplication_qc"
-  deeptools_dir: "results/atacseq/deeptools"
   peak_caller: "macs3"
   sambamba:
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
+    filter_threads: 2
+    sort_threads: 2
   deeptools:
     multiBamSummary:
       extra_args: "--binSize 10000"
@@ -298,7 +297,9 @@ atacseq:
 - `results/atacseq/fragment_qc/<sample>_pe.insert_size_metrics.txt`
 - `results/atacseq/multiqc_report.html`
 
-Duplicate reads are first marked with Picard to collect metrics, then removed during BAM filtering before deepTools QC, fragment QC, bigWig generation, and peak calling. The ATAC-seq correlation heatmap is skipped automatically when fewer than 2 filtered BAMs are available. Set `peak_caller: "genrich"` to call peaks with Genrich instead of MACS3; the pipeline handles the required queryname-sorted intermediate BAM automatically.
+Duplicate reads are first marked with Picard to collect metrics, then removed during BAM filtering before deepTools QC, fragment QC, bigWig generation, and peak calling. The Picard-marked BAMs in `results/atacseq/marked_bams` are temporary intermediates; the retained duplicate artifact is the metrics file in `results/atacseq/duplication_qc`.
+
+The ATAC-seq correlation heatmap is skipped automatically when fewer than 2 filtered BAMs are available. Set `peak_caller: "genrich"` to call peaks with Genrich instead of MACS3; the pipeline handles the required queryname-sorted intermediate BAM automatically. Filtered BAM indexes are built explicitly and reused by deepTools QC and `bamCoverage`.
 
 #### 6) Automatic sample discovery
 If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline will detect samples from common FASTQ naming conventions. Keep in mind that `rnaseq`, `wgbs`, and `atacseq` require paired-end inputs, while `chip_cr` accepts paired-end and single-end data.
@@ -336,7 +337,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - QC: `results/atacseq/qc_raw`, `results/atacseq/qc_trimmed`
 - Trimming: `results/atacseq/trimmed_fastqs`
 - BAMs: `results/atacseq/aligned_bams`, `results/atacseq/filtered_bams`
-- Duplicate marking QC: `results/atacseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- Duplicate marking QC: `results/atacseq/duplication_qc/<sample>_pe.markdup.metrics.txt` with temporary intermediates in `results/atacseq/marked_bams`
 - deepTools: `results/atacseq/deeptools` including fingerprint and optional correlation plots
 - Fragment QC: `results/atacseq/fragment_qc`
 - BigWig: `results/atacseq/bigwigs`
@@ -353,7 +354,7 @@ Tool parameters are configured in `config/config.yaml`:
 - `bismark.extra_args`
 - `bismark.threads`, `bismark.parallel`
 - `bowtie2.extra_args`
-- `sambamba.extra_args`, `sambamba.filter_threads`, `sambamba.sort_threads`
+- `sambamba.extra_args`, `sambamba.view_extra_args`, `sambamba.filter_threads`, `sambamba.sort_threads`
 - `methyldackel_mbias.*`
 - `methyldackel_extract.*`
 - `deeptools.*`
@@ -369,6 +370,7 @@ Adjust these fields to tune trimming, mapping, filtering, normalization, and pea
 - **RNA-seq correlation heatmap:** `multiBamSummary` and `plotCorrelation` run only when at least 2 aligned BAMs are available.
 - **ATAC-seq and ChIP/CUT&RUN correlation heatmaps:** `multiBamSummary` and `plotCorrelation` run only when at least 2 filtered BAMs are available; `plotFingerprint` still runs with a single sample.
 - **ATAC-seq peak caller:** `peak_caller: "macs3"` keeps the current MACS3 outputs; `peak_caller: "genrich"` switches peak calling to Genrich and keeps the shared `.narrowPeak` output only.
+- **ATAC-seq Sambamba tuning:** use `atacseq.sambamba.view_extra_args`, `atacseq.sambamba.filter_threads`, and `atacseq.sambamba.sort_threads` to control filtered BAM generation.
 - **WGBS validation fails early:** every WGBS sample must include `R1` and `R2`; the workflow aborts if it finds empty or single-end samples.
 - **No samples are detected:** check `raw_fastqs_dir` and FASTQ naming patterns.
 - **No bigWig subtraction appears for ChIP/CUT&RUN:** make sure input samples are named as `base_input_repX`.

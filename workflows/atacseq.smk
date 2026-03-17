@@ -6,21 +6,21 @@ from utils import prepare_sample_data
 
 # --- CONFIGURATION ---
 RAW_DIR = config["raw_fastqs_dir"]
-QC_DIR = config["qc_dir"]
-TRIMMED_DIR = config["trimmed_dir"]
-QC_TRIMMED_DIR = config["qc_trimmed_dir"]
+QC_DIR = config.get("qc_dir", os.path.join("results", "atacseq", "qc_raw"))
+TRIMMED_DIR = config.get("trimmed_dir", os.path.join("results", "atacseq", "trimmed_fastqs"))
+QC_TRIMMED_DIR = config.get("qc_trimmed_dir", os.path.join("results", "atacseq", "qc_trimmed"))
 REF_GENOME = config["ref_genome"]
 BOWTIE2_INDEX_DIR = config["bowtie2_index_dir"]
-ALIGNMENT_DIR = config["alignment_dir"]
+ALIGNMENT_DIR = config.get("alignment_dir", os.path.join("results", "atacseq", "aligned_bams"))
 MARKED_BAM_DIR = config.get("marked_bam_dir", os.path.join("results", "atacseq", "marked_bams"))
 DUPLICATION_QC_DIR = config.get("duplication_qc_dir", os.path.join("results", "atacseq", "duplication_qc"))
-BAM_QC_DIR = config["bam_qc_dir"]
-FILTERED_BAM_DIR = config["filtered_bam_dir"]
-FILTERED_BAM_QC_DIR = config["filtered_bam_qc_dir"]
+BAM_QC_DIR = config.get("bam_qc_dir", os.path.join("results", "atacseq", "bam_qc"))
+FILTERED_BAM_DIR = config.get("filtered_bam_dir", os.path.join("results", "atacseq", "filtered_bams"))
+FILTERED_BAM_QC_DIR = config.get("filtered_bam_qc_dir", os.path.join("results", "atacseq", "filtered_bam_qc"))
 DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "atacseq", "deeptools"))
-FRAGMENT_QC_DIR = config["fragment_qc_dir"]
-BIGWIG_DIR = config["bigwig_dir"]
-PEAKS_DIR = config["peaks_dir"]
+FRAGMENT_QC_DIR = config.get("fragment_qc_dir", os.path.join("results", "atacseq", "fragment_qc"))
+BIGWIG_DIR = config.get("bigwig_dir", os.path.join("results", "atacseq", "bigwigs"))
+PEAKS_DIR = config.get("peaks_dir", os.path.join("results", "atacseq", "peaks"))
 PEAK_CALLER = config.get("peak_caller", "macs3")
 
 if PEAK_CALLER not in ["macs3", "genrich"]:
@@ -144,10 +144,33 @@ def get_atacseq_outputs(samples):
     return outputs
 
 
+def get_atacseq_multiqc_analysis_dirs():
+    return list(
+        dict.fromkeys(
+            [
+                QC_DIR,
+                TRIMMED_DIR,
+                QC_TRIMMED_DIR,
+                ALIGNMENT_DIR,
+                DUPLICATION_QC_DIR,
+                BAM_QC_DIR,
+                FILTERED_BAM_DIR,
+                FILTERED_BAM_QC_DIR,
+                DEEPTOOLS_DIR,
+                FRAGMENT_QC_DIR,
+                BIGWIG_DIR,
+                PEAKS_DIR,
+                os.path.join("logs", config["pipeline"]),
+            ]
+        )
+    )
+
+
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "atacseq"
 config["multiqc_results_dir"] = "results/atacseq"
 config["multiqc_input_files"] = get_atacseq_outputs(SAMPLES)
+config["multiqc_analysis_dirs"] = get_atacseq_multiqc_analysis_dirs()
 
 
 # --- MODULE INCLUSION ---

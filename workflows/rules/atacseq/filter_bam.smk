@@ -3,6 +3,9 @@ import os
 # --- CONFIGURATION ---
 MARKED_BAM_DIR = config["marked_bam_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
+SAMBAMBA_CONFIG = config.get("sambamba", {})
+SAMBAMBA_FILTER_THREADS = max(1, int(SAMBAMBA_CONFIG.get("filter_threads", 2)))
+SAMBAMBA_SORT_THREADS = max(1, int(SAMBAMBA_CONFIG.get("sort_threads", 2)))
 SAMBAMBA_VIEW_EXTRA_ARGS = config.get(
     "sambamba",
     {},
@@ -26,12 +29,14 @@ rule sambamba_filter_dedup_sort:
     output:
         filtered_sorted_bam = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam")
     params:
-        filter_expression = SAMBAMBA_FILTER_EXPRESSION
-    threads: 4
+        filter_expression = SAMBAMBA_FILTER_EXPRESSION,
+        filter_threads = SAMBAMBA_FILTER_THREADS,
+        sort_threads = SAMBAMBA_SORT_THREADS
+    threads: SAMBAMBA_FILTER_THREADS + SAMBAMBA_SORT_THREADS
     log:
         os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}_pe.log")
     shell:
         """
-        (pixi run sambamba view -t {threads} -f bam -F '{params.filter_expression}' "{input.bam}" | \
-        pixi run sambamba sort -t {threads} -o "{output.filtered_sorted_bam}" /dev/stdin) > {log}.out 2> {log}.err
+        (pixi run sambamba view -t {params.filter_threads} -f bam -F '{params.filter_expression}' "{input.bam}" | \
+        pixi run sambamba sort -t {params.sort_threads} -o "{output.filtered_sorted_bam}" /dev/stdin) > {log}.out 2> {log}.err
         """

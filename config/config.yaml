@@ -181,7 +181,7 @@ atacseq:
   ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
   bowtie2_index_dir: "ref/bowtie2_atacseq"
   alignment_dir: "results/atacseq/aligned_bams"
-  marked_bam_dir: "results/atacseq/marked_bams"
+  marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Picard MarkDuplicates BAMs are written here
   duplication_qc_dir: "results/atacseq/duplication_qc"
   bam_qc_dir: "results/atacseq/bam_qc"
   filtered_bam_dir: "results/atacseq/filtered_bams"
@@ -197,6 +197,8 @@ atacseq:
     extra_args: "--very-sensitive -X 2000"
   sambamba:
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
+    filter_threads: 2
+    sort_threads: 2
   deeptools:
     multiBamSummary:
       extra_args: "--binSize 10000"
