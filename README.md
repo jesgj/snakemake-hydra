@@ -168,9 +168,11 @@ rnaseq:
   kallisto_index: "ref/kallisto.idx"
   ref_genome: "ref/genome.fa"
   hisat2_index_dir: "ref/hisat2"
+  alignment_dir: "results/rnaseq/aligned_bams"
   marked_bam_dir: "results/rnaseq/marked_bams"
   duplication_qc_dir: "results/rnaseq/duplication_qc"
   deeptools_dir: "results/rnaseq/deeptools"
+  bigwig_dir: "results/rnaseq/bigwigs"
   gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
   picard:
     java_opts: "-Xmx4g"
@@ -186,7 +188,7 @@ rnaseq:
       extra_args: "--binSize 10"
   gene_body_coverage:
     enabled: true
-    refgene_bed: "ref/duumy.bed"
+    refgene_bed: "ref/duumy.bed"  # Dry-run placeholder only
     minimum_length: 100
     format: "pdf"
 ```
@@ -194,6 +196,7 @@ rnaseq:
 4. Run and review:
 - `results/rnaseq/kallisto/<sample>/abundance.tsv`
 - `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
+- `results/rnaseq/aligned_bams/<sample>_pe.hisat2.summary.txt`
 - `results/rnaseq/marked_bams/<sample>_pe.markdup.bam`
 - `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
 - `results/rnaseq/deeptools/bam_correlation_heatmap.png` when 2 or more aligned BAMs are available
@@ -202,6 +205,8 @@ rnaseq:
 - `results/rnaseq/multiqc_report.html`
 
 Duplicate marking is tracked in separate BAMs for QC and does not remove reads from the original RNA-seq alignment outputs.
+
+HISAT2 also writes one summary file per sample next to the aligned BAM, which MultiQC uses for alignment statistics.
 
 The RNA-seq correlation heatmap is generated from indexed aligned BAMs and is skipped automatically when fewer than 2 samples are available.
 
@@ -304,7 +309,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - QC: `results/rnaseq/qc_raw`, `results/rnaseq/qc_trimmed`
 - Trimming: `results/rnaseq/trimmed_fastqs`
 - Kallisto: `results/rnaseq/kallisto/<sample>/abundance.tsv`
-- HISAT2: `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
+- HISAT2: `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam` and `results/rnaseq/aligned_bams/<sample>_pe.hisat2.summary.txt`
 - Duplicate marking QC: `results/rnaseq/marked_bams/<sample>_pe.markdup.bam` and `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
 - deepTools correlation: `results/rnaseq/deeptools/bam_correlation_heatmap.png` when 2 or more aligned BAMs are available
 - Optional gene body coverage: `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt` plus curve and optional heatmap plots

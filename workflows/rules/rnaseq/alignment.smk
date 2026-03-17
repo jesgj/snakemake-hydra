@@ -11,6 +11,7 @@ HISAT2_EXTRA_ARGS = config.get("hisat2", {}).get("extra_args", "")
 # The basename for the index, derived from the genome file name
 REF_BASENAME = os.path.splitext(os.path.basename(REF_GENOME))[0]
 HISAT2_INDEX_PREFIX = os.path.join(HISAT2_INDEX_DIR, REF_BASENAME)
+HISAT2_INDEX_FILES = expand(f"{HISAT2_INDEX_PREFIX}.{{idx}}.ht2", idx=range(1, 9))
 
 # --- RULES ---
 
@@ -21,15 +22,14 @@ rule hisat2_build:
     input:
         ref=REF_GENOME
     output:
-        # hisat2-build creates multiple files, we use a sentinel file to track completion
-        sentinel=os.path.join(HISAT2_INDEX_DIR, "index_built.OK")
+        index=HISAT2_INDEX_FILES
     params:
         prefix=HISAT2_INDEX_PREFIX
     threads: 1
     log:
         os.path.join("logs", config["pipeline"], "hisat2_build", "hisat2_build.log")
     shell:
-        "pixi run hisat2-build {input.ref} {params.prefix} > {log}.out 2> {log}.err && touch {output.sentinel}"
+        "pixi run hisat2-build {input.ref} {params.prefix} > {log}.out 2> {log}.err"
 
 rule hisat2_align_pe:
     """
@@ -39,9 +39,10 @@ rule hisat2_align_pe:
     input:
         r1=os.path.join(TRIMMED_DIR, "{sample}_R1.trimmed.fq.gz"),
         r2=os.path.join(TRIMMED_DIR, "{sample}_R2.trimmed.fq.gz"),
-        index_sentinel=os.path.join(HISAT2_INDEX_DIR, "index_built.OK")
+        index=HISAT2_INDEX_FILES
     output:
-        bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
+        bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"),
+        summary=os.path.join(ALIGNMENT_DIR, "{sample}_pe.hisat2.summary.txt")
     params:
         extra=HISAT2_EXTRA_ARGS,
         index_prefix=HISAT2_INDEX_PREFIX
@@ -50,9 +51,9 @@ rule hisat2_align_pe:
         os.path.join("logs", config["pipeline"], "hisat2_align", "{sample}_pe.log")
     shell:
         """
-        (pixi run hisat2 -p {threads} {params.extra} -x {params.index_prefix} -1 {input.r1} -2 {input.r2} | \
+        (pixi run hisat2 -p {threads} {params.extra} --summary-file "{output.summary}" -x {params.index_prefix} -1 "{input.r1}" -2 "{input.r2}" | \
         pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} - -o {output.bam}) 2> {log}
+        pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
         """
 
 rule samtools_index_aligned_bam:

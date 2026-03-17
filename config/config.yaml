@@ -23,7 +23,7 @@ rnaseq:
   # HISAT2 alignment
   ref_genome: "ref/genome.fa"
   hisat2_index_dir: "ref/hisat2"
-  alignment_dir: "results/rnaseq/aligned_bams"
+  alignment_dir: "results/rnaseq/aligned_bams"  # Sorted BAMs and HISAT2 summary files are written here
   marked_bam_dir: "results/rnaseq/marked_bams"
   duplication_qc_dir: "results/rnaseq/duplication_qc"
   bigwig_dir: "results/rnaseq/bigwigs"
@@ -45,7 +45,7 @@ rnaseq:
       extra_args: "--binSize 10"
   gene_body_coverage:
     enabled: true  # Set to false to skip the RNA-seq gene body coverage QC step
-    refgene_bed: "ref/duumy.bed"
+    refgene_bed: "ref/duumy.bed"  # Placeholder BED12 for dry-runs only; replace with a real annotation for production
     minimum_length: 100
     format: "pdf"
 

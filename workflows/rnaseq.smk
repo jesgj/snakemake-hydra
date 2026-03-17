@@ -146,6 +146,7 @@ def get_rnaseq_outputs(samples):
     outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.html"), sample=samples))
     outputs.extend(expand(os.path.join(KALLISTO_OUTPUT_DIR, "{sample}", "abundance.tsv"), sample=samples))
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=samples))
+    outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.hisat2.summary.txt"), sample=samples))
     outputs.extend(get_markduplicates_outputs(samples))
     outputs.extend(get_gene_body_coverage_outputs(samples))
     if len(samples) >= 2:
@@ -154,10 +155,44 @@ def get_rnaseq_outputs(samples):
     outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=samples))
     return outputs
 
+
+def get_rnaseq_multiqc_inputs(samples):
+    inputs = []
+    inputs.extend(expand(os.path.join(QC_DIR, "{sample}_R1_raw_fastqc.zip"), sample=samples))
+    inputs.extend(expand(os.path.join(QC_DIR, "{sample}_R2_raw_fastqc.zip"), sample=samples))
+    inputs.extend(expand(os.path.join(TRIMMED_DIR, "{sample}.fastp.html"), sample=samples))
+    inputs.extend(expand(os.path.join(TRIMMED_DIR, "{sample}.fastp.json"), sample=samples))
+    inputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R1_trimmed_fastqc.zip"), sample=samples))
+    inputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.zip"), sample=samples))
+    inputs.extend(expand(os.path.join(KALLISTO_OUTPUT_DIR, "{sample}", "abundance.tsv"), sample=samples))
+    inputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.hisat2.summary.txt"), sample=samples))
+    inputs.extend(expand(os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt"), sample=samples))
+    inputs.extend(get_gene_body_coverage_outputs(samples))
+    return inputs
+
+
+def get_rnaseq_multiqc_analysis_dirs():
+    analysis_dirs = [
+        QC_DIR,
+        TRIMMED_DIR,
+        QC_TRIMMED_DIR,
+        KALLISTO_OUTPUT_DIR,
+        ALIGNMENT_DIR,
+        MARKED_BAM_DIR,
+        DUPLICATION_QC_DIR,
+        BIGWIG_DIR,
+        DEEPTOOLS_DIR,
+        os.path.join("logs", config["pipeline"]),
+    ]
+    if GENE_BODY_COVERAGE_ENABLED:
+        analysis_dirs.append(GENE_BODY_COVERAGE_DIR)
+    return list(dict.fromkeys(analysis_dirs))
+
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "rnaseq"
 config["multiqc_results_dir"] = "results/rnaseq"
-config["multiqc_input_files"] = get_rnaseq_outputs(SAMPLES)
+config["multiqc_input_files"] = get_rnaseq_multiqc_inputs(SAMPLES)
+config["multiqc_analysis_dirs"] = get_rnaseq_multiqc_analysis_dirs()
 
 
 # --- MODULE INCLUSION ---
