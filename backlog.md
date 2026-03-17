@@ -12,6 +12,9 @@ Track notable changes and implementation work here.
 - 2026-03-16: Add RNA-seq RSeQC gene body coverage QC with configurable BED12 input, tracked outputs, and a dry-run placeholder BED file.
 - 2026-03-16: Add RNA-seq Picard MarkDuplicates QC to mark duplicate reads without removal and report duplication metrics in MultiQC.
 - 2026-03-17: Make RNA-seq gene body coverage optional via `gene_body_coverage.enabled` and skip its validation and tracked outputs when disabled.
+- 2026-03-17: Add ATAC-seq Picard duplicate marking metrics and remove duplicate-flagged reads during filtered BAM generation.
+- 2026-03-17: Refactor shared deepTools QC rules for fingerprint and correlation plots, and add ATAC-seq fingerprint/correlation QC on explicitly indexed filtered BAMs.
+- 2026-03-17: Add RNA-seq deepTools multiBamSummary/plotCorrelation QC on explicitly indexed aligned BAMs, skipping the correlation step when fewer than 2 samples are available.
 
 ## Planned
 - (Add upcoming work items here.)

@@ -12,9 +12,12 @@ QC_TRIMMED_DIR = config["qc_trimmed_dir"]
 REF_GENOME = config["ref_genome"]
 BOWTIE2_INDEX_DIR = config["bowtie2_index_dir"]
 ALIGNMENT_DIR = config["alignment_dir"]
+MARKED_BAM_DIR = config.get("marked_bam_dir", os.path.join("results", "atacseq", "marked_bams"))
+DUPLICATION_QC_DIR = config.get("duplication_qc_dir", os.path.join("results", "atacseq", "duplication_qc"))
 BAM_QC_DIR = config["bam_qc_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 FILTERED_BAM_QC_DIR = config["filtered_bam_qc_dir"]
+DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "atacseq", "deeptools"))
 FRAGMENT_QC_DIR = config["fragment_qc_dir"]
 BIGWIG_DIR = config["bigwig_dir"]
 PEAKS_DIR = config["peaks_dir"]
@@ -27,9 +30,12 @@ config["qc_trimmed_dir"] = QC_TRIMMED_DIR
 config["ref_genome"] = REF_GENOME
 config["bowtie2_index_dir"] = BOWTIE2_INDEX_DIR
 config["alignment_dir"] = ALIGNMENT_DIR
+config["marked_bam_dir"] = MARKED_BAM_DIR
+config["duplication_qc_dir"] = DUPLICATION_QC_DIR
 config["bam_qc_dir"] = BAM_QC_DIR
 config["filtered_bam_dir"] = FILTERED_BAM_DIR
 config["filtered_bam_qc_dir"] = FILTERED_BAM_QC_DIR
+config["deeptools_dir"] = DEEPTOOLS_DIR
 config["fragment_qc_dir"] = FRAGMENT_QC_DIR
 config["bigwig_dir"] = BIGWIG_DIR
 config["peaks_dir"] = PEAKS_DIR
@@ -40,9 +46,12 @@ os.makedirs(TRIMMED_DIR, exist_ok=True)
 os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
 os.makedirs(BOWTIE2_INDEX_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
+os.makedirs(MARKED_BAM_DIR, exist_ok=True)
+os.makedirs(DUPLICATION_QC_DIR, exist_ok=True)
 os.makedirs(BAM_QC_DIR, exist_ok=True)
 os.makedirs(FILTERED_BAM_DIR, exist_ok=True)
 os.makedirs(FILTERED_BAM_QC_DIR, exist_ok=True)
+os.makedirs(DEEPTOOLS_DIR, exist_ok=True)
 os.makedirs(FRAGMENT_QC_DIR, exist_ok=True)
 os.makedirs(BIGWIG_DIR, exist_ok=True)
 os.makedirs(PEAKS_DIR, exist_ok=True)
@@ -53,8 +62,11 @@ os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_build"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "sambamba_filter"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "deeptools"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fragment_qc"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "macs3"), exist_ok=True)
@@ -83,6 +95,19 @@ if invalid_samples:
     )
 
 
+def get_all_filtered_bams(samples):
+    return [os.path.join(FILTERED_BAM_DIR, f"{sample}_pe.filtered.sorted.bam") for sample in samples]
+
+
+def get_all_filtered_bais(samples):
+    return [f"{bam}.bai" for bam in get_all_filtered_bams(samples)]
+
+
+ALL_FILTERED_BAMS = get_all_filtered_bams(SAMPLES)
+ALL_FILTERED_BAIS = get_all_filtered_bais(SAMPLES)
+HAS_MULTI_BAM_DEEPTOOLS = len(ALL_FILTERED_BAMS) >= 2
+
+
 def get_atacseq_outputs(samples):
     outputs = []
     outputs.extend(expand(os.path.join(QC_DIR, "{sample}_R1_raw_fastqc.html"), sample=samples))
@@ -90,11 +115,17 @@ def get_atacseq_outputs(samples):
     outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R1_trimmed_fastqc.html"), sample=samples))
     outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.html"), sample=samples))
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=samples))
+    outputs.extend(expand(os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt"), sample=samples))
     outputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.stats.txt"), sample=samples))
     outputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.flagstat.txt"), sample=samples))
     outputs.extend(expand(os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"), sample=samples))
     outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.stats.txt"), sample=samples))
     outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.flagstat.txt"), sample=samples))
+    outputs.append(os.path.join(DEEPTOOLS_DIR, "fingerprints.png"))
+    outputs.append(os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab"))
+    if len(samples) >= 2:
+        outputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"))
+        outputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab"))
     outputs.extend(expand(os.path.join(FRAGMENT_QC_DIR, "{sample}_pe.insert_size_metrics.txt"), sample=samples))
     outputs.extend(expand(os.path.join(FRAGMENT_QC_DIR, "{sample}_pe.insert_size_histogram.pdf"), sample=samples))
     outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=samples))
@@ -116,6 +147,8 @@ include: "rules/qc.smk"
 include: "rules/trimming_and_qc.smk"
 include: "rules/atacseq/alignment.smk"
 include: "rules/bam_qc.smk"
+include: "rules/deeptools_qc.smk"
+include: "rules/atacseq/markduplicates.smk"
 include: "rules/atacseq/filter_bam.smk"
 include: "rules/atacseq/fragment_qc.smk"
 include: "rules/atacseq/bigwig.smk"
@@ -155,6 +188,53 @@ use rule samtools_flagstat_generic as samtools_flagstat_filtered with:
         flagstat = os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.flagstat.txt")
     log:
         os.path.join("logs", config["pipeline"], "bam_qc", "{sample}_pe_filtered_flagstat.log")
+
+use rule samtools_index_bam_generic as samtools_index_filtered_bam with:
+    input:
+        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam")
+    output:
+        bai = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai")
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_index_filtered", "{sample}_pe.log")
+
+MBS_ARGS = config.get("deeptools", {}).get("multiBamSummary", {}).get("extra_args", "--binSize 10000")
+PC_ARGS = config.get("deeptools", {}).get("plotCorrelation", {}).get("extra_args", "-p heatmap --corMethod spearman --skipZeros")
+PF_ARGS = config.get("deeptools", {}).get("plotFingerprint", {}).get("extra_args", "")
+
+use rule plotFingerprint_generic as plotFingerprint with:
+    input:
+        bams = ALL_FILTERED_BAMS,
+        bais = ALL_FILTERED_BAIS
+    output:
+        plot = os.path.join(DEEPTOOLS_DIR, "fingerprints.png"),
+        metrics = os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab")
+    params:
+        extra = PF_ARGS
+    log:
+        os.path.join("logs", config["pipeline"], "deeptools", "plotFingerprint.log")
+
+if HAS_MULTI_BAM_DEEPTOOLS:
+    use rule multiBamSummary_generic as multiBamSummary with:
+        input:
+            bams = ALL_FILTERED_BAMS,
+            bais = ALL_FILTERED_BAIS
+        output:
+            npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
+        params:
+            extra = MBS_ARGS
+        log:
+            os.path.join("logs", config["pipeline"], "deeptools", "multiBamSummary.log")
+
+    use rule plotCorrelation_generic as plotCorrelation with:
+        input:
+            npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
+        output:
+            heatmap = os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"),
+            matrix = os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab")
+        params:
+            extra = PC_ARGS
+        log:
+            os.path.join("logs", config["pipeline"], "deeptools", "plotCorrelation.log")
 
 
 # --- FINAL TARGETS ---

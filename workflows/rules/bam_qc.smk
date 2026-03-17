@@ -33,6 +33,21 @@ rule samtools_flagstat_generic:
     shell:
         "pixi run samtools flagstat {input.bam} > {output.flagstat} 2> {log}"
 
+
+rule samtools_index_bam_generic:
+    """
+    Generic rule for samtools index. Override I/O in parent workflow.
+    """
+    input:
+        bam = "path/to/input.bam"
+    output:
+        bai = "path/to/input.bam.bai"
+    threads: 4
+    log:
+        "logs/samtools_index.log"
+    shell:
+        "pixi run samtools index -@ {threads} {input.bam} {output.bai} > {log}.out 2> {log}.err"
+
 rule picard_collect_alignment_metrics_generic:
     """
     Generic rule for Picard CollectAlignmentSummaryMetrics. Override I/O in parent workflow.
@@ -54,4 +69,3 @@ rule picard_collect_alignment_metrics_generic:
             -I {input.bam} \
             -O {output.metrics} --IS_BISULFITE_SEQUENCED true > {log}.out 2> {log}.err
         """
-

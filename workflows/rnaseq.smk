@@ -23,6 +23,7 @@ ALIGNMENT_DIR = config["alignment_dir"]
 MARKED_BAM_DIR = config["marked_bam_dir"]
 DUPLICATION_QC_DIR = config["duplication_qc_dir"]
 BIGWIG_DIR = config["bigwig_dir"]
+DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "rnaseq", "deeptools"))
 GENE_BODY_COVERAGE_CONFIG = config.get("gene_body_coverage", {})
 GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", True)
 GENE_BODY_COVERAGE_DIR = config.get(
@@ -45,6 +46,7 @@ config["alignment_dir"] = ALIGNMENT_DIR
 config["marked_bam_dir"] = MARKED_BAM_DIR
 config["duplication_qc_dir"] = DUPLICATION_QC_DIR
 config["bigwig_dir"] = BIGWIG_DIR
+config["deeptools_dir"] = DEEPTOOLS_DIR
 config["gene_body_coverage_dir"] = GENE_BODY_COVERAGE_DIR
 config["gene_body_coverage"] = GENE_BODY_COVERAGE_CONFIG
 
@@ -59,6 +61,7 @@ os.makedirs(ALIGNMENT_DIR, exist_ok=True)
 os.makedirs(MARKED_BAM_DIR, exist_ok=True)
 os.makedirs(DUPLICATION_QC_DIR, exist_ok=True)
 os.makedirs(BIGWIG_DIR, exist_ok=True)
+os.makedirs(DEEPTOOLS_DIR, exist_ok=True)
 if GENE_BODY_COVERAGE_ENABLED:
     os.makedirs(GENE_BODY_COVERAGE_DIR, exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
@@ -70,6 +73,7 @@ os.makedirs(os.path.join("logs", config["pipeline"], "hisat2_build"), exist_ok=T
 os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_index"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "deeptools"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
 if GENE_BODY_COVERAGE_ENABLED:
     os.makedirs(os.path.join("logs", config["pipeline"], "gene_body_coverage"), exist_ok=True)
@@ -96,6 +100,19 @@ if invalid_samples:
         "RNA-seq currently supports paired-end samples only (type=PE with R1 and R2). "
         f"Invalid samples: {', '.join(invalid_samples)}"
     )
+
+
+def get_all_aligned_bams(samples):
+    return [os.path.join(ALIGNMENT_DIR, f"{sample}_pe.sorted.bam") for sample in samples]
+
+
+def get_all_aligned_bais(samples):
+    return [f"{bam}.bai" for bam in get_all_aligned_bams(samples)]
+
+
+ALL_ALIGNED_BAMS = get_all_aligned_bams(SAMPLES)
+ALL_ALIGNED_BAIS = get_all_aligned_bais(SAMPLES)
+HAS_MULTI_BAM_DEEPTOOLS = len(ALL_ALIGNED_BAMS) >= 2
 
 
 # --- HELPER FUNCTION FOR OUTPUTS ---
@@ -131,6 +148,9 @@ def get_rnaseq_outputs(samples):
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=samples))
     outputs.extend(get_markduplicates_outputs(samples))
     outputs.extend(get_gene_body_coverage_outputs(samples))
+    if len(samples) >= 2:
+        outputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"))
+        outputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab"))
     outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=samples))
     return outputs
 
@@ -157,15 +177,45 @@ include: "rules/rnaseq/alignment.smk"
 # 5. Duplicate marking QC
 include: "rules/rnaseq/markduplicates.smk"
 
-# 6. Optional gene body coverage QC
+# 6. Shared deepTools QC
+include: "rules/deeptools_qc.smk"
+
+# 7. Optional gene body coverage QC
 if GENE_BODY_COVERAGE_ENABLED:
     include: "rules/rnaseq/gene_body_coverage.smk"
 
-# 7. BigWig generation
+# 8. BigWig generation
 include: "rules/rnaseq/bigwig.smk"
 
-# 8. MultiQC report
+# 9. MultiQC report
 include: "rules/multiqc.smk"
+
+
+MBS_ARGS = config.get("deeptools", {}).get("multiBamSummary", {}).get("extra_args", "--binSize 10000")
+PC_ARGS = config.get("deeptools", {}).get("plotCorrelation", {}).get("extra_args", "-p heatmap --corMethod spearman --skipZeros")
+
+if HAS_MULTI_BAM_DEEPTOOLS:
+    use rule multiBamSummary_generic as multiBamSummary with:
+        input:
+            bams = ALL_ALIGNED_BAMS,
+            bais = ALL_ALIGNED_BAIS
+        output:
+            npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
+        params:
+            extra = MBS_ARGS
+        log:
+            os.path.join("logs", config["pipeline"], "deeptools", "multiBamSummary.log")
+
+    use rule plotCorrelation_generic as plotCorrelation with:
+        input:
+            npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
+        output:
+            heatmap = os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"),
+            matrix = os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab")
+        params:
+            extra = PC_ARGS
+        log:
+            os.path.join("logs", config["pipeline"], "deeptools", "plotCorrelation.log")
 
 
 # --- FINAL TARGETS ---

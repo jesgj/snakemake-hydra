@@ -53,6 +53,7 @@ os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "sambamba_filter"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "deeptools"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
@@ -108,6 +109,23 @@ config["multiqc_results_dir"] = "results/chipseq_cutrun"
 pe_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'PE']
 se_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'SE']
 
+
+def get_all_filtered_bams(samples_info):
+    bams = []
+    for sample, info in samples_info.items():
+        read_type = 'pe' if info['type'] == 'PE' else 'se'
+        bams.append(os.path.join(FILTERED_BAM_DIR, f"{sample}_{read_type}.filtered.sorted.bam"))
+    return bams
+
+
+def get_all_filtered_bais(samples_info):
+    return [f"{bam}.bai" for bam in get_all_filtered_bams(samples_info)]
+
+
+ALL_FILTERED_BAMS = get_all_filtered_bams(SAMPLES_INFO)
+ALL_FILTERED_BAIS = get_all_filtered_bais(SAMPLES_INFO)
+HAS_MULTI_BAM_DEEPTOOLS = len(ALL_FILTERED_BAMS) >= 2
+
 final_outputs = []
 # Raw QC
 final_outputs.extend(expand(os.path.join(QC_DIR, "{sample}_R1_raw_fastqc.html"), sample=pe_samples))
@@ -136,10 +154,15 @@ final_outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_se.flags
 final_outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_se.alignment_summary_metrics.txt"), sample=se_samples))
 # Deeptools
 final_outputs.extend([
-    os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"),
     os.path.join(DEEPTOOLS_DIR, "fingerprints.png"),
+    os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab"),
     os.path.join(DEEPTOOLS_DIR, "heatmap.png"),
 ])
+if HAS_MULTI_BAM_DEEPTOOLS:
+    final_outputs.extend([
+        os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"),
+        os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab"),
+    ])
 # Bigwigs
 final_outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=pe_samples))
 final_outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_se.bw"), sample=se_samples))
@@ -163,16 +186,19 @@ include: "rules/chip_cr/alignment.smk"
 # 4. Generic BAM QC
 include: "rules/bam_qc.smk"
 
-# 5. Filtering and Deduplication
+# 5. Shared deepTools QC
+include: "rules/deeptools_qc.smk"
+
+# 6. Filtering and Deduplication
 include: "rules/chip_cr/filter_bam.smk"
 
-# 6. BigWig generation and subtraction
+# 7. BigWig generation and subtraction
 include: "rules/chip_cr/bigwig.smk"
 
-# 7. Heatmap computeMatrix + plotHeatmap
+# 8. Heatmap computeMatrix + plotHeatmap
 include: "rules/chip_cr/heatmap.smk"
 
-# 8. MultiQC report
+# 9. MultiQC report
 include: "rules/multiqc.smk"
 
 
@@ -230,71 +256,52 @@ use rule picard_collect_alignment_metrics_generic as picard_collect_alignment_me
     log:
         os.path.join("logs", config["pipeline"], "bam_qc", "{sample}_{read_type}_filtered_picard_metrics.log")
 
+use rule samtools_index_bam_generic as samtools_index_filtered_bam with:
+    input:
+        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_{read_type}.filtered.sorted.bam")
+    output:
+        bai = os.path.join(FILTERED_BAM_DIR, "{sample}_{read_type}.filtered.sorted.bam.bai")
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_index_filtered", "{sample}_{read_type}.log")
 
-# --- DEEPTOOLS RULES (from former filtered_bam_qc.smk) ---
-
-def get_all_filtered_bams(samples_info):
-    bams = []
-    for sample, info in samples_info.items():
-        read_type = 'pe' if info['type'] == 'PE' else 'se'
-        bams.append(os.path.join(FILTERED_BAM_DIR, f"{sample}_{read_type}.filtered.sorted.bam"))
-    return bams
-
-ALL_FILTERED_BAMS = get_all_filtered_bams(SAMPLES_INFO)
-
-MBS_ARGS = config.get("deeptools", {}).get("multiBamSummary", {}).get("extra_args", "")
-PC_ARGS = config.get("deeptools", {}).get("plotCorrelation", {}).get("extra_args", "")
+MBS_ARGS = config.get("deeptools", {}).get("multiBamSummary", {}).get("extra_args", "--binSize 10000")
+PC_ARGS = config.get("deeptools", {}).get("plotCorrelation", {}).get("extra_args", "-p heatmap --corMethod spearman --skipZeros")
 PF_ARGS = config.get("deeptools", {}).get("plotFingerprint", {}).get("extra_args", "")
 
-rule multiBamSummary:
-    """
-    Computes read coverages for multiple BAM files.
-    """
+use rule plotFingerprint_generic as plotFingerprint with:
     input:
-        bams = ALL_FILTERED_BAMS
-    output:
-        npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
-    params:
-        extra = MBS_ARGS
-    threads: 8
-    log:
-        os.path.join("logs", config["pipeline"], "deeptools", "multiBamSummary.log")
-    shell:
-        "pixi run multiBamSummary bins -b {input.bams} -o {output.npz} -p {threads} {params.extra} > {log}.out 2> {log}.err"
-
-rule plotCorrelation:
-    """
-    Creates a heatmap of correlations based on multiBamSummary output.
-    """
-    input:
-        npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
-    output:
-        heatmap = os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"),
-        matrix = os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab")
-    params:
-        extra = PC_ARGS
-    threads: 1
-    log:
-        os.path.join("logs", config["pipeline"], "deeptools", "plotCorrelation.log")
-    shell:
-        "pixi run plotCorrelation -in {input.npz} -o {output.heatmap} --outFileCorMatrix {output.matrix} {params.extra} > {log}.out 2> {log}.err"
-
-rule plotFingerprint:
-    """
-    Generates fingerprints for each BAM file to assess ChIP-seq quality.
-    """
-    input:
-        bams = ALL_FILTERED_BAMS
+        bams = ALL_FILTERED_BAMS,
+        bais = ALL_FILTERED_BAIS
     output:
         plot = os.path.join(DEEPTOOLS_DIR, "fingerprints.png"),
         metrics = os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab")
     params:
         extra = PF_ARGS
-    threads: 8
     log:
         os.path.join("logs", config["pipeline"], "deeptools", "plotFingerprint.log")
-    shell:
-        "pixi run plotFingerprint -b {input.bams} -o {output.plot} --outRawCounts {output.metrics} -p {threads} {params.extra} > {log}.out 2> {log}.err"
+
+if HAS_MULTI_BAM_DEEPTOOLS:
+    use rule multiBamSummary_generic as multiBamSummary with:
+        input:
+            bams = ALL_FILTERED_BAMS,
+            bais = ALL_FILTERED_BAIS
+        output:
+            npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
+        params:
+            extra = MBS_ARGS
+        log:
+            os.path.join("logs", config["pipeline"], "deeptools", "multiBamSummary.log")
+
+    use rule plotCorrelation_generic as plotCorrelation with:
+        input:
+            npz = os.path.join(DEEPTOOLS_DIR, "read_coverage.npz")
+        output:
+            heatmap = os.path.join(DEEPTOOLS_DIR, "bam_correlation_heatmap.png"),
+            matrix = os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab")
+        params:
+            extra = PC_ARGS
+        log:
+            os.path.join("logs", config["pipeline"], "deeptools", "plotCorrelation.log")
 
 
 # --- FINAL TARGETS ---

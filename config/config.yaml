@@ -27,6 +27,7 @@ rnaseq:
   marked_bam_dir: "results/rnaseq/marked_bams"
   duplication_qc_dir: "results/rnaseq/duplication_qc"
   bigwig_dir: "results/rnaseq/bigwigs"
+  deeptools_dir: "results/rnaseq/deeptools"
   gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
   hisat2:
     extra_args: ""
@@ -35,6 +36,10 @@ rnaseq:
     markduplicates:
       extra_args: ""
   deeptools:
+    multiBamSummary:
+      extra_args: "--binSize 10000"
+    plotCorrelation:
+      extra_args: "-p heatmap --corMethod spearman --skipZeros"
     bamCoverage:
       normalize_using: "RPKM"
       extra_args: "--binSize 10"
@@ -176,9 +181,12 @@ atacseq:
   ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
   bowtie2_index_dir: "ref/bowtie2_atacseq"
   alignment_dir: "results/atacseq/aligned_bams"
+  marked_bam_dir: "results/atacseq/marked_bams"
+  duplication_qc_dir: "results/atacseq/duplication_qc"
   bam_qc_dir: "results/atacseq/bam_qc"
   filtered_bam_dir: "results/atacseq/filtered_bams"
   filtered_bam_qc_dir: "results/atacseq/filtered_bam_qc"
+  deeptools_dir: "results/atacseq/deeptools"
   fragment_qc_dir: "results/atacseq/fragment_qc"
   bigwig_dir: "results/atacseq/bigwigs"
   peaks_dir: "results/atacseq/peaks"
@@ -187,9 +195,14 @@ atacseq:
   bowtie2:
     extra_args: "--very-sensitive -X 2000"
   sambamba:
-    markdup_extra_args: "-r"
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
   deeptools:
+    multiBamSummary:
+      extra_args: "--binSize 10000"
+    plotCorrelation:
+      extra_args: "-p heatmap --corMethod spearman --skipZeros"
+    plotFingerprint:
+      extra_args: ""
     bamCoverage:
       normalize_using: "CPM"
       extra_args: ""
@@ -199,3 +212,5 @@ atacseq:
     extra_args: ""
   picard:
     java_opts: "-Xmx2g"
+    markduplicates:
+      extra_args: ""

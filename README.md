@@ -132,6 +132,8 @@ pixi run snakemake --cores 16 --printshellcmds --latency-wait 60
 - `results/chipseq_cutrun/multiqc_report.html`
 - `results/chipseq_cutrun/bigwigs/*.bw`
 - `results/chipseq_cutrun/subtracted_bigwigs/*.subtracted.bw`
+- `results/chipseq_cutrun/deeptools/fingerprints.png`
+- `results/chipseq_cutrun/deeptools/bam_correlation_heatmap.png` when 2 or more filtered BAMs are available
 - `results/chipseq_cutrun/deeptools/heatmap.png`
 
 #### 2) ChIP-seq/CUT&RUN (single-end)
@@ -168,11 +170,20 @@ rnaseq:
   hisat2_index_dir: "ref/hisat2"
   marked_bam_dir: "results/rnaseq/marked_bams"
   duplication_qc_dir: "results/rnaseq/duplication_qc"
+  deeptools_dir: "results/rnaseq/deeptools"
   gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
   picard:
     java_opts: "-Xmx4g"
     markduplicates:
       extra_args: ""
+  deeptools:
+    multiBamSummary:
+      extra_args: "--binSize 10000"
+    plotCorrelation:
+      extra_args: "-p heatmap --corMethod spearman --skipZeros"
+    bamCoverage:
+      normalize_using: "RPKM"
+      extra_args: "--binSize 10"
   gene_body_coverage:
     enabled: true
     refgene_bed: "ref/duumy.bed"
@@ -185,11 +196,14 @@ rnaseq:
 - `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
 - `results/rnaseq/marked_bams/<sample>_pe.markdup.bam`
 - `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- `results/rnaseq/deeptools/bam_correlation_heatmap.png` when 2 or more aligned BAMs are available
 - `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt`, `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.curves.pdf`, and `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.heatMap.pdf` when `rnaseq.gene_body_coverage.enabled: true` and 3 or more BAMs are analyzed
 - `results/rnaseq/bigwigs/<sample>_pe.bw`
 - `results/rnaseq/multiqc_report.html`
 
 Duplicate marking is tracked in separate BAMs for QC and does not remove reads from the original RNA-seq alignment outputs.
+
+The RNA-seq correlation heatmap is generated from indexed aligned BAMs and is skipped automatically when fewer than 2 samples are available.
 
 Use a real BED12 gene model matched to the RNA-seq genome assembly for production runs if you enable gene body coverage. `ref/duumy.bed` is only a placeholder for dry-run testing.
 
@@ -240,15 +254,36 @@ atacseq:
       type: "PE"
   ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
   bowtie2_index_dir: "ref/bowtie2_atacseq"
+  marked_bam_dir: "results/atacseq/marked_bams"
+  duplication_qc_dir: "results/atacseq/duplication_qc"
+  deeptools_dir: "results/atacseq/deeptools"
+  sambamba:
+    view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
+  deeptools:
+    multiBamSummary:
+      extra_args: "--binSize 10000"
+    plotCorrelation:
+      extra_args: "-p heatmap --corMethod spearman --skipZeros"
+    plotFingerprint:
+      extra_args: ""
+  picard:
+    java_opts: "-Xmx2g"
+    markduplicates:
+      extra_args: ""
   macs3:
     genome_size: "1.4e9"
 ```
 
 4. Key outputs:
+- `results/atacseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- `results/atacseq/deeptools/fingerprints.png`
+- `results/atacseq/deeptools/bam_correlation_heatmap.png` when 2 or more filtered BAMs are available
 - `results/atacseq/peaks/<sample>_peaks.narrowPeak`
 - `results/atacseq/bigwigs/<sample>_pe.bw`
 - `results/atacseq/fragment_qc/<sample>_pe.insert_size_metrics.txt`
 - `results/atacseq/multiqc_report.html`
+
+Duplicate reads are first marked with Picard to collect metrics, then removed during BAM filtering before deepTools QC, fragment QC, bigWig generation, and peak calling. The ATAC-seq correlation heatmap is skipped automatically when fewer than 2 filtered BAMs are available.
 
 #### 6) Automatic sample discovery
 If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline will detect samples from common FASTQ naming conventions. Keep in mind that `rnaseq`, `wgbs`, and `atacseq` require paired-end inputs, while `chip_cr` accepts paired-end and single-end data.
@@ -261,6 +296,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - Kallisto: `results/rnaseq/kallisto/<sample>/abundance.tsv`
 - HISAT2: `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`
 - Duplicate marking QC: `results/rnaseq/marked_bams/<sample>_pe.markdup.bam` and `results/rnaseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- deepTools correlation: `results/rnaseq/deeptools/bam_correlation_heatmap.png` when 2 or more aligned BAMs are available
 - Optional gene body coverage: `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt` plus curve and optional heatmap plots
 - BigWig: `results/rnaseq/bigwigs/<sample>_pe.bw`
 - MultiQC: `results/rnaseq/multiqc_report.html`
@@ -278,13 +314,15 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - Trimming: `results/chipseq_cutrun/trimmed_fastqs`
 - BAMs: `results/chipseq_cutrun/aligned_bams`, `results/chipseq_cutrun/filtered_bams`
 - BigWig: `results/chipseq_cutrun/bigwigs`, `results/chipseq_cutrun/subtracted_bigwigs`
-- deepTools: `results/chipseq_cutrun/deeptools`
+- deepTools: `results/chipseq_cutrun/deeptools` including fingerprint and correlation plots
 - MultiQC: `results/chipseq_cutrun/multiqc_report.html`
 
 #### ATAC-seq
 - QC: `results/atacseq/qc_raw`, `results/atacseq/qc_trimmed`
 - Trimming: `results/atacseq/trimmed_fastqs`
 - BAMs: `results/atacseq/aligned_bams`, `results/atacseq/filtered_bams`
+- Duplicate marking QC: `results/atacseq/duplication_qc/<sample>_pe.markdup.metrics.txt`
+- deepTools: `results/atacseq/deeptools` including fingerprint and optional correlation plots
 - Fragment QC: `results/atacseq/fragment_qc`
 - BigWig: `results/atacseq/bigwigs`
 - Peaks: `results/atacseq/peaks`
@@ -313,6 +351,8 @@ Adjust these fields to tune trimming, mapping, filtering, normalization, and pea
 - **Single-end in ChIP/CUT&RUN:** use `type: "SE"` and define only `R1`.
 - **RNA-seq/WGBS/ATAC-seq single-end:** not implemented; use paired-end data.
 - **Disable RNA-seq gene body coverage:** set `rnaseq.gene_body_coverage.enabled: false`; `refgene_bed` is only required when the step is enabled.
+- **RNA-seq correlation heatmap:** `multiBamSummary` and `plotCorrelation` run only when at least 2 aligned BAMs are available.
+- **ATAC-seq and ChIP/CUT&RUN correlation heatmaps:** `multiBamSummary` and `plotCorrelation` run only when at least 2 filtered BAMs are available; `plotFingerprint` still runs with a single sample.
 - **WGBS validation fails early:** every WGBS sample must include `R1` and `R2`; the workflow aborts if it finds empty or single-end samples.
 - **No samples are detected:** check `raw_fastqs_dir` and FASTQ naming patterns.
 - **No bigWig subtraction appears for ChIP/CUT&RUN:** make sure input samples are named as `base_input_repX`.
