@@ -21,6 +21,10 @@ DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "atacseq", "
 FRAGMENT_QC_DIR = config["fragment_qc_dir"]
 BIGWIG_DIR = config["bigwig_dir"]
 PEAKS_DIR = config["peaks_dir"]
+PEAK_CALLER = config.get("peak_caller", "macs3")
+
+if PEAK_CALLER not in ["macs3", "genrich"]:
+    raise ValueError("ATAC-seq 'peak_caller' must be either 'macs3' or 'genrich'.")
 
 # Make config available to included rules
 config["raw_fastqs_dir"] = RAW_DIR
@@ -39,6 +43,7 @@ config["deeptools_dir"] = DEEPTOOLS_DIR
 config["fragment_qc_dir"] = FRAGMENT_QC_DIR
 config["bigwig_dir"] = BIGWIG_DIR
 config["peaks_dir"] = PEAKS_DIR
+config["peak_caller"] = PEAK_CALLER
 
 # Ensure output directories exist
 os.makedirs(QC_DIR, exist_ok=True)
@@ -69,7 +74,9 @@ os.makedirs(os.path.join("logs", config["pipeline"], "sambamba_filter"), exist_o
 os.makedirs(os.path.join("logs", config["pipeline"], "deeptools"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fragment_qc"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
-os.makedirs(os.path.join("logs", config["pipeline"], "macs3"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], PEAK_CALLER), exist_ok=True)
+if PEAK_CALLER == "genrich":
+    os.makedirs(os.path.join("logs", config["pipeline"], "genrich_qname_sort"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "multiqc"), exist_ok=True)
 
 # --- SAMPLE DISCOVERY ---
@@ -130,9 +137,10 @@ def get_atacseq_outputs(samples):
     outputs.extend(expand(os.path.join(FRAGMENT_QC_DIR, "{sample}_pe.insert_size_histogram.pdf"), sample=samples))
     outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_pe.bw"), sample=samples))
     outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_peaks.narrowPeak"), sample=samples))
-    outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_summits.bed"), sample=samples))
-    outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_treat_pileup.bdg"), sample=samples))
-    outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_peaks.xls"), sample=samples))
+    if PEAK_CALLER == "macs3":
+        outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_summits.bed"), sample=samples))
+        outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_treat_pileup.bdg"), sample=samples))
+        outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_peaks.xls"), sample=samples))
     return outputs
 
 

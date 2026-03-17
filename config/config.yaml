@@ -190,6 +190,7 @@ atacseq:
   fragment_qc_dir: "results/atacseq/fragment_qc"
   bigwig_dir: "results/atacseq/bigwigs"
   peaks_dir: "results/atacseq/peaks"
+  peak_caller: "macs3"  # Set to "genrich" to use Genrich instead of MACS3
   fastp:
     extra_args: "-q 20 -l 30"
   bowtie2:
@@ -209,6 +210,12 @@ atacseq:
   macs3:
     genome_size: "1.4e9"
     qvalue: 0.05
+    extra_args: ""
+  genrich:
+    qvalue: 0.05
+    min_auc: 20.0
+    min_length: 0
+    max_gap: 100
     extra_args: ""
   picard:
     java_opts: "-Xmx2g"

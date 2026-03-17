@@ -257,6 +257,7 @@ atacseq:
   marked_bam_dir: "results/atacseq/marked_bams"
   duplication_qc_dir: "results/atacseq/duplication_qc"
   deeptools_dir: "results/atacseq/deeptools"
+  peak_caller: "macs3"
   sambamba:
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
   deeptools:
@@ -272,6 +273,14 @@ atacseq:
       extra_args: ""
   macs3:
     genome_size: "1.4e9"
+    qvalue: 0.05
+    extra_args: ""
+  genrich:
+    qvalue: 0.05
+    min_auc: 20.0
+    min_length: 0
+    max_gap: 100
+    extra_args: ""
 ```
 
 4. Key outputs:
@@ -279,11 +288,12 @@ atacseq:
 - `results/atacseq/deeptools/fingerprints.png`
 - `results/atacseq/deeptools/bam_correlation_heatmap.png` when 2 or more filtered BAMs are available
 - `results/atacseq/peaks/<sample>_peaks.narrowPeak`
+- `results/atacseq/peaks/<sample>_summits.bed`, `results/atacseq/peaks/<sample>_treat_pileup.bdg`, and `results/atacseq/peaks/<sample>_peaks.xls` when `peak_caller: "macs3"`
 - `results/atacseq/bigwigs/<sample>_pe.bw`
 - `results/atacseq/fragment_qc/<sample>_pe.insert_size_metrics.txt`
 - `results/atacseq/multiqc_report.html`
 
-Duplicate reads are first marked with Picard to collect metrics, then removed during BAM filtering before deepTools QC, fragment QC, bigWig generation, and peak calling. The ATAC-seq correlation heatmap is skipped automatically when fewer than 2 filtered BAMs are available.
+Duplicate reads are first marked with Picard to collect metrics, then removed during BAM filtering before deepTools QC, fragment QC, bigWig generation, and peak calling. The ATAC-seq correlation heatmap is skipped automatically when fewer than 2 filtered BAMs are available. Set `peak_caller: "genrich"` to call peaks with Genrich instead of MACS3; the pipeline handles the required queryname-sorted intermediate BAM automatically.
 
 #### 6) Automatic sample discovery
 If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline will detect samples from common FASTQ naming conventions. Keep in mind that `rnaseq`, `wgbs`, and `atacseq` require paired-end inputs, while `chip_cr` accepts paired-end and single-end data.
@@ -325,7 +335,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - deepTools: `results/atacseq/deeptools` including fingerprint and optional correlation plots
 - Fragment QC: `results/atacseq/fragment_qc`
 - BigWig: `results/atacseq/bigwigs`
-- Peaks: `results/atacseq/peaks`
+- Peaks: `results/atacseq/peaks` with a shared `.narrowPeak` output for either MACS3 or Genrich
 - MultiQC: `results/atacseq/multiqc_report.html`
 
 ### Parameter customization
@@ -342,7 +352,7 @@ Tool parameters are configured in `config/config.yaml`:
 - `methyldackel_mbias.*`
 - `methyldackel_extract.*`
 - `deeptools.*`
-- `macs3.*`
+- `peak_caller`, `macs3.*`, `genrich.*`
 - `picard.java_opts`
 
 Adjust these fields to tune trimming, mapping, filtering, normalization, and peak-calling behavior.
@@ -353,6 +363,7 @@ Adjust these fields to tune trimming, mapping, filtering, normalization, and pea
 - **Disable RNA-seq gene body coverage:** set `rnaseq.gene_body_coverage.enabled: false`; `refgene_bed` is only required when the step is enabled.
 - **RNA-seq correlation heatmap:** `multiBamSummary` and `plotCorrelation` run only when at least 2 aligned BAMs are available.
 - **ATAC-seq and ChIP/CUT&RUN correlation heatmaps:** `multiBamSummary` and `plotCorrelation` run only when at least 2 filtered BAMs are available; `plotFingerprint` still runs with a single sample.
+- **ATAC-seq peak caller:** `peak_caller: "macs3"` keeps the current MACS3 outputs; `peak_caller: "genrich"` switches peak calling to Genrich and keeps the shared `.narrowPeak` output only.
 - **WGBS validation fails early:** every WGBS sample must include `R1` and `R2`; the workflow aborts if it finds empty or single-end samples.
 - **No samples are detected:** check `raw_fastqs_dir` and FASTQ naming patterns.
 - **No bigWig subtraction appears for ChIP/CUT&RUN:** make sure input samples are named as `base_input_repX`.

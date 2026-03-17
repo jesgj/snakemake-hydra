@@ -15,6 +15,7 @@ Track notable changes and implementation work here.
 - 2026-03-17: Add ATAC-seq Picard duplicate marking metrics and remove duplicate-flagged reads during filtered BAM generation.
 - 2026-03-17: Refactor shared deepTools QC rules for fingerprint and correlation plots, and add ATAC-seq fingerprint/correlation QC on explicitly indexed filtered BAMs.
 - 2026-03-17: Add RNA-seq deepTools multiBamSummary/plotCorrelation QC on explicitly indexed aligned BAMs, skipping the correlation step when fewer than 2 samples are available.
+- 2026-03-17: Add configurable ATAC-seq peak calling with default MACS3 support and an optional Genrich path that uses a queryname-sorted filtered BAM intermediate.
 
 ## Planned
 - (Add upcoming work items here.)
