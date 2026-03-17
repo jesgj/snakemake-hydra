@@ -23,8 +23,11 @@ ALIGNMENT_DIR = config["alignment_dir"]
 MARKED_BAM_DIR = config["marked_bam_dir"]
 DUPLICATION_QC_DIR = config["duplication_qc_dir"]
 BIGWIG_DIR = config["bigwig_dir"]
-GENE_BODY_COVERAGE_DIR = config["gene_body_coverage_dir"]
 GENE_BODY_COVERAGE_CONFIG = config.get("gene_body_coverage", {})
+GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", True)
+GENE_BODY_COVERAGE_DIR = config.get(
+    "gene_body_coverage_dir", os.path.join("results", "rnaseq", "gene_body_coverage")
+)
 GENE_BODY_COVERAGE_FORMAT = GENE_BODY_COVERAGE_CONFIG.get("format", "pdf")
 
 
@@ -56,7 +59,8 @@ os.makedirs(ALIGNMENT_DIR, exist_ok=True)
 os.makedirs(MARKED_BAM_DIR, exist_ok=True)
 os.makedirs(DUPLICATION_QC_DIR, exist_ok=True)
 os.makedirs(BIGWIG_DIR, exist_ok=True)
-os.makedirs(GENE_BODY_COVERAGE_DIR, exist_ok=True)
+if GENE_BODY_COVERAGE_ENABLED:
+    os.makedirs(GENE_BODY_COVERAGE_DIR, exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
@@ -67,7 +71,8 @@ os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_index"), exist_ok
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
-os.makedirs(os.path.join("logs", config["pipeline"], "gene_body_coverage"), exist_ok=True)
+if GENE_BODY_COVERAGE_ENABLED:
+    os.makedirs(os.path.join("logs", config["pipeline"], "gene_body_coverage"), exist_ok=True)
 
 
 # --- SAMPLE DISCOVERY ---
@@ -103,6 +108,9 @@ def get_markduplicates_outputs(samples):
 
 
 def get_gene_body_coverage_outputs(samples):
+    if not GENE_BODY_COVERAGE_ENABLED:
+        return []
+
     output_prefix = os.path.join(GENE_BODY_COVERAGE_DIR, "all_samples")
     outputs = [
         f"{output_prefix}.geneBodyCoverage.txt",
@@ -149,8 +157,9 @@ include: "rules/rnaseq/alignment.smk"
 # 5. Duplicate marking QC
 include: "rules/rnaseq/markduplicates.smk"
 
-# 6. Gene body coverage QC
-include: "rules/rnaseq/gene_body_coverage.smk"
+# 6. Optional gene body coverage QC
+if GENE_BODY_COVERAGE_ENABLED:
+    include: "rules/rnaseq/gene_body_coverage.smk"
 
 # 7. BigWig generation
 include: "rules/rnaseq/bigwig.smk"

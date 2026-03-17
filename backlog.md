@@ -11,6 +11,7 @@ Track notable changes and implementation work here.
 - 2026-03-05: Rewrite the README as a full bilingual English/Spanish guide and remove stale documentation references.
 - 2026-03-16: Add RNA-seq RSeQC gene body coverage QC with configurable BED12 input, tracked outputs, and a dry-run placeholder BED file.
 - 2026-03-16: Add RNA-seq Picard MarkDuplicates QC to mark duplicate reads without removal and report duplication metrics in MultiQC.
+- 2026-03-17: Make RNA-seq gene body coverage optional via `gene_body_coverage.enabled` and skip its validation and tracked outputs when disabled.
 
 ## Planned
 - (Add upcoming work items here.)

@@ -39,6 +39,7 @@ rnaseq:
       normalize_using: "RPKM"
       extra_args: "--binSize 10"
   gene_body_coverage:
+    enabled: true  # Set to false to skip the RNA-seq gene body coverage QC step
     refgene_bed: "ref/duumy.bed"
     minimum_length: 100
     format: "pdf"

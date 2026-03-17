@@ -5,21 +5,22 @@ GENE_BODY_COVERAGE_DIR = config["gene_body_coverage_dir"]
 SAMPLES_INFO = config["samples_info"]
 
 GENE_BODY_COVERAGE_CONFIG = config.get("gene_body_coverage", {})
+GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", True)
 REFGENE_BED = GENE_BODY_COVERAGE_CONFIG.get("refgene_bed")
 MIN_MRNA_LENGTH = GENE_BODY_COVERAGE_CONFIG.get("minimum_length", 100)
 OUTPUT_FORMAT = GENE_BODY_COVERAGE_CONFIG.get("format", "pdf")
 
-if not REFGENE_BED:
+if GENE_BODY_COVERAGE_ENABLED and not REFGENE_BED:
     raise ValueError(
         "RNA-seq gene body coverage requires 'gene_body_coverage.refgene_bed' in the config."
     )
 
-if MIN_MRNA_LENGTH < 100:
+if GENE_BODY_COVERAGE_ENABLED and MIN_MRNA_LENGTH < 100:
     raise ValueError(
         "RNA-seq gene body coverage requires 'gene_body_coverage.minimum_length' to be at least 100."
     )
 
-if OUTPUT_FORMAT not in ["pdf", "png", "jpeg"]:
+if GENE_BODY_COVERAGE_ENABLED and OUTPUT_FORMAT not in ["pdf", "png", "jpeg"]:
     raise ValueError(
         "RNA-seq gene body coverage requires 'gene_body_coverage.format' to be one of: pdf, png, jpeg."
     )
