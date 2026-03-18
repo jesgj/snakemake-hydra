@@ -19,7 +19,8 @@ rule bamCoverage:
     Generates a normalized bigWig file from a filtered BAM file.
     """
     input:
-        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_{read_type}.filtered.sorted.bam")
+        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_{read_type}.filtered.sorted.bam"),
+        bai = os.path.join(FILTERED_BAM_DIR, "{sample}_{read_type}.filtered.sorted.bam.bai")
     output:
         bigwig = os.path.join(BIGWIG_DIR, "{sample}_{read_type}.bw")
     params:
@@ -76,4 +77,3 @@ pixi run bigwigCompare \
             --operation {params.method} \
             {params.extra} > {log}.out 2> {log}.err
         """
-

@@ -62,37 +62,86 @@ os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=Tr
 # --- SAMPLE DISCOVERY ---
 SAMPLES_INFO, SAMPLES = prepare_sample_data(config)
 
+if not SAMPLES:
+    raise ValueError("No ChIP-seq/CUT&RUN samples were found. Provide 'samples_info' or valid FASTQs in 'raw_fastqs_dir'.")
+
+
+def normalize_chip_cr_samples(samples_info):
+    normalized_samples = {}
+    invalid_samples = []
+
+    for sample, info in samples_info.items():
+        normalized_info = dict(info)
+        has_r1 = "R1" in normalized_info
+        has_r2 = "R2" in normalized_info
+        declared_type = normalized_info.get("type")
+
+        if has_r1 and has_r2:
+            inferred_type = "PE"
+        elif has_r1:
+            inferred_type = "SE"
+        else:
+            invalid_samples.append(f"{sample} (missing R1)")
+            continue
+
+        if declared_type is None:
+            normalized_info["type"] = inferred_type
+        elif declared_type not in ["PE", "SE"]:
+            invalid_samples.append(f"{sample} (type must be PE or SE)")
+            continue
+        elif declared_type != inferred_type:
+            invalid_samples.append(
+                f"{sample} (declared type {declared_type} does not match provided reads)"
+            )
+            continue
+
+        normalized_samples[sample] = normalized_info
+
+    if invalid_samples:
+        raise ValueError(
+            "Invalid ChIP-seq/CUT&RUN samples. Define R1 for all samples, add R2 only for paired-end data, "
+            "and use type 'PE' or 'SE' when declared. Invalid samples: " + ", ".join(invalid_samples)
+        )
+
+    return normalized_samples
+
+
+SAMPLES_INFO = normalize_chip_cr_samples(SAMPLES_INFO)
+SAMPLES = list(SAMPLES_INFO.keys())
+config["samples_info"] = SAMPLES_INFO
+
+
+INPUT_SAMPLE_PATTERN = re.compile(r"^(?P<base>.+)_input_rep(?P<rep>\d+)$")
+CHIP_SAMPLE_PATTERN = re.compile(r"^(?P<base>.+)_rep(?P<rep>\d+)$")
+
 def get_subtraction_pairs(samples_info, bigwig_dir):
     pairs = []
-    
-    chip_samples = [s for s in samples_info if '_input' not in s]
-    input_samples = [s for s in samples_info if '_input' in s]
 
-    for chip_sample in chip_samples:
-        # Construct the expected input name, e.g., "liver_rep1" -> "liver_input_rep1"
-        parts = chip_sample.split('_')
-        if len(parts) == 2: # Expects "tissue_repX" format
-            base, rep = parts
-            expected_input = f"{base}_input_{rep}"
-            
-            if expected_input in input_samples:
-                chip_info = samples_info[chip_sample]
-                input_info = samples_info[expected_input]
-                
-                chip_read_type = 'pe' if chip_info['type'] == 'PE' else 'se'
-                # Input and chip might have different read types, but for pairing we assume they match
-                # The bw file will have the correct read_type suffix from its own rule
-                input_read_type = 'pe' if input_info['type'] == 'PE' else 'se'
+    input_samples = {
+        sample: info for sample, info in samples_info.items() if INPUT_SAMPLE_PATTERN.match(sample)
+    }
 
-                chip_bw = os.path.join(bigwig_dir, f"{chip_sample}_{chip_read_type}.bw")
-                input_bw = os.path.join(bigwig_dir, f"{expected_input}_{input_read_type}.bw")
-                
-                pairs.append({
-                    'chip_bw': chip_bw, 
-                    'input_bw': input_bw, 
-                    'sample': chip_sample, 
-                    'read_type': chip_read_type
-                })
+    for chip_sample, chip_info in samples_info.items():
+        chip_match = CHIP_SAMPLE_PATTERN.match(chip_sample)
+        if not chip_match or INPUT_SAMPLE_PATTERN.match(chip_sample):
+            continue
+
+        expected_input = f"{chip_match.group('base')}_input_rep{chip_match.group('rep')}"
+        if expected_input in input_samples:
+            input_info = input_samples[expected_input]
+
+            chip_read_type = 'pe' if chip_info['type'] == 'PE' else 'se'
+            input_read_type = 'pe' if input_info['type'] == 'PE' else 'se'
+
+            chip_bw = os.path.join(bigwig_dir, f"{chip_sample}_{chip_read_type}.bw")
+            input_bw = os.path.join(bigwig_dir, f"{expected_input}_{input_read_type}.bw")
+
+            pairs.append({
+                'chip_bw': chip_bw,
+                'input_bw': input_bw,
+                'sample': chip_sample,
+                'read_type': chip_read_type
+            })
                 
     return pairs
 
@@ -125,6 +174,26 @@ def get_all_filtered_bais(samples_info):
 ALL_FILTERED_BAMS = get_all_filtered_bams(SAMPLES_INFO)
 ALL_FILTERED_BAIS = get_all_filtered_bais(SAMPLES_INFO)
 HAS_MULTI_BAM_DEEPTOOLS = len(ALL_FILTERED_BAMS) >= 2
+
+
+def get_chip_cr_multiqc_analysis_dirs():
+    return list(
+        dict.fromkeys(
+            [
+                QC_DIR,
+                TRIMMED_DIR,
+                QC_TRIMMED_DIR,
+                ALIGNMENT_DIR,
+                BAM_QC_DIR,
+                FILTERED_BAM_DIR,
+                FILTERED_BAM_QC_DIR,
+                DEEPTOOLS_DIR,
+                BIGWIG_DIR,
+                SUBTRACTED_BIGWIG_DIR,
+                os.path.join("logs", config["pipeline"]),
+            ]
+        )
+    )
 
 final_outputs = []
 # Raw QC
@@ -170,6 +239,7 @@ final_outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_se.bw"), sample=s
 final_outputs.extend([os.path.join(SUBTRACTED_BIGWIG_DIR, f"{pair['sample']}_{pair['read_type']}.subtracted.bw") for pair in config.get('subtraction_pairs', [])])
 
 config["multiqc_input_files"] = final_outputs
+config["multiqc_analysis_dirs"] = get_chip_cr_multiqc_analysis_dirs()
 
 
 # --- MODULE INCLUSION ---

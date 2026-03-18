@@ -18,6 +18,7 @@ Track notable changes and implementation work here.
 - 2026-03-17: Add configurable ATAC-seq peak calling with default MACS3 support and an optional Genrich path that uses a queryname-sorted filtered BAM intermediate.
 - 2026-03-17: Harden RNA-seq HISAT2 index tracking, write per-sample HISAT2 summary files, and make MultiQC wait on config-aware RNA-seq report artifacts.
 - 2026-03-17: Add ATAC-seq defaults for output directories, configurable Sambamba filter/sort threads, config-aware MultiQC scan dirs, and explicit filtered-BAM index dependencies for bamCoverage.
+- 2026-03-17: Fix ChIP/CUT&RUN Bowtie2 shell syntax, infer missing manual sample types, support underscore-rich subtraction pairs, and make bigWig/MultiQC dependencies more explicit.
 
 ## Planned
 - (Add upcoming work items here.)

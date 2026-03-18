@@ -102,7 +102,7 @@ pixi run snakemake --dag --cores 1 | dot -Tpng > dag.png
 
 #### 1) ChIP-seq/CUT&RUN (paired-end with input control)
 1. Place paired-end FASTQ files in a directory such as `data/chip_fastqs/`.
-2. Name the ChIP sample as `base_repX` and the matching input as `base_input_repX` to enable automatic bigWig subtraction.
+2. Name the ChIP sample as `base_repX` and the matching input as `base_input_repX` to enable automatic bigWig subtraction. The `base` can contain additional underscores, for example `Dome_ctrl_H3K4me3_rep1` and `Dome_ctrl_H3K4me3_input_rep1`.
 3. Edit `config/config.yaml`:
 
 ```yaml
@@ -137,7 +137,7 @@ pixi run snakemake --cores 16 --printshellcmds --latency-wait 60
 - `results/chipseq_cutrun/deeptools/heatmap.png`
 
 #### 2) ChIP-seq/CUT&RUN (single-end)
-For single-end data, define only `R1` and set `type: "SE"`:
+For single-end data, define only `R1`; `type: "SE"` is optional and will be inferred if omitted:
 
 ```yaml
 pipeline: "chip_cr"
@@ -147,9 +147,14 @@ chip_cr:
     sampleSE:
       R1: "data/chip_fastqs/sampleSE.fastq.gz"
       type: "SE"
+  ref_genome: "ref/genome.fa"
+  bowtie2_index_dir: "ref/bowtie2"
+  gene_bed: "ref/genes.bed"
 ```
 
 Outputs use the `_se` suffix, for example `sampleSE_se.sorted.bam` and `sampleSE_se.bw`.
+
+For ChIP-seq/CUT&RUN deepTools QC, `plotFingerprint` and `plotCorrelation` include both signal and input-control BAMs when present, while `computeMatrix` and `plotHeatmap` exclude `_input` samples.
 
 #### 3) RNA-seq (paired-end)
 1. Place paired-end FASTQ files in `data/rnaseq_raw_fastqs/`.
@@ -364,7 +369,7 @@ Tool parameters are configured in `config/config.yaml`:
 Adjust these fields to tune trimming, mapping, filtering, normalization, and peak-calling behavior.
 
 ### FAQ and troubleshooting
-- **Single-end in ChIP/CUT&RUN:** use `type: "SE"` and define only `R1`.
+- **Single-end in ChIP/CUT&RUN:** define only `R1`; `type: "SE"` is optional and will be inferred if omitted.
 - **RNA-seq/WGBS/ATAC-seq single-end:** not implemented; use paired-end data.
 - **Disable RNA-seq gene body coverage:** set `rnaseq.gene_body_coverage.enabled: false`; `refgene_bed` is only required when the step is enabled.
 - **RNA-seq correlation heatmap:** `multiBamSummary` and `plotCorrelation` run only when at least 2 aligned BAMs are available.
@@ -373,7 +378,9 @@ Adjust these fields to tune trimming, mapping, filtering, normalization, and pea
 - **ATAC-seq Sambamba tuning:** use `atacseq.sambamba.view_extra_args`, `atacseq.sambamba.filter_threads`, and `atacseq.sambamba.sort_threads` to control filtered BAM generation.
 - **WGBS validation fails early:** every WGBS sample must include `R1` and `R2`; the workflow aborts if it finds empty or single-end samples.
 - **No samples are detected:** check `raw_fastqs_dir` and FASTQ naming patterns.
-- **No bigWig subtraction appears for ChIP/CUT&RUN:** make sure input samples are named as `base_input_repX`.
+- **ChIP/CUT&RUN sample typing:** `type` is optional; the workflow infers `PE` when `R2` is present and `SE` when only `R1` is defined.
+- **ChIP/CUT&RUN deepTools scope:** `plotFingerprint` and `plotCorrelation` include input controls when present, but `computeMatrix` and `plotHeatmap` exclude `_input` samples.
+- **No bigWig subtraction appears for ChIP/CUT&RUN:** make sure input samples are named as `base_input_repX`; the `base` can include additional underscores as long as the pair ends in `_repN` / `_input_repN`.
 - **Logs and result paths:** logs are written under `logs/<pipeline>`; for `chip_cr`, result files are stored under `results/chipseq_cutrun`.
 - **Reference index permissions:** Bismark creates `Bisulfite_Genome/` next to `ref_genome`, so that location must be writable.
 

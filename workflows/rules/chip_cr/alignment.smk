@@ -11,6 +11,14 @@ BOWTIE2_EXTRA_ARGS = config.get("bowtie2", {}).get("extra_args", "")
 # The basename for the index, derived from the genome file name
 REF_BASENAME = os.path.splitext(os.path.basename(REF_GENOME))[0]
 BOWTIE2_INDEX_PREFIX = os.path.join(BOWTIE2_INDEX_DIR, REF_BASENAME)
+BOWTIE2_INDEX_FILES = [
+    f"{BOWTIE2_INDEX_PREFIX}.1.bt2",
+    f"{BOWTIE2_INDEX_PREFIX}.2.bt2",
+    f"{BOWTIE2_INDEX_PREFIX}.3.bt2",
+    f"{BOWTIE2_INDEX_PREFIX}.4.bt2",
+    f"{BOWTIE2_INDEX_PREFIX}.rev.1.bt2",
+    f"{BOWTIE2_INDEX_PREFIX}.rev.2.bt2",
+]
 
 # --- RULES ---
 
@@ -21,16 +29,14 @@ rule bowtie2_build:
     input:
         ref = REF_GENOME
     output:
-        # Bowtie2 build creates multiple files with extensions like .1.bt2, .2.bt2, etc.
-        # We use a sentinel file to mark completion.
-        sentinel = os.path.join(BOWTIE2_INDEX_DIR, "index_built.OK")
+        index = BOWTIE2_INDEX_FILES
     params:
         prefix = BOWTIE2_INDEX_PREFIX
     threads: 1
     log:
         os.path.join("logs", config["pipeline"], "bowtie2_build.log")
     shell:
-        "pixi run bowtie2-build {input.ref} {params.prefix} > {log}.out 2> {log}.err && touch {output.sentinel}"
+        "pixi run bowtie2-build \"{input.ref}\" \"{params.prefix}\" > {log}.out 2> {log}.err"
 
 rule bowtie2_align_pe:
     """
@@ -40,7 +46,7 @@ rule bowtie2_align_pe:
     input:
         r1 = os.path.join(TRIMMED_DIR, "{sample}_R1.trimmed.fq.gz"),
         r2 = os.path.join(TRIMMED_DIR, "{sample}_R2.trimmed.fq.gz"),
-        index_sentinel = os.path.join(BOWTIE2_INDEX_DIR, "index_built.OK")
+        index = BOWTIE2_INDEX_FILES
     output:
         bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
     params:
@@ -51,9 +57,9 @@ rule bowtie2_align_pe:
         os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log")
     shell:
         """
-        pixi run bowtie2 -p {threads} {params.extra} -x {params.index_prefix} -1 {input.r1} -2 {input.r2} | \
+        (pixi run bowtie2 -p {threads} {params.extra} -x "{params.index_prefix}" -1 "{input.r1}" -2 "{input.r2}" | \
         pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} - -o {output.bam}) 2> {log}
+        pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
         """
 
 rule bowtie2_align_se:
@@ -63,7 +69,7 @@ rule bowtie2_align_se:
     """
     input:
         r1 = os.path.join(TRIMMED_DIR, "{sample}_SE.trimmed.fq.gz"),
-        index_sentinel = os.path.join(BOWTIE2_INDEX_DIR, "index_built.OK")
+        index = BOWTIE2_INDEX_FILES
     output:
         bam = os.path.join(ALIGNMENT_DIR, "{sample}_se.sorted.bam")
     params:
@@ -74,7 +80,7 @@ rule bowtie2_align_se:
         os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_se.log")
     shell:
         """
-        pixi run bowtie2 -p {threads} {params.extra} -x {params.index_prefix} -U {input.r1} | \
+        (pixi run bowtie2 -p {threads} {params.extra} -x "{params.index_prefix}" -U "{input.r1}" | \
         pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} - -o {output.bam}) 2> {log}
+        pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
         """

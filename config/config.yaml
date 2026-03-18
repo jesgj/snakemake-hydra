@@ -117,6 +117,8 @@ wgbs:
 
 chip_cr:
   raw_fastqs_dir: "data/chip_test_pipeline/"
+  # Name matched controls as <base>_input_repN to enable automatic subtraction.
+  # The <base> portion may contain additional underscores.
   samples_info:
     Dome_ctrl_H3K4me3_rep1:
       R1: "data/chip_test_pipeline/Dome_ctrl_H3K4me3_rep1_R1.sample.fastq.gz"
