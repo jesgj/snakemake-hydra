@@ -63,7 +63,7 @@ rnaseq:
       extra_args: "--binSize 10"
   gene_body_coverage:
     enabled: false  # Set to false to skip the RNA-seq gene body coverage QC step
-    refgene_bed: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/duumy.bed"  # Placeholder BED12 for dry-runs only; replace with a real annotation for production
+    refgene_bed: "path/dummy.bed"  # Placeholder BED12 for dry-runs only; replace with a real annotation for production
     minimum_length: 100
     format: "pdf"
 
@@ -124,7 +124,8 @@ wgbs:
   sambamba:
     filter_threads: 8
     sort_threads: 8
-    extra_args: "mapping_quality >= 10 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (/home/jlgaralc/Masahito/Foxo6A/RNAseq_name =~ /^(MT|chrM)/)"
+    # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
+    extra_args: "mapping_quality >= 10 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
   methyldackel_mbias:
     threads: 16
     extra_args: ""
@@ -222,7 +223,8 @@ atacseq:
   bowtie2:
     extra_args: "--very-sensitive -X 2000"
   sambamba:
-    view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (/home/jlgaralc/Masahito/Foxo6A/RNAseq_name =~ /^(MT|chrM)/)"
+    # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
+    view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
     filter_threads: 2
     sort_threads: 2
   deeptools:
