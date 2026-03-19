@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data, validate_existing_file, validate_required_path
+from utils import prepare_sample_data, validate_required_path
 
 # --- CONFIGURATION ---
 RAW_DIR = config["raw_fastqs_dir"]
@@ -24,7 +24,7 @@ PEAKS_DIR = config.get("peaks_dir", os.path.join("results", "atacseq", "peaks"))
 PEAK_CALLER = config.get("peak_caller", "macs3")
 
 # Reference inputs are user-managed. Only the configured Bowtie2 index directory is created here.
-validate_existing_file(REF_GENOME, "ref_genome")
+validate_required_path(REF_GENOME, "ref_genome")
 validate_required_path(BOWTIE2_INDEX_DIR, "bowtie2_index_dir")
 
 if PEAK_CALLER not in ["macs3", "genrich"]:
@@ -172,9 +172,7 @@ def get_atacseq_multiqc_analysis_dirs():
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "atacseq"
-config["multiqc_results_dir"] = config.get("multiqc_results_dir")
-if not config["multiqc_results_dir"]:
-    raise ValueError("ATAC-seq requires 'multiqc_results_dir' in the config.")
+config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("results", "atacseq"))
 config["multiqc_input_files"] = get_atacseq_outputs(SAMPLES)
 config["multiqc_analysis_dirs"] = get_atacseq_multiqc_analysis_dirs()
 

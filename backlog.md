@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-03-19: Restore backward-compatible `multiqc_results_dir` defaults, make reference-file validation lazy again at workflow parse time, and point WGBS MultiQC scans at real analysis directories instead of the report output folder.
 - 2026-03-19: Clarify that reference FASTA/BED inputs are user-managed, add fail-fast reference-path validation, and fix malformed reference keys in the checked-in config examples.
 - 2026-03-19: Make MultiQC report locations configurable per pipeline via `multiqc_results_dir` instead of hardcoding `results/<pipeline>`.
 - 2026-03-18: Fix RNA-seq Picard duplicate-marking index tracking to expect Picard's `*.markdup.bai` output instead of a nonexistent `*.markdup.bam.bai`.

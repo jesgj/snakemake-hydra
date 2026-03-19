@@ -4,7 +4,7 @@ from collections import defaultdict
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data, validate_existing_file, validate_required_path
+from utils import prepare_sample_data, validate_required_path
 
 # --- CONFIGURATION ---
 # Define directories from config
@@ -24,8 +24,8 @@ BIGWIG_DIR = config["bigwig_dir"]
 SUBTRACTED_BIGWIG_DIR = config["subtracted_bigwig_dir"]
 
 # Reference inputs are user-managed. Only the configured Bowtie2 index directory is created here.
-validate_existing_file(REF_GENOME, "ref_genome")
-validate_existing_file(GENE_BED, "gene_bed")
+validate_required_path(REF_GENOME, "ref_genome")
+validate_required_path(GENE_BED, "gene_bed")
 validate_required_path(BOWTIE2_INDEX_DIR, "bowtie2_index_dir")
 
 # Make config available to included rules
@@ -162,9 +162,7 @@ config['subtraction_pairs'] = SUBTRACTION_PAIRS
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "chipseq_cutrun"
-config["multiqc_results_dir"] = config.get("multiqc_results_dir")
-if not config["multiqc_results_dir"]:
-    raise ValueError("ChIP-seq/CUT&RUN requires 'multiqc_results_dir' in the config.")
+config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("results", "chipseq_cutrun"))
 
 pe_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'PE']
 se_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'SE']

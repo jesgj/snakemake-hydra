@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data, validate_existing_file
+from utils import prepare_sample_data, validate_required_path
 
 # --- CONFIGURATION ---
 # Define directories from config
@@ -23,7 +23,7 @@ METHYLDACKEL_MERGECONTEXT_DIR = config["methyldackel_mergecontext_dir"]
 REF_GENOME = config.get("ref_genome")
 
 # Reference inputs are user-managed. Bismark will build its index next to ref_genome.
-validate_existing_file(REF_GENOME, "ref_genome")
+validate_required_path(REF_GENOME, "ref_genome")
 
 # Make config available to included rules
 config["raw_fastqs_dir"] = RAW_DIR
@@ -124,21 +124,32 @@ def get_wgbs_outputs(samples):
     outputs.extend(expand(os.path.join(config["methyldackel_mergecontext_dir"], "{sample}_CpG.bedGraph"), sample=samples))
     return outputs
 
+
+def get_wgbs_multiqc_analysis_dirs():
+    return list(
+        dict.fromkeys(
+            [
+                QC_DIR,
+                TRIMMED_DIR,
+                QC_TRIMMED_DIR,
+                ALIGN_DIR,
+                DEDUP_DIR,
+                DEDUP_BAM_QC_DIR,
+                FILTERED_BAM_DIR,
+                SORTED_FILTERED_BAM_DIR,
+                FILTERED_BAM_QC_DIR,
+                MBIAS_DIR,
+                METHYLDACKEL_DIR,
+                METHYLDACKEL_MERGECONTEXT_DIR,
+                os.path.join("logs", config["pipeline"]),
+            ]
+        )
+    )
+
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "wgbs"
-config["multiqc_results_dir"] = config.get("multiqc_results_dir")
-if not config["multiqc_results_dir"]:
-    raise ValueError("WGBS requires 'multiqc_results_dir' in the config.")
-config["multiqc_analysis_dirs"] = list(
-    dict.fromkeys(
-        [
-            config["multiqc_results_dir"],
-            os.path.join("logs", config["pipeline"]),
-            ALIGN_DIR,
-            DEDUP_DIR,
-        ]
-    )
-)
+config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("results", "wgbs"))
+config["multiqc_analysis_dirs"] = get_wgbs_multiqc_analysis_dirs()
 config["multiqc_input_files"] = get_wgbs_outputs(SAMPLES)
 
 

@@ -7,8 +7,6 @@ import sys
 sys.path.insert(0, os.path.abspath("src"))
 from utils import (
     prepare_sample_data,
-    validate_existing_file,
-    validate_existing_parent_dir,
     validate_required_path,
 )
 
@@ -39,12 +37,12 @@ GENE_BODY_COVERAGE_FORMAT = GENE_BODY_COVERAGE_CONFIG.get("format", "pdf")
 
 
 # Reference inputs are user-managed. Only the configured index directory is created here.
-validate_existing_file(TRANSCRIPTOME_FASTA, "transcriptome_fasta")
-validate_existing_parent_dir(KALLISTO_INDEX, "kallisto_index")
-validate_existing_file(REF_GENOME, "ref_genome")
+validate_required_path(TRANSCRIPTOME_FASTA, "transcriptome_fasta")
+validate_required_path(KALLISTO_INDEX, "kallisto_index")
+validate_required_path(REF_GENOME, "ref_genome")
 validate_required_path(HISAT2_INDEX_DIR, "hisat2_index_dir")
 if GENE_BODY_COVERAGE_ENABLED:
-    validate_existing_file(REFGENE_BED, "gene_body_coverage.refgene_bed")
+    validate_required_path(REFGENE_BED, "gene_body_coverage.refgene_bed")
 
 
 # Make config available to included rules
@@ -70,6 +68,7 @@ config["gene_body_coverage"] = GENE_BODY_COVERAGE_CONFIG
 os.makedirs(QC_DIR, exist_ok=True)
 os.makedirs(TRIMMED_DIR, exist_ok=True)
 os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(KALLISTO_INDEX) or ".", exist_ok=True)
 os.makedirs(KALLISTO_OUTPUT_DIR, exist_ok=True)
 os.makedirs(HISAT2_INDEX_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
@@ -205,9 +204,7 @@ def get_rnaseq_multiqc_analysis_dirs():
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "rnaseq"
-config["multiqc_results_dir"] = config.get("multiqc_results_dir")
-if not config["multiqc_results_dir"]:
-    raise ValueError("RNA-seq requires 'multiqc_results_dir' in the config.")
+config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("results", "rnaseq"))
 config["multiqc_input_files"] = get_rnaseq_multiqc_inputs(SAMPLES)
 config["multiqc_analysis_dirs"] = get_rnaseq_multiqc_analysis_dirs()
 
