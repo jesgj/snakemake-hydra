@@ -2,15 +2,15 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data
+from utils import prepare_sample_data, validate_existing_file, validate_required_path
 
 # --- CONFIGURATION ---
 RAW_DIR = config["raw_fastqs_dir"]
 QC_DIR = config.get("qc_dir", os.path.join("results", "atacseq", "qc_raw"))
 TRIMMED_DIR = config.get("trimmed_dir", os.path.join("results", "atacseq", "trimmed_fastqs"))
 QC_TRIMMED_DIR = config.get("qc_trimmed_dir", os.path.join("results", "atacseq", "qc_trimmed"))
-REF_GENOME = config["ref_genome"]
-BOWTIE2_INDEX_DIR = config["bowtie2_index_dir"]
+REF_GENOME = config.get("ref_genome")
+BOWTIE2_INDEX_DIR = config.get("bowtie2_index_dir")
 ALIGNMENT_DIR = config.get("alignment_dir", os.path.join("results", "atacseq", "aligned_bams"))
 MARKED_BAM_DIR = config.get("marked_bam_dir", os.path.join("results", "atacseq", "marked_bams"))
 DUPLICATION_QC_DIR = config.get("duplication_qc_dir", os.path.join("results", "atacseq", "duplication_qc"))
@@ -22,6 +22,10 @@ FRAGMENT_QC_DIR = config.get("fragment_qc_dir", os.path.join("results", "atacseq
 BIGWIG_DIR = config.get("bigwig_dir", os.path.join("results", "atacseq", "bigwigs"))
 PEAKS_DIR = config.get("peaks_dir", os.path.join("results", "atacseq", "peaks"))
 PEAK_CALLER = config.get("peak_caller", "macs3")
+
+# Reference inputs are user-managed. Only the configured Bowtie2 index directory is created here.
+validate_existing_file(REF_GENOME, "ref_genome")
+validate_required_path(BOWTIE2_INDEX_DIR, "bowtie2_index_dir")
 
 if PEAK_CALLER not in ["macs3", "genrich"]:
     raise ValueError("ATAC-seq 'peak_caller' must be either 'macs3' or 'genrich'.")
@@ -168,7 +172,9 @@ def get_atacseq_multiqc_analysis_dirs():
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "atacseq"
-config["multiqc_results_dir"] = "results/atacseq"
+config["multiqc_results_dir"] = config.get("multiqc_results_dir")
+if not config["multiqc_results_dir"]:
+    raise ValueError("ATAC-seq requires 'multiqc_results_dir' in the config.")
 config["multiqc_input_files"] = get_atacseq_outputs(SAMPLES)
 config["multiqc_analysis_dirs"] = get_atacseq_multiqc_analysis_dirs()
 

@@ -3,6 +3,8 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-03-19: Clarify that reference FASTA/BED inputs are user-managed, add fail-fast reference-path validation, and fix malformed reference keys in the checked-in config examples.
+- 2026-03-19: Make MultiQC report locations configurable per pipeline via `multiqc_results_dir` instead of hardcoding `results/<pipeline>`.
 - 2026-03-18: Fix RNA-seq Picard duplicate-marking index tracking to expect Picard's `*.markdup.bai` output instead of a nonexistent `*.markdup.bam.bai`.
 - 2026-03-18: Mark each top-level conditional `all` rule as Snakemake's default target so unqualified runs execute the selected pipeline entrypoint.
 - 2026-03-18: Add per-sample HISAT2 read groups to RNA-seq alignments so downstream Picard duplicate marking receives BAMs with `@RG` metadata.

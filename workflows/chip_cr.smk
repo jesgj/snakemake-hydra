@@ -4,7 +4,7 @@ from collections import defaultdict
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data
+from utils import prepare_sample_data, validate_existing_file, validate_required_path
 
 # --- CONFIGURATION ---
 # Define directories from config
@@ -12,8 +12,10 @@ RAW_DIR = config["raw_fastqs_dir"]
 QC_DIR = config["qc_dir"]
 TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
+REF_GENOME = config.get("ref_genome")
+GENE_BED = config.get("gene_bed")
 ALIGNMENT_DIR = config["alignment_dir"]
-BOWTIE2_INDEX_DIR = config["bowtie2_index_dir"]
+BOWTIE2_INDEX_DIR = config.get("bowtie2_index_dir")
 BAM_QC_DIR = config["bam_qc_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 FILTERED_BAM_QC_DIR = config["filtered_bam_qc_dir"]
@@ -21,11 +23,18 @@ DEEPTOOLS_DIR = config["deeptools_dir"]
 BIGWIG_DIR = config["bigwig_dir"]
 SUBTRACTED_BIGWIG_DIR = config["subtracted_bigwig_dir"]
 
+# Reference inputs are user-managed. Only the configured Bowtie2 index directory is created here.
+validate_existing_file(REF_GENOME, "ref_genome")
+validate_existing_file(GENE_BED, "gene_bed")
+validate_required_path(BOWTIE2_INDEX_DIR, "bowtie2_index_dir")
+
 # Make config available to included rules
 config["raw_fastqs_dir"] = RAW_DIR
 config["qc_dir"] = QC_DIR
 config["trimmed_dir"] = TRIMMED_DIR
 config["qc_trimmed_dir"] = QC_TRIMMED_DIR
+config["ref_genome"] = REF_GENOME
+config["gene_bed"] = GENE_BED
 config["alignment_dir"] = ALIGNMENT_DIR
 config["bowtie2_index_dir"] = BOWTIE2_INDEX_DIR
 config["bam_qc_dir"] = BAM_QC_DIR
@@ -153,7 +162,9 @@ config['subtraction_pairs'] = SUBTRACTION_PAIRS
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "chipseq_cutrun"
-config["multiqc_results_dir"] = "results/chipseq_cutrun"
+config["multiqc_results_dir"] = config.get("multiqc_results_dir")
+if not config["multiqc_results_dir"]:
+    raise ValueError("ChIP-seq/CUT&RUN requires 'multiqc_results_dir' in the config.")
 
 pe_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'PE']
 se_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'SE']

@@ -4,3 +4,4 @@
 logs/rnaseq/
 results/rnaseq/
 ref/
+src/__pycache__/

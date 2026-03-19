@@ -5,7 +5,12 @@ from collections import defaultdict
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data
+from utils import (
+    prepare_sample_data,
+    validate_existing_file,
+    validate_existing_parent_dir,
+    validate_required_path,
+)
 
 # --- CONFIGURATION ---
 RAW_DIR = config["raw_fastqs_dir"]
@@ -14,11 +19,11 @@ TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
 # Kallisto
 KALLISTO_OUTPUT_DIR = config["kallisto_output_dir"]
-TRANSCRIPTOME_FASTA = config["transcriptome_fasta"]
-KALLISTO_INDEX = config["kallisto_index"]
+TRANSCRIPTOME_FASTA = config.get("transcriptome_fasta")
+KALLISTO_INDEX = config.get("kallisto_index")
 # HISAT2
-REF_GENOME = config["ref_genome"]
-HISAT2_INDEX_DIR = config["hisat2_index_dir"]
+REF_GENOME = config.get("ref_genome")
+HISAT2_INDEX_DIR = config.get("hisat2_index_dir")
 ALIGNMENT_DIR = config["alignment_dir"]
 MARKED_BAM_DIR = config["marked_bam_dir"]
 DUPLICATION_QC_DIR = config["duplication_qc_dir"]
@@ -26,10 +31,20 @@ BIGWIG_DIR = config["bigwig_dir"]
 DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "rnaseq", "deeptools"))
 GENE_BODY_COVERAGE_CONFIG = config.get("gene_body_coverage", {})
 GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", True)
+REFGENE_BED = GENE_BODY_COVERAGE_CONFIG.get("refgene_bed")
 GENE_BODY_COVERAGE_DIR = config.get(
     "gene_body_coverage_dir", os.path.join("results", "rnaseq", "gene_body_coverage")
 )
 GENE_BODY_COVERAGE_FORMAT = GENE_BODY_COVERAGE_CONFIG.get("format", "pdf")
+
+
+# Reference inputs are user-managed. Only the configured index directory is created here.
+validate_existing_file(TRANSCRIPTOME_FASTA, "transcriptome_fasta")
+validate_existing_parent_dir(KALLISTO_INDEX, "kallisto_index")
+validate_existing_file(REF_GENOME, "ref_genome")
+validate_required_path(HISAT2_INDEX_DIR, "hisat2_index_dir")
+if GENE_BODY_COVERAGE_ENABLED:
+    validate_existing_file(REFGENE_BED, "gene_body_coverage.refgene_bed")
 
 
 # Make config available to included rules
@@ -190,7 +205,9 @@ def get_rnaseq_multiqc_analysis_dirs():
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "rnaseq"
-config["multiqc_results_dir"] = "results/rnaseq"
+config["multiqc_results_dir"] = config.get("multiqc_results_dir")
+if not config["multiqc_results_dir"]:
+    raise ValueError("RNA-seq requires 'multiqc_results_dir' in the config.")
 config["multiqc_input_files"] = get_rnaseq_multiqc_inputs(SAMPLES)
 config["multiqc_analysis_dirs"] = get_rnaseq_multiqc_analysis_dirs()
 

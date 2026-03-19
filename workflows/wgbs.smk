@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data
+from utils import prepare_sample_data, validate_existing_file
 
 # --- CONFIGURATION ---
 # Define directories from config
@@ -20,7 +20,10 @@ FILTERED_BAM_QC_DIR = config["filtered_bam_qc_dir"]
 MBIAS_DIR = config["mbias_dir"]
 METHYLDACKEL_DIR = config["methyldackel_dir"]
 METHYLDACKEL_MERGECONTEXT_DIR = config["methyldackel_mergecontext_dir"]
-REF_GENOME = config["ref_genome"]
+REF_GENOME = config.get("ref_genome")
+
+# Reference inputs are user-managed. Bismark will build its index next to ref_genome.
+validate_existing_file(REF_GENOME, "ref_genome")
 
 # Make config available to included rules
 config["raw_fastqs_dir"] = RAW_DIR
@@ -123,7 +126,9 @@ def get_wgbs_outputs(samples):
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "wgbs"
-config["multiqc_results_dir"] = "results/wgbs"
+config["multiqc_results_dir"] = config.get("multiqc_results_dir")
+if not config["multiqc_results_dir"]:
+    raise ValueError("WGBS requires 'multiqc_results_dir' in the config.")
 config["multiqc_analysis_dirs"] = list(
     dict.fromkeys(
         [

@@ -40,6 +40,9 @@ The main configuration lives in `config/config.yaml`. At minimum you should:
 1. Set the subworkflow in `pipeline`.
 2. Define `raw_fastqs_dir` and/or `samples_info`.
 3. Configure reference files and index directories required by the selected workflow.
+4. Set `<pipeline>.multiqc_results_dir` to control where the MultiQC report is written.
+
+Reference FASTA and BED inputs are user-managed. Paths shown as `/path/to/ref/...` are placeholders; the pipeline does not download or populate those files for you. It only creates configured index directories where the workflow already builds tool-specific indexes.
 
 #### Pipeline selection
 ```yaml
@@ -118,9 +121,10 @@ chip_cr:
       R1: "data/chip_fastqs/liver_input_rep1_R1.fastq.gz"
       R2: "data/chip_fastqs/liver_input_rep1_R2.fastq.gz"
       type: "PE"
-  ref_genome: "ref/genome.fa"
-  bowtie2_index_dir: "ref/bowtie2"
-  gene_bed: "ref/genes.bed"
+  ref_genome: "/path/to/ref/genome.fa"
+  bowtie2_index_dir: "/path/to/ref/bowtie2"
+  gene_bed: "/path/to/ref/genes.bed"
+  multiqc_results_dir: "results/chipseq_cutrun"
 ```
 
 4. Run:
@@ -129,7 +133,7 @@ pixi run snakemake --cores 16 --printshellcmds --latency-wait 60
 ```
 
 5. Key outputs:
-- `results/chipseq_cutrun/multiqc_report.html`
+- MultiQC report: `chip_cr.multiqc_results_dir/multiqc_report.html`
 - `results/chipseq_cutrun/bigwigs/*.bw`
 - `results/chipseq_cutrun/subtracted_bigwigs/*.subtracted.bw`
 - `results/chipseq_cutrun/deeptools/fingerprints.png`
@@ -147,9 +151,9 @@ chip_cr:
     sampleSE:
       R1: "data/chip_fastqs/sampleSE.fastq.gz"
       type: "SE"
-  ref_genome: "ref/genome.fa"
-  bowtie2_index_dir: "ref/bowtie2"
-  gene_bed: "ref/genes.bed"
+  ref_genome: "/path/to/ref/genome.fa"
+  bowtie2_index_dir: "/path/to/ref/bowtie2"
+  gene_bed: "/path/to/ref/genes.bed"
 ```
 
 Outputs use the `_se` suffix, for example `sampleSE_se.sorted.bam` and `sampleSE_se.bw`.
@@ -158,7 +162,7 @@ For ChIP-seq/CUT&RUN deepTools QC, `plotFingerprint` and `plotCorrelation` inclu
 
 #### 3) RNA-seq (paired-end)
 1. Place paired-end FASTQ files in `data/rnaseq_raw_fastqs/`.
-2. Configure `transcriptome_fasta`, `kallisto_index`, `ref_genome`, and `hisat2_index_dir`.
+2. Configure existing `transcriptome_fasta` and `ref_genome` files, plus `kallisto_index` and `hisat2_index_dir` output locations.
 3. Example:
 
 ```yaml
@@ -169,16 +173,17 @@ rnaseq:
     Ctl_1:
       R1: "data/rnaseq_raw_fastqs/Ctl_1_R1.fq.gz"
       R2: "data/rnaseq_raw_fastqs/Ctl_1_R2.fq.gz"
-  transcriptome_fasta: "ref/transcriptome.fa.gz"
-  kallisto_index: "ref/kallisto.idx"
-  ref_genome: "ref/genome.fa"
-  hisat2_index_dir: "ref/hisat2"
+  transcriptome_fasta: "/path/to/ref/transcriptome.fa.gz"
+  kallisto_index: "/path/to/ref/kallisto.idx"
+  ref_genome: "/path/to/ref/genome.fa"
+  hisat2_index_dir: "/path/to/ref/hisat2"
   alignment_dir: "results/rnaseq/aligned_bams"
   marked_bam_dir: "results/rnaseq/marked_bams"
   duplication_qc_dir: "results/rnaseq/duplication_qc"
   deeptools_dir: "results/rnaseq/deeptools"
   bigwig_dir: "results/rnaseq/bigwigs"
   gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
+  multiqc_results_dir: "results/rnaseq"
   picard:
     java_opts: "-Xmx4g"
     markduplicates:
@@ -193,7 +198,7 @@ rnaseq:
       extra_args: "--binSize 10"
   gene_body_coverage:
     enabled: true
-    refgene_bed: "ref/duumy.bed"  # Dry-run placeholder only
+    refgene_bed: "/path/to/ref/duumy.bed"  # Dry-run placeholder only
     minimum_length: 100
     format: "pdf"
 ```
@@ -207,7 +212,7 @@ rnaseq:
 - `results/rnaseq/deeptools/bam_correlation_heatmap.png` when 2 or more aligned BAMs are available
 - `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt`, `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.curves.pdf`, and `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.heatMap.pdf` when `rnaseq.gene_body_coverage.enabled: true` and 3 or more BAMs are analyzed
 - `results/rnaseq/bigwigs/<sample>_pe.bw`
-- `results/rnaseq/multiqc_report.html`
+- MultiQC report: `rnaseq.multiqc_results_dir/multiqc_report.html`
 
 Duplicate marking is tracked in separate BAMs for QC and does not remove reads from the original RNA-seq alignment outputs.
 
@@ -215,13 +220,15 @@ HISAT2 also writes one summary file per sample next to the aligned BAM, which Mu
 
 The RNA-seq correlation heatmap is generated from indexed aligned BAMs and is skipped automatically when fewer than 2 samples are available.
 
-Use a real BED12 gene model matched to the RNA-seq genome assembly for production runs if you enable gene body coverage. `ref/duumy.bed` is only a placeholder for dry-run testing.
+Use a real BED12 gene model matched to the RNA-seq genome assembly for production runs if you enable gene body coverage. `/path/to/ref/duumy.bed` is only a placeholder for dry-run testing.
 
 Set `rnaseq.gene_body_coverage.enabled: false` to skip this QC step entirely; when disabled, `gene_body_coverage.refgene_bed` is not required.
 
+The pipeline can build kallisto and HISAT2 indexes, but it does not create a shared `ref/` workspace. The parent directory of `kallisto_index` must already exist, while `hisat2_index_dir` is created if needed.
+
 #### 4) WGBS (paired-end)
 1. Place paired-end FASTQ files in `data/wgbs_raw_fastqs/`.
-2. Configure `ref_genome`. Bismark will create `Bisulfite_Genome/` next to that reference.
+2. Configure an existing `ref_genome`. Bismark will create `Bisulfite_Genome/` next to that reference.
 3. Example:
 
 ```yaml
@@ -232,7 +239,8 @@ wgbs:
     Ctr_1:
       R1: "data/wgbs_raw_fastqs/Ctr_1_R1.fastq.gz"
       R2: "data/wgbs_raw_fastqs/Ctr_1_R2.fastq.gz"
-  ref_genome: "ref/danrer11_lambda.fa"
+  ref_genome: "/path/to/ref/danrer11_lambda.fa"
+  multiqc_results_dir: "results/wgbs"
   bismark:
     threads: 66
     parallel: 8
@@ -241,7 +249,7 @@ wgbs:
 4. Key outputs:
 - `results/wgbs/methyldackel/<sample>_CpG.methylKit`
 - `results/wgbs/methyldackel_mergecontext/<sample>_CpG.bedGraph`
-- `results/wgbs/multiqc_report.html`
+- MultiQC report: `wgbs.multiqc_results_dir/multiqc_report.html`
 
 5. Optional resource tuning:
 - `wgbs.bismark.threads` and `wgbs.bismark.parallel`
@@ -250,7 +258,7 @@ wgbs:
 
 #### 5) ATAC-seq (paired-end)
 1. Place paired-end FASTQ files in `data/atacseq_raw_fastqs/`.
-2. Configure `ref_genome` and `bowtie2_index_dir`. Output directories default to `results/atacseq/*` unless you override them.
+2. Configure an existing `ref_genome`, plus `bowtie2_index_dir` and `multiqc_results_dir`. Most other output directories default to `results/atacseq/*` unless you override them.
 3. Example:
 
 ```yaml
@@ -262,8 +270,8 @@ atacseq:
       R1: "data/atacseq_raw_fastqs/atac_rep1_R1.fastq.gz"
       R2: "data/atacseq_raw_fastqs/atac_rep1_R2.fastq.gz"
       type: "PE"
-  ref_genome: "ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
-  bowtie2_index_dir: "ref/bowtie2_atacseq"
+  ref_genome: "/path/to/ref/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  bowtie2_index_dir: "/path/to/ref/bowtie2_atacseq"
   peak_caller: "macs3"
   sambamba:
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
@@ -280,6 +288,7 @@ atacseq:
     java_opts: "-Xmx2g"
     markduplicates:
       extra_args: ""
+  multiqc_results_dir: "results/atacseq"
   macs3:
     genome_size: "1.4e9"
     qvalue: 0.05
@@ -300,7 +309,7 @@ atacseq:
 - `results/atacseq/peaks/<sample>_summits.bed`, `results/atacseq/peaks/<sample>_treat_pileup.bdg`, and `results/atacseq/peaks/<sample>_peaks.xls` when `peak_caller: "macs3"`
 - `results/atacseq/bigwigs/<sample>_pe.bw`
 - `results/atacseq/fragment_qc/<sample>_pe.insert_size_metrics.txt`
-- `results/atacseq/multiqc_report.html`
+- MultiQC report: `atacseq.multiqc_results_dir/multiqc_report.html`
 
 Duplicate reads are first marked with Picard to collect metrics, then removed during BAM filtering before deepTools QC, fragment QC, bigWig generation, and peak calling. The Picard-marked BAMs in `results/atacseq/marked_bams` are temporary intermediates; the retained duplicate artifact is the metrics file in `results/atacseq/duplication_qc`.
 
@@ -320,7 +329,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - deepTools correlation: `results/rnaseq/deeptools/bam_correlation_heatmap.png` when 2 or more aligned BAMs are available
 - Optional gene body coverage: `results/rnaseq/gene_body_coverage/all_samples.geneBodyCoverage.txt` plus curve and optional heatmap plots
 - BigWig: `results/rnaseq/bigwigs/<sample>_pe.bw`
-- MultiQC: `results/rnaseq/multiqc_report.html`
+- MultiQC: `rnaseq.multiqc_results_dir/multiqc_report.html`
 
 #### WGBS
 - QC: `results/wgbs/qc`, `results/wgbs/qc_trimmed`
@@ -328,7 +337,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - BAMs: `data/wgbs/raw_bams`, `data/wgbs/dedup_bams`, `data/wgbs/filtered_bams`, `data/wgbs/sorted_filtered_bams`
 - M-bias: `results/wgbs/mbias`
 - MethylDackel: `results/wgbs/methyldackel`, `results/wgbs/methyldackel_mergecontext`
-- MultiQC: `results/wgbs/multiqc_report.html`
+- MultiQC: `wgbs.multiqc_results_dir/multiqc_report.html`
 
 #### ChIP-seq/CUT&RUN
 - QC: `results/chipseq_cutrun/qc_raw`, `results/chipseq_cutrun/qc_trimmed`
@@ -336,7 +345,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - BAMs: `results/chipseq_cutrun/aligned_bams`, `results/chipseq_cutrun/filtered_bams`
 - BigWig: `results/chipseq_cutrun/bigwigs`, `results/chipseq_cutrun/subtracted_bigwigs`
 - deepTools: `results/chipseq_cutrun/deeptools` including fingerprint and correlation plots
-- MultiQC: `results/chipseq_cutrun/multiqc_report.html`
+- MultiQC: `chip_cr.multiqc_results_dir/multiqc_report.html`
 
 #### ATAC-seq
 - QC: `results/atacseq/qc_raw`, `results/atacseq/qc_trimmed`
@@ -347,7 +356,7 @@ If you want to avoid `samples_info`, keep only `raw_fastqs_dir`. The pipeline wi
 - Fragment QC: `results/atacseq/fragment_qc`
 - BigWig: `results/atacseq/bigwigs`
 - Peaks: `results/atacseq/peaks` with a shared `.narrowPeak` output for either MACS3 or Genrich
-- MultiQC: `results/atacseq/multiqc_report.html`
+- MultiQC: `atacseq.multiqc_results_dir/multiqc_report.html`
 
 ### Parameter customization
 Tool parameters are configured in `config/config.yaml`:
@@ -381,8 +390,9 @@ Adjust these fields to tune trimming, mapping, filtering, normalization, and pea
 - **ChIP/CUT&RUN sample typing:** `type` is optional; the workflow infers `PE` when `R2` is present and `SE` when only `R1` is defined.
 - **ChIP/CUT&RUN deepTools scope:** `plotFingerprint` and `plotCorrelation` include input controls when present, but `computeMatrix` and `plotHeatmap` exclude `_input` samples.
 - **No bigWig subtraction appears for ChIP/CUT&RUN:** make sure input samples are named as `base_input_repX`; the `base` can include additional underscores as long as the pair ends in `_repN` / `_input_repN`.
-- **Logs and result paths:** logs are written under `logs/<pipeline>`; for `chip_cr`, result files are stored under `results/chipseq_cutrun`.
-- **Reference index permissions:** Bismark creates `Bisulfite_Genome/` next to `ref_genome`, so that location must be writable.
+- **Logs and result paths:** logs are written under `logs/<pipeline>`; most result paths are configurable per pipeline, including `multiqc_results_dir` for the MultiQC report location.
+- **Reference files are missing:** reference FASTA and BED inputs are not generated by the pipeline; make sure the configured files already exist.
+- **Reference index permissions:** Bismark creates `Bisulfite_Genome/` next to `ref_genome`, and Bowtie2/HISAT2 index directories are created at the configured paths, so those locations must be writable.
 
 ### License
 See `LICENSE`.

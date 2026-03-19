@@ -29,13 +29,13 @@ rnaseq:
   qc_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/qc_raw"
   trimmed_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/trimmed_fastqs"
   qc_trimmed_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/qc_trimmed"
-  # Kallisto pseudo-alignment
+  # Reference files are user-managed and must already exist.
+  # The parent directory of kallisto_index must already exist; hisat2_index_dir is created if needed.
   transcriptome_fasta: "/home/jlgaralc/genomes/DanRer11/cdna/release_115/Danio_rerio.GRCz11.cdna.all.fa"
   kallisto_index: "/home/jlgaralc/genomes/DanRer11/cdna/release_115/kallisto.idx"
   kallisto_output_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/kallisto"
   kallisto:
     extra_args: "--bootstrap-samples=100" # Number of bootstrap samples for kallisto quant
-  # HISAT2 alignment
   ref_genome: "/home/jlgaralc/genomes/DanRer11/assembly/release115/Danio_rerio.GRCz11.dna.primary_assembly.fa"
   hisat2_index_dir: "/home/jlgaralc/genomes/DanRer11/assembly/release115/"
   alignment_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/aligned_bams"  # Sorted BAMs and HISAT2 summary files are written here
@@ -44,6 +44,7 @@ rnaseq:
   bigwig_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/bigwigs"
   deeptools_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/deeptools"
   gene_body_coverage_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/gene_body_coverage"
+  multiqc_results_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq"
   hisat2:
     extra_args: ""
   fastp:
@@ -62,7 +63,7 @@ rnaseq:
       extra_args: "--binSize 10"
   gene_body_coverage:
     enabled: false  # Set to false to skip the RNA-seq gene body coverage QC step
-    /home/jlgaralc/Masahito/Foxo6A/RNAseqgene_bed: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/duumy.bed"  # Placeholder BED12 for dry-runs only; replace with a real annotation for production
+    refgene_bed: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/duumy.bed"  # Placeholder BED12 for dry-runs only; replace with a real annotation for production
     minimum_length: 100
     format: "pdf"
 
@@ -102,7 +103,8 @@ wgbs:
   qc_dir: "results/wgbs/qc"
   trimmed_dir: "results/wgbs/trimmed_fastqs"
   qc_trimmed_dir: "results/wgbs/qc_trimmed"
-  /home/jlgaralc/Masahito/Foxo6A/RNAseq_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/danrer11_lambda.fa"
+  # ref_genome must already exist; Bismark creates Bisulfite_Genome next to it.
+  ref_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/danrer11_lambda.fa"
   alignment_dir: "data/wgbs/raw_bams"
   dedup_dir: "data/wgbs/dedup_bams"
   dedup_bam_qc_dir: "results/wgbs/dedup_bam_qc"
@@ -112,6 +114,7 @@ wgbs:
   mbias_dir: "results/wgbs/mbias"
   methyldackel_dir: "results/wgbs/methyldackel"
   methyldackel_mergecontext_dir: "results/wgbs/methyldackel_mergecontext"
+  multiqc_results_dir: "results/wgbs"
   fastp:
     extra_args: "-q 20 --trim_front1 10 --detect_adapter_for_pe --dont_eval_duplication --trim_poly_g --trim_poly_x --cut_tail"
   bismark:
@@ -145,9 +148,10 @@ chip_cr:
       R1: "data/chip_test_pipeline/Shield_ctrl_H3K27ac_rep1_R1.sample.fastq.gz"
       R2: "data/chip_test_pipeline/Shield_ctrl_H3K27ac_rep1_R2.sample.fastq.gz"
       type: "PE"
+  # Reference FASTA and BED inputs must already exist; bowtie2_index_dir is created if needed.
   gene_bed: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/genes.bed"
   qc_dir: "results/chipseq_cutrun/qc_raw"
-  /home/jlgaralc/Masahito/Foxo6A/RNAseq_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  ref_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
   trimmed_dir: "results/chipseq_cutrun/trimmed_fastqs"
   qc_trimmed_dir: "results/chipseq_cutrun/qc_trimmed"
   alignment_dir: "results/chipseq_cutrun/aligned_bams"
@@ -158,6 +162,7 @@ chip_cr:
   deeptools_dir: "results/chipseq_cutrun/deeptools"
   bigwig_dir: "results/chipseq_cutrun/bigwigs"
   subtracted_bigwig_dir: "results/chipseq_cutrun/subtracted_bigwigs"
+  multiqc_results_dir: "results/chipseq_cutrun"
   fastp:
     extra_args: "-q 20 -l 50"
   bowtie2:
@@ -197,7 +202,8 @@ atacseq:
   qc_dir: "results/atacseq/qc_raw"
   trimmed_dir: "results/atacseq/trimmed_fastqs"
   qc_trimmed_dir: "results/atacseq/qc_trimmed"
-  /home/jlgaralc/Masahito/Foxo6A/RNAseq_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  # ref_genome must already exist; bowtie2_index_dir is created if needed.
+  ref_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
   bowtie2_index_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/bowtie2_atacseq"
   alignment_dir: "results/atacseq/aligned_bams"
   marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Picard MarkDuplicates BAMs are written here
@@ -209,6 +215,7 @@ atacseq:
   fragment_qc_dir: "results/atacseq/fragment_qc"
   bigwig_dir: "results/atacseq/bigwigs"
   peaks_dir: "results/atacseq/peaks"
+  multiqc_results_dir: "results/atacseq"
   peak_caller: "macs3"  # Set to "genrich" to use Genrich instead of MACS3
   fastp:
     extra_args: "-q 20 -l 30"

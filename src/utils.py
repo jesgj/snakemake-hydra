@@ -2,6 +2,36 @@ import os
 import re
 from collections import defaultdict
 
+
+def validate_required_path(path, config_name):
+    """
+    Ensures a required config path value is present.
+    """
+    if not path:
+        raise ValueError(f"Missing '{config_name}' in the config.")
+
+
+def validate_existing_file(path, config_name):
+    """
+    Ensures a config path points to an existing file.
+    """
+    validate_required_path(path, config_name)
+    if not os.path.isfile(path):
+        raise ValueError(f"Config '{config_name}' must point to an existing file: {path}")
+
+
+def validate_existing_parent_dir(path, config_name):
+    """
+    Ensures a config path uses an existing parent directory.
+    """
+    validate_required_path(path, config_name)
+    parent_dir = os.path.dirname(path) or "."
+    if not os.path.isdir(parent_dir):
+        raise ValueError(
+            f"Config '{config_name}' must use an existing parent directory: {parent_dir}"
+        )
+
+
 def discover_samples(raw_fastqs_dir):
     """
     Discovers samples from a directory of raw FASTQ files.
