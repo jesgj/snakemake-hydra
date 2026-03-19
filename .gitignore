@@ -1,3 +1,6 @@
 .codex
 .snakemake
 .pixi
+logs/rnaseq/
+results/rnaseq/
+ref/

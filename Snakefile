@@ -34,6 +34,7 @@ if config["pipeline"] == "rnaseq":
     use rule all from rnaseq as rnaseq_all
 
     rule all:
+        default_target: True
         input: rules.rnaseq_all.input
 elif config["pipeline"] == "wgbs":
     use rule * from wgbs as wgbs_*
@@ -41,19 +42,23 @@ elif config["pipeline"] == "wgbs":
 
     # Make it the default
     rule all:
+        default_target: True
         input: rules.wgbs_all.input
 elif config["pipeline"] == "chip_cr":
     use rule * from chip_cr as chip_cr_*
     use rule all from chip_cr as chip_cr_all
     
     rule all:
+        default_target: True
         input: rules.chip_cr_all.input
 elif config["pipeline"] == "atacseq":
     use rule * from atacseq as atacseq_*
     use rule all from atacseq as atacseq_all
 
     rule all:
+        default_target: True
         input: rules.atacseq_all.input
 else:
     rule all:
+        default_target: True
         input: "ERROR: Write 'rnaseq', 'wgbs', 'chip_cr', or 'atacseq' in config.yaml"

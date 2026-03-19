@@ -16,7 +16,7 @@ rule picard_markduplicates:
         bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
     output:
         bam=os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bam"),
-        bai=os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bam.bai"),
+        bai=os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bai"),
         metrics=os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt")
     params:
         java_opts=PICARD_JAVA_OPTS,

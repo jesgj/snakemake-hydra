@@ -45,13 +45,24 @@ rule hisat2_align_pe:
         summary=os.path.join(ALIGNMENT_DIR, "{sample}_pe.hisat2.summary.txt")
     params:
         extra=HISAT2_EXTRA_ARGS,
-        index_prefix=HISAT2_INDEX_PREFIX
+        index_prefix=HISAT2_INDEX_PREFIX,
+        rg_id=lambda wildcards: wildcards.sample,
+        rg_sm=lambda wildcards: wildcards.sample,
+        rg_lb=lambda wildcards: wildcards.sample,
+        rg_pl="ILLUMINA",
+        rg_pu=lambda wildcards: wildcards.sample
     threads: 8
     log:
         os.path.join("logs", config["pipeline"], "hisat2_align", "{sample}_pe.log")
     shell:
         """
-        (pixi run hisat2 -p {threads} {params.extra} --summary-file "{output.summary}" -x {params.index_prefix} -1 "{input.r1}" -2 "{input.r2}" | \
+        (pixi run hisat2 -p {threads} {params.extra} \
+        --rg-id "{params.rg_id}" \
+        --rg "SM:{params.rg_sm}" \
+        --rg "LB:{params.rg_lb}" \
+        --rg "PL:{params.rg_pl}" \
+        --rg "PU:{params.rg_pu}" \
+        --summary-file "{output.summary}" -x {params.index_prefix} -1 "{input.r1}" -2 "{input.r2}" | \
         pixi run samtools view -bS - | \
         pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
         """

@@ -119,7 +119,7 @@ HAS_MULTI_BAM_DEEPTOOLS = len(ALL_ALIGNED_BAMS) >= 2
 def get_markduplicates_outputs(samples):
     outputs = []
     outputs.extend(expand(os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bam"), sample=samples))
-    outputs.extend(expand(os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bam.bai"), sample=samples))
+    outputs.extend(expand(os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bai"), sample=samples))
     outputs.extend(expand(os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt"), sample=samples))
     return outputs
 

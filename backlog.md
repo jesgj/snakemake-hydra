@@ -3,6 +3,11 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-03-18: Fix RNA-seq Picard duplicate-marking index tracking to expect Picard's `*.markdup.bai` output instead of a nonexistent `*.markdup.bam.bai`.
+- 2026-03-18: Mark each top-level conditional `all` rule as Snakemake's default target so unqualified runs execute the selected pipeline entrypoint.
+- 2026-03-18: Add per-sample HISAT2 read groups to RNA-seq alignments so downstream Picard duplicate marking receives BAMs with `@RG` metadata.
+- 2026-03-18: Redirect RNA-seq config output directories from `results/rnaseq` to `/home/jlgaralc/Masahito/Foxo6A/RNAseq`.
+- 2026-03-18: Configure the RNA-seq pipeline for the Foxo6SA OFF/ON paired-end dataset stored on `/mnt/nas/.../fastq_files_PolyA_RNA-seq`.
 - 2026-03-03: Add RNA-seq bigWig generation via deeptools bamCoverage (RPKM, binSize 10).
 - 2026-03-03: Add RNA-seq config keys for bigWig output paths and deeptools settings.
 - 2026-03-03: Wire bigWig outputs into the RNA-seq workflow targets and MultiQC inputs.
