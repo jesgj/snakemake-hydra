@@ -3,6 +3,8 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.
+- 2026-04-06: Make the WGBS Sambamba filter step tolerate empty `wgbs.sambamba.extra_args` instead of emitting an invalid `-F ""` command.
 - 2026-03-19: Fix broken WGBS and ATAC Sambamba filter expressions to use `ref_name` for mitochondrial-contig exclusion instead of a corrupted path-like token.
 - 2026-03-19: Restore backward-compatible `multiqc_results_dir` defaults, make reference-file validation lazy again at workflow parse time, and point WGBS MultiQC scans at real analysis directories instead of the report output folder.
 - 2026-03-19: Clarify that reference FASTA/BED inputs are user-managed, add fail-fast reference-path validation, and fix malformed reference keys in the checked-in config examples.

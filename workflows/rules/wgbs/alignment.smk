@@ -14,6 +14,13 @@ BISMARK_PARALLEL = int(config.get("bismark", {}).get("parallel", 8))
 
 if BISMARK_THREADS < 1 or BISMARK_PARALLEL < 1:
     raise ValueError("WGBS bismark.threads and bismark.parallel must be positive integers.")
+if BISMARK_THREADS < BISMARK_PARALLEL:
+    raise ValueError(
+        "WGBS bismark.threads must be greater than or equal to bismark.parallel so each "
+        "parallel Bismark worker receives at least one Bowtie2 thread."
+    )
+
+BISMARK_BOWTIE2_THREADS = max(1, BISMARK_THREADS // BISMARK_PARALLEL)
 
 
 # --- RULES ---
@@ -50,6 +57,7 @@ rule bismark_alignment:
     params:
         ref_dir = REF_DIR,
         parallel = BISMARK_PARALLEL,
+        bowtie2_threads = BISMARK_BOWTIE2_THREADS,
         align_dir = ALIGN_DIR,
         extra = BISMARK_EXTRA_ARGS
     threads: BISMARK_THREADS
@@ -58,13 +66,13 @@ rule bismark_alignment:
     shell:
         """
         set -euo pipefail
-        pixi run bismark --bowtie2 --parallel {params.parallel} {params.extra} \
+        pixi run bismark --bowtie2 --parallel {params.parallel} -p {params.bowtie2_threads} {params.extra} \
         --genome {params.ref_dir} \
         -1 {input.r1} -2 {input.r2} \
-        -o {params.align_dir} --basename {wildcards.sample} > {log}.out 2> {log}.err
+        -o {params.align_dir} --basename {wildcards.sample}_pe > {log}.out 2> {log}.err
         # Bismark creates a report file with `_PE_` instead of `_pe_`.
         # We rename it to have a consistent naming convention.
-        mv {params.align_dir}/{wildcards.sample}_PE_report.txt {output.report}
+        mv {params.align_dir}/{wildcards.sample}_pe_PE_report.txt {output.report}
         """
 
 rule deduplicate_bismark:

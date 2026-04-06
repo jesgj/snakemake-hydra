@@ -252,7 +252,9 @@ wgbs:
 - MultiQC report: `wgbs.multiqc_results_dir/multiqc_report.html`
 
 5. Optional resource tuning:
-- `wgbs.bismark.threads` and `wgbs.bismark.parallel`
+- `wgbs.bismark.parallel` controls how many Bismark worker processes run concurrently.
+- `wgbs.bismark.threads` controls the total thread budget reserved for the alignment rule.
+- Bowtie2 threads per Bismark worker are derived as `floor(wgbs.bismark.threads / wgbs.bismark.parallel)` with a minimum of 1, so keep `threads >= parallel`.
 - `wgbs.sambamba.filter_threads` and `wgbs.sambamba.sort_threads`
 - `wgbs.methyldackel_mbias.threads` and `wgbs.methyldackel_extract.threads`
 

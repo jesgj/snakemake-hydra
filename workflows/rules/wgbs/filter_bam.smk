@@ -30,7 +30,11 @@ rule sambamba_filter:
     shell:
         """
         set -euo pipefail
-        pixi run sambamba view -t {threads} -f bam -h -F "{params.extra}" {input.bam} -o {output.filtered_bam} > {log}.out 2> {log}.err
+        if [ -n "{params.extra}" ]; then
+            pixi run sambamba view -t {threads} -f bam -h -F '{params.extra}' {input.bam} -o {output.filtered_bam} > {log}.out 2> {log}.err
+        else
+            pixi run sambamba view -t {threads} -f bam -h {input.bam} -o {output.filtered_bam} > {log}.out 2> {log}.err
+        fi
         """
 
 rule sambamba_sort:
