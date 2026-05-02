@@ -1,6 +1,7 @@
 .codex
 .snakemake
 .pixi
+config/config.local.yaml
 logs/rnaseq/
 results/rnaseq/
 ref/

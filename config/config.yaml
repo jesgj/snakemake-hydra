@@ -1,50 +1,35 @@
-pipeline: "wgbs"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq" to change the pipeline
+pipeline: "wgbs"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq".
+
 rnaseq:
-  raw_fastqs_dir: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq"
+  raw_fastqs_dir: "data/rnaseq_raw_fastqs"
   samples_info:
-    OFF1:
-      R1: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/OFF1_RNAseq_S1_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/OFF1_RNAseq_S1_R2_001.fastq.gz"
+    sample_a:
+      R1: "data/rnaseq_raw_fastqs/sample_a_R1.fastq.gz"
+      R2: "data/rnaseq_raw_fastqs/sample_a_R2.fastq.gz"
       type: "PE"
-    OFF2:
-      R1: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/OFF2_RNAseq_S2_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/OFF2_RNAseq_S2_R2_001.fastq.gz"
+    sample_b:
+      R1: "data/rnaseq_raw_fastqs/sample_b_R1.fastq.gz"
+      R2: "data/rnaseq_raw_fastqs/sample_b_R2.fastq.gz"
       type: "PE"
-    OFF3:
-      R1: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/OFF3_RNAseq_S3_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/OFF3_RNAseq_S3_R2_001.fastq.gz"
-      type: "PE"
-    ON1:
-      R1: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/ON1_RNAseq_S4_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/ON1_RNAseq_S4_R2_001.fastq.gz"
-      type: "PE"
-    ON2:
-      R1: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/ON2_RNAseq_S5_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/ON2_RNAseq_S5_R2_001.fastq.gz"
-      type: "PE"
-    ON3:
-      R1: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/ON3_RNAseq_S6_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq/ON3_RNAseq_S6_R2_001.fastq.gz"
-      type: "PE"
-  qc_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/qc_raw"
-  trimmed_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/trimmed_fastqs"
-  qc_trimmed_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/qc_trimmed"
+  qc_dir: "results/rnaseq/qc_raw"
+  trimmed_dir: "results/rnaseq/trimmed_fastqs"
+  qc_trimmed_dir: "results/rnaseq/qc_trimmed"
   # Reference files are user-managed and must already exist.
   # The parent directory of kallisto_index must already exist; hisat2_index_dir is created if needed.
-  transcriptome_fasta: "/home/jlgaralc/genomes/DanRer11/cdna/release_115/Danio_rerio.GRCz11.cdna.all.fa"
-  kallisto_index: "/home/jlgaralc/genomes/DanRer11/cdna/release_115/kallisto.idx"
-  kallisto_output_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/kallisto"
+  transcriptome_fasta: "ref/transcriptome.fa"
+  kallisto_index: "ref/kallisto/transcriptome.idx"
+  kallisto_output_dir: "results/rnaseq/kallisto"
   kallisto:
-    extra_args: "--bootstrap-samples=100" # Number of bootstrap samples for kallisto quant
-  ref_genome: "/home/jlgaralc/genomes/DanRer11/assembly/release115/Danio_rerio.GRCz11.dna.primary_assembly.fa"
-  hisat2_index_dir: "/home/jlgaralc/genomes/DanRer11/assembly/release115/"
-  alignment_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/aligned_bams"  # Sorted BAMs and HISAT2 summary files are written here
-  marked_bam_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/marked_bams"
-  duplication_qc_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/duplication_qc"
-  bigwig_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/bigwigs"
-  deeptools_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/deeptools"
-  gene_body_coverage_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/gene_body_coverage"
-  multiqc_results_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq"
+    extra_args: "--bootstrap-samples=100"
+  ref_genome: "ref/genome.fa"
+  hisat2_index_dir: "ref/hisat2"
+  alignment_dir: "results/rnaseq/aligned_bams"  # Sorted BAMs and HISAT2 summary files are written here.
+  marked_bam_dir: "results/rnaseq/marked_bams"
+  duplication_qc_dir: "results/rnaseq/duplication_qc"
+  bigwig_dir: "results/rnaseq/bigwigs"
+  deeptools_dir: "results/rnaseq/deeptools"
+  gene_body_coverage_dir: "results/rnaseq/gene_body_coverage"
+  multiqc_results_dir: "results/rnaseq"
   hisat2:
     extra_args: ""
   fastp:
@@ -62,73 +47,49 @@ rnaseq:
       normalize_using: "RPKM"
       extra_args: "--binSize 10"
   gene_body_coverage:
-    enabled: false  # Set to false to skip the RNA-seq gene body coverage QC step
-    refgene_bed: "path/dummy.bed"  # Placeholder BED12 for dry-runs only; replace with a real annotation for production
+    enabled: false
+    refgene_bed: "ref/genes.bed12"
     minimum_length: 100
     format: "pdf"
 
 wgbs:
-  raw_fastqs_dir: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS"
+  raw_fastqs_dir: "data/wgbs_raw_fastqs"
   samples_info:
-    Ctr_1:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_1_S1_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_1_S1_L003_R2_001.fastq.gz"
-    Ctr_2:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_2_S2_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_2_S2_L003_R2_001.fastq.gz"
-    dazl_1:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_1_S5_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_1_S5_L003_R2_001.fastq.gz"
-    dazl_2:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_2_S6_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_2_S6_L003_R2_001.fastq.gz"
-    ddx4_1:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_1_S3_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_1_S3_L003_R2_001.fastq.gz"
-    ddx4_2:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_2_S4_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_2_S4_L003_R2_001.fastq.gz"
-    elav2_1:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_1_S7_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_1_S7_L003_R2_001.fastq.gz"
-    elav2_2:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_2_S8_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_2_S8_L003_R2_001.fastq.gz"
-    zar1l_1:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_1_S9_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_1_S9_L003_R2_001.fastq.gz"
-    zar1l_2:
-      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_2_S10_L003_R1_001.fastq.gz"
-      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_2_S10_L003_R2_001.fastq.gz"
-  qc_dir: "/home/jlgaralc/CTA/wgbs/qc"
-  trimmed_dir: "/home/jlgaralc/CTA/wgbs/trimmed_fastqs"
-  qc_trimmed_dir: "/home/jlgaralc/CTA/wgbs/qc_trimmed"
+    sample_a:
+      R1: "data/wgbs_raw_fastqs/sample_a_R1.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/sample_a_R2.fastq.gz"
+    sample_b:
+      R1: "data/wgbs_raw_fastqs/sample_b_R1.fastq.gz"
+      R2: "data/wgbs_raw_fastqs/sample_b_R2.fastq.gz"
+  qc_dir: "results/wgbs/qc"
+  trimmed_dir: "results/wgbs/trimmed_fastqs"
+  qc_trimmed_dir: "results/wgbs/qc_trimmed"
   # ref_genome must already exist; Bismark creates Bisulfite_Genome next to it.
-  ref_genome: "/home/jlgaralc/genomes/DanRer11/assembly/release115/Danio_rerio.GRCz11.dna.primary_assembly.fa"
-  alignment_dir: "/home/jlgaralc/CTA/wgbs/raw_bams"
-  dedup_dir: "/home/jlgaralc/CTA/wgbs/dedup_bams"
-  dedup_bam_qc_dir: "/home/jlgaralc/CTA/wgbs/dedup_bam_qc"
-  filtered_bam_dir: "/home/jlgaralc/CTA/wgbs/filtered_bams"
-  sorted_filtered_bam_dir: "/home/jlgaralc/CTA/wgbs/sorted_filtered_bams"
-  filtered_bam_qc_dir: "/home/jlgaralc/CTA/wgbs/filtered_bam_qc"
-  mbias_dir: "/home/jlgaralc/CTA/wgbs/mbias"
-  methyldackel_dir: "/home/jlgaralc/CTA/wgbs/methyldackel"
-  methyldackel_mergecontext_dir: "/home/jlgaralc/CTA/wgbs/methyldackel_mergecontext"
-  multiqc_results_dir: "/home/jlgaralc/CTA/wgbs"
-  log_dir: "/home/jlgaralc/CTA/logs/wgbs"
+  ref_genome: "ref/genome.fa"
+  alignment_dir: "results/wgbs/raw_bams"
+  dedup_dir: "results/wgbs/dedup_bams"
+  dedup_bam_qc_dir: "results/wgbs/dedup_bam_qc"
+  filtered_bam_dir: "results/wgbs/filtered_bams"
+  sorted_filtered_bam_dir: "results/wgbs/sorted_filtered_bams"
+  filtered_bam_qc_dir: "results/wgbs/filtered_bam_qc"
+  mbias_dir: "results/wgbs/mbias"
+  methyldackel_dir: "results/wgbs/methyldackel"
+  methyldackel_mergecontext_dir: "results/wgbs/methyldackel_mergecontext"
+  multiqc_results_dir: "results/wgbs"
+  log_dir: "logs/wgbs"
   fastp:
     extra_args: "-q 20 --trim_front1 10 --detect_adapter_for_pe --dont_eval_duplication --trim_poly_g --trim_poly_x --cut_tail"
   bismark:
-    threads: 66
-    parallel: 8
+    threads: 8
+    parallel: 2
     extra_args: "--local -X 2000"
   sambamba:
-    filter_threads: 8
-    sort_threads: 8
+    filter_threads: 2
+    sort_threads: 2
     # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
     extra_args: "mapping_quality >= 20 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
   methyldackel_mbias:
-    threads: 16
+    threads: 2
     extra_args: ""
   methyldackel_extract:
     threads: 1
@@ -138,26 +99,26 @@ wgbs:
     java_opts: "-Xmx4g"
 
 chip_cr:
-  raw_fastqs_dir: "data/chip_test_pipeline/"
+  raw_fastqs_dir: "data/chip_test_pipeline"
   # Name matched controls as <base>_input_repN to enable automatic subtraction.
   # The <base> portion may contain additional underscores.
   samples_info:
-    Dome_ctrl_H3K4me3_rep1:
-      R1: "data/chip_test_pipeline/Dome_ctrl_H3K4me3_rep1_R1.sample.fastq.gz"
-      R2: "data/chip_test_pipeline/Dome_ctrl_H3K4me3_rep1_R2.sample.fastq.gz"
+    treatment_rep1:
+      R1: "data/chip_test_pipeline/treatment_rep1_R1.fastq.gz"
+      R2: "data/chip_test_pipeline/treatment_rep1_R2.fastq.gz"
       type: "PE"
-    Shield_ctrl_H3K27ac_rep1:
-      R1: "data/chip_test_pipeline/Shield_ctrl_H3K27ac_rep1_R1.sample.fastq.gz"
-      R2: "data/chip_test_pipeline/Shield_ctrl_H3K27ac_rep1_R2.sample.fastq.gz"
+    treatment_input_rep1:
+      R1: "data/chip_test_pipeline/treatment_input_rep1_R1.fastq.gz"
+      R2: "data/chip_test_pipeline/treatment_input_rep1_R2.fastq.gz"
       type: "PE"
   # Reference FASTA and BED inputs must already exist; bowtie2_index_dir is created if needed.
-  gene_bed: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/genes.bed"
+  gene_bed: "ref/genes.bed"
   qc_dir: "results/chipseq_cutrun/qc_raw"
-  ref_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
+  ref_genome: "ref/genome.fa"
   trimmed_dir: "results/chipseq_cutrun/trimmed_fastqs"
   qc_trimmed_dir: "results/chipseq_cutrun/qc_trimmed"
   alignment_dir: "results/chipseq_cutrun/aligned_bams"
-  bowtie2_index_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/bowtie2"
+  bowtie2_index_dir: "ref/bowtie2/chip_cr"
   bam_qc_dir: "results/chipseq_cutrun/bam_qc"
   filtered_bam_dir: "results/chipseq_cutrun/filtered_bams"
   filtered_bam_qc_dir: "results/chipseq_cutrun/filtered_bam_qc"
@@ -180,7 +141,7 @@ chip_cr:
       beforeRegionStartLength: 3000
       regionBodyLength: 5000
       afterRegionStartLength: 3000
-      skipZeros: True
+      skipZeros: true
     plotCorrelation:
       extra_args: "-p heatmap --corMethod spearman --skipZeros"
     plotFingerprint:
@@ -197,18 +158,18 @@ chip_cr:
 atacseq:
   raw_fastqs_dir: "data/atacseq_raw_fastqs"
   samples_info:
-    Dome_ctrl_ATAC_rep1:
-      R1: "data/atacseq_raw_fastqs/Dome_ctrl_ATAC_rep1_R1.fastq.gz"
-      R2: "data/atacseq_raw_fastqs/Dome_ctrl_ATAC_rep1_R2.fastq.gz"
+    sample_a:
+      R1: "data/atacseq_raw_fastqs/sample_a_R1.fastq.gz"
+      R2: "data/atacseq_raw_fastqs/sample_a_R2.fastq.gz"
       type: "PE"
   qc_dir: "results/atacseq/qc_raw"
   trimmed_dir: "results/atacseq/trimmed_fastqs"
   qc_trimmed_dir: "results/atacseq/qc_trimmed"
   # ref_genome must already exist; bowtie2_index_dir is created if needed.
-  ref_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/Danio_rerio.GRCz11.dna.primary_assembly.fa.gz"
-  bowtie2_index_dir: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/bowtie2_atacseq"
+  ref_genome: "ref/genome.fa"
+  bowtie2_index_dir: "ref/bowtie2/atacseq"
   alignment_dir: "results/atacseq/aligned_bams"
-  marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Picard MarkDuplicates BAMs are written here
+  marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Picard MarkDuplicates BAMs are written here.
   duplication_qc_dir: "results/atacseq/duplication_qc"
   bam_qc_dir: "results/atacseq/bam_qc"
   filtered_bam_dir: "results/atacseq/filtered_bams"
@@ -218,7 +179,7 @@ atacseq:
   bigwig_dir: "results/atacseq/bigwigs"
   peaks_dir: "results/atacseq/peaks"
   multiqc_results_dir: "results/atacseq"
-  peak_caller: "macs3"  # Set to "genrich" to use Genrich instead of MACS3
+  peak_caller: "macs3"  # Set to "genrich" to use Genrich instead of MACS3.
   fastp:
     extra_args: "-q 20 -l 30"
   bowtie2:

@@ -9,7 +9,7 @@
 #SBATCH --time=48:00:00 # Tiempo máximo de ejecución (horas:minutos:segundos)
 
 
-#wdir=/home/user
+#wdir=/path/to/workdir
 #cd $wdir
 #pwd
 # run snakemake

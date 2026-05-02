@@ -3,18 +3,18 @@
 Track notable changes and implementation work here.
 
 ## Implemented
-- 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and point the checked-in WGBS config at the CTA dataset and output workspace.
+- 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and update the checked-in WGBS config defaults.
 - 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.
 - 2026-04-06: Make the WGBS Sambamba filter step tolerate empty `wgbs.sambamba.extra_args` instead of emitting an invalid `-F ""` command.
-- 2026-03-19: Fix broken WGBS and ATAC Sambamba filter expressions to use `ref_name` for mitochondrial-contig exclusion instead of a corrupted path-like token.
+- 2026-03-19: Fix broken WGBS and ATAC Sambamba filter expressions to use `ref_name` for mitochondrial-contig exclusion instead of a corrupted path-like string.
 - 2026-03-19: Restore backward-compatible `multiqc_results_dir` defaults, make reference-file validation lazy again at workflow parse time, and point WGBS MultiQC scans at real analysis directories instead of the report output folder.
 - 2026-03-19: Clarify that reference FASTA/BED inputs are user-managed, add fail-fast reference-path validation, and fix malformed reference keys in the checked-in config examples.
 - 2026-03-19: Make MultiQC report locations configurable per pipeline via `multiqc_results_dir` instead of hardcoding `results/<pipeline>`.
 - 2026-03-18: Fix RNA-seq Picard duplicate-marking index tracking to expect Picard's `*.markdup.bai` output instead of a nonexistent `*.markdup.bam.bai`.
 - 2026-03-18: Mark each top-level conditional `all` rule as Snakemake's default target so unqualified runs execute the selected pipeline entrypoint.
 - 2026-03-18: Add per-sample HISAT2 read groups to RNA-seq alignments so downstream Picard duplicate marking receives BAMs with `@RG` metadata.
-- 2026-03-18: Redirect RNA-seq config output directories from `results/rnaseq` to `/home/jlgaralc/Masahito/Foxo6A/RNAseq`.
-- 2026-03-18: Configure the RNA-seq pipeline for the Foxo6SA OFF/ON paired-end dataset stored on `/mnt/nas/.../fastq_files_PolyA_RNA-seq`.
+- 2026-03-18: Redirect RNA-seq config output directories from repository defaults to an external workspace.
+- 2026-03-18: Configure the RNA-seq pipeline for a paired-end dataset stored outside the repository.
 - 2026-03-03: Add RNA-seq bigWig generation via deeptools bamCoverage (RPKM, binSize 10).
 - 2026-03-03: Add RNA-seq config keys for bigWig output paths and deeptools settings.
 - 2026-03-03: Wire bigWig outputs into the RNA-seq workflow targets and MultiQC inputs.
