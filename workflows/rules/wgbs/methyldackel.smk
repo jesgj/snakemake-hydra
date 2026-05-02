@@ -9,6 +9,7 @@ METHYLDACKEL_DIR = config["methyldackel_dir"]
 METHYLDACKEL_MERGECONTEXT_DIR = config["methyldackel_mergecontext_dir"]
 METHYLDACKEL_EXTRACT_EXTRA_ARGS = config.get("methyldackel_extract", {}).get("extra_args", "")
 METHYLDACKEL_EXTRACT_THREADS = int(config.get("methyldackel_extract", {}).get("threads", 1))
+LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
 if METHYLDACKEL_EXTRACT_THREADS < 1:
     raise ValueError("WGBS methyldackel_extract.threads must be a positive integer.")
@@ -33,7 +34,7 @@ rule methyldackel_extract_methylkit:
         extra=METHYLDACKEL_EXTRACT_EXTRA_ARGS
     threads: METHYLDACKEL_EXTRACT_THREADS
     log:
-        os.path.join("logs", config["pipeline"], "methyldackel_extract_methylkit", "{sample}.log")
+        os.path.join(LOG_DIR, "methyldackel_extract_methylkit", "{sample}.log")
     shell:
         """
         set -euo pipefail
@@ -62,7 +63,7 @@ rule methyldackel_extract_mergecontext:
         extra=METHYLDACKEL_EXTRACT_EXTRA_ARGS
     threads: METHYLDACKEL_EXTRACT_THREADS
     log:
-        os.path.join("logs", config["pipeline"], "methyldackel_extract_mergecontext", "{sample}.log")
+        os.path.join(LOG_DIR, "methyldackel_extract_mergecontext", "{sample}.log")
     shell:
         """
         set -euo pipefail

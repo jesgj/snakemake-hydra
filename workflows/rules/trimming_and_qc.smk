@@ -6,6 +6,7 @@ SAMPLES_INFO = config['samples_info']
 TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
 FASTP_EXTRA_ARGS = config.get("fastp", {}).get("extra_args", "")
+LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
 # --- Trimming ---
 
@@ -25,7 +26,7 @@ rule fastp_trim:
         extra = FASTP_EXTRA_ARGS
     threads: 4
     log:
-        os.path.join("logs", config["pipeline"], "fastp", "{sample}_pe.log")
+        os.path.join(LOG_DIR, "fastp", "{sample}_pe.log")
     shell:
         """
         pixi run fastp -i {input.r1} -I {input.r2} \
@@ -51,7 +52,7 @@ rule fastp_trim_se:
         extra = FASTP_EXTRA_ARGS
     threads: 4
     log:
-        os.path.join("logs", config["pipeline"], "fastp", "{sample}_se.log")
+        os.path.join(LOG_DIR, "fastp", "{sample}_se.log")
     shell:
         """
         pixi run fastp -i {input.r1} \
@@ -79,7 +80,7 @@ rule fastqc_trimmed:
         outdir = QC_TRIMMED_DIR
     threads: 2
     log:
-        os.path.join("logs", config["pipeline"], "fastqc_trimmed", "{sample}_pe.log")
+        os.path.join(LOG_DIR, "fastqc_trimmed", "{sample}_pe.log")
     shell:
         """
         pixi run fastqc -o {params.outdir} -t {threads} {input.r1} {input.r2} > {log}.out 2> {log}.err
@@ -115,7 +116,7 @@ rule fastqc_trimmed_se:
         outdir = QC_TRIMMED_DIR
     threads: 1
     log:
-        os.path.join("logs", config["pipeline"], "fastqc_trimmed", "{sample}_se.log")
+        os.path.join(LOG_DIR, "fastqc_trimmed", "{sample}_se.log")
     shell:
         """
         pixi run fastqc -o {params.outdir} -t {threads} {input.r1} > {log}.out 2> {log}.err

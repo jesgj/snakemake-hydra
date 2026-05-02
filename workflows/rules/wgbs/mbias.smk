@@ -8,6 +8,7 @@ MBIAS_DIR = config["mbias_dir"]
 SAMPLES = list(config['samples_info'].keys())
 METHYLDACKEL_MBIAS_EXTRA_ARGS = config.get("methyldackel_mbias", {}).get("extra_args", "")
 METHYLDACKEL_MBIAS_THREADS = int(config.get("methyldackel_mbias", {}).get("threads", 16))
+LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
 if METHYLDACKEL_MBIAS_THREADS < 1:
     raise ValueError("WGBS methyldackel_mbias.threads must be a positive integer.")
@@ -31,7 +32,7 @@ rule methyldackel_mbias:
         prefix=os.path.join(MBIAS_DIR, "{sample}")
     threads: METHYLDACKEL_MBIAS_THREADS
     log:
-        os.path.join("logs", config["pipeline"], "methyldackel_mbias", "{sample}.log")
+        os.path.join(LOG_DIR, "methyldackel_mbias", "{sample}.log")
     shell:
         """
         set -euo pipefail

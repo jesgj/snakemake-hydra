@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and point the checked-in WGBS config at the CTA dataset and output workspace.
 - 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.
 - 2026-04-06: Make the WGBS Sambamba filter step tolerate empty `wgbs.sambamba.extra_args` instead of emitting an invalid `-F ""` command.
 - 2026-03-19: Fix broken WGBS and ATAC Sambamba filter expressions to use `ref_name` for mitochondrial-contig exclusion instead of a corrupted path-like token.

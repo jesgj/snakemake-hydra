@@ -8,6 +8,7 @@ SORTED_FILTERED_BAM_DIR = config["sorted_filtered_bam_dir"]
 SAMBAMBA_EXTRA_ARGS = config.get("sambamba", {}).get("extra_args", "")
 SAMBAMBA_FILTER_THREADS = int(config.get("sambamba", {}).get("filter_threads", 8))
 SAMBAMBA_SORT_THREADS = int(config.get("sambamba", {}).get("sort_threads", 8))
+LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
 if SAMBAMBA_FILTER_THREADS < 1 or SAMBAMBA_SORT_THREADS < 1:
     raise ValueError("WGBS sambamba.filter_threads and sambamba.sort_threads must be positive integers.")
@@ -26,7 +27,7 @@ rule sambamba_filter:
         extra=SAMBAMBA_EXTRA_ARGS
     threads: SAMBAMBA_FILTER_THREADS
     log:
-        os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}.log")
+        os.path.join(LOG_DIR, "sambamba_filter", "{sample}.log")
     shell:
         """
         set -euo pipefail
@@ -47,7 +48,7 @@ rule sambamba_sort:
         sorted_bam=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam")
     threads: SAMBAMBA_SORT_THREADS
     log:
-        os.path.join("logs", config["pipeline"], "sambamba_sort", "{sample}.log")
+        os.path.join(LOG_DIR, "sambamba_sort", "{sample}.log")
     shell:
         """
         set -euo pipefail
@@ -64,7 +65,7 @@ rule samtools_index_filtered_bam:
         bai=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai")
     threads: 4
     log:
-        os.path.join("logs", config["pipeline"], "samtools_index_filtered", "{sample}.log")
+        os.path.join(LOG_DIR, "samtools_index_filtered", "{sample}.log")
     shell:
         """
         pixi run samtools index -@ {threads} {input.bam} {output.bai} > {log}.out 2> {log}.err

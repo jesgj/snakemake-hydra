@@ -4,6 +4,7 @@ import os
 # This module now expects SAMPLES_INFO to be in the config
 SAMPLES_INFO = config['samples_info']
 QC_DIR = config["qc_dir"]
+LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
 rule fastqc_raw_pe:
     """
@@ -21,7 +22,7 @@ rule fastqc_raw_pe:
         outdir = QC_DIR
     threads: 2
     log:
-        os.path.join("logs", config["pipeline"], "fastqc_raw", "{sample}_pe.log")
+        os.path.join(LOG_DIR, "fastqc_raw", "{sample}_pe.log")
     shell:
         """
         # 1. Run FastQC
@@ -62,7 +63,7 @@ rule fastqc_raw_se:
         outdir = QC_DIR
     threads: 1
     log:
-        os.path.join("logs", config["pipeline"], "fastqc_raw", "{sample}_se.log")
+        os.path.join(LOG_DIR, "fastqc_raw", "{sample}_se.log")
     shell:
         """
         # 1. Run FastQC

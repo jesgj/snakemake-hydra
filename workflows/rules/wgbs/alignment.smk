@@ -11,6 +11,7 @@ DEDUP_DIR = config["dedup_dir"]
 BISMARK_EXTRA_ARGS = config.get("bismark", {}).get("extra_args", "")
 BISMARK_THREADS = int(config.get("bismark", {}).get("threads", 66))
 BISMARK_PARALLEL = int(config.get("bismark", {}).get("parallel", 8))
+LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
 if BISMARK_THREADS < 1 or BISMARK_PARALLEL < 1:
     raise ValueError("WGBS bismark.threads and bismark.parallel must be positive integers.")
@@ -37,7 +38,7 @@ rule bismark_genome_preparation:
         ref_dir = REF_DIR
     threads: 1
     log:
-        os.path.join("logs", config["pipeline"], "bismark_genome_preparation", "bismark_genome_preparation.log")
+        os.path.join(LOG_DIR, "bismark_genome_preparation", "bismark_genome_preparation.log")
     shell:
         """
         pixi run bismark_genome_preparation --bowtie2 --verbose {params.ref_dir} > {log}.out 2> {log}.err
@@ -62,17 +63,21 @@ rule bismark_alignment:
         extra = BISMARK_EXTRA_ARGS
     threads: BISMARK_THREADS
     log:
-        os.path.join("logs", config["pipeline"], "bismark", "{sample}.log")
+        os.path.join(LOG_DIR, "bismark", "{sample}.log")
     shell:
         """
         set -euo pipefail
+        R1_BASE=$(basename {input.r1})
+        R1_STEM=${{R1_BASE%%.fastq.gz}}
+        R1_STEM=${{R1_STEM%%.fq.gz}}
         pixi run bismark --bowtie2 --parallel {params.parallel} -p {params.bowtie2_threads} {params.extra} \
         --genome {params.ref_dir} \
         -1 {input.r1} -2 {input.r2} \
-        -o {params.align_dir} --basename {wildcards.sample}_pe > {log}.out 2> {log}.err
-        # Bismark creates a report file with `_PE_` instead of `_pe_`.
-        # We rename it to have a consistent naming convention.
-        mv {params.align_dir}/{wildcards.sample}_pe_PE_report.txt {output.report}
+        -o {params.align_dir} > {log}.out 2> {log}.err
+        # Multicore Bismark does not support --basename, so normalize its default
+        # paired-end filenames back to the workflow's stable sample-based outputs.
+        mv {params.align_dir}/${{R1_STEM}}_bismark_bt2_pe.bam {output.bam}
+        mv {params.align_dir}/${{R1_STEM}}_bismark_bt2_PE_report.txt {output.report}
         """
 
 rule deduplicate_bismark:
@@ -87,7 +92,7 @@ rule deduplicate_bismark:
     params:
         outdir = DEDUP_DIR
     log:
-        os.path.join("logs", config["pipeline"], "deduplicate_bismark", "{sample}.log")
+        os.path.join(LOG_DIR, "deduplicate_bismark", "{sample}.log")
     shell:
         """
         pixi run deduplicate_bismark -p --bam {input.bam} --output_dir {params.outdir} > {log}.out 2> {log}.err

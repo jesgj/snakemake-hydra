@@ -1,4 +1,4 @@
-pipeline: "rnaseq"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq" to change the pipeline
+pipeline: "wgbs"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq" to change the pipeline
 rnaseq:
   raw_fastqs_dir: "/mnt/nas/jlgaralc/Masahito/PAPER/Foxo6SA_RNAseq_ATAC_CUTnRUN/RNAseq/fastq_files_PolyA_RNA-seq"
   samples_info:
@@ -68,53 +68,54 @@ rnaseq:
     format: "pdf"
 
 wgbs:
-  raw_fastqs_dir: "data/wgbs_raw_fastqs" # in this case we are going to obtain the fastqs programatically
+  raw_fastqs_dir: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS"
   samples_info:
     Ctr_1:
-      R1: "data/wgbs_raw_fastqs/Ctr_1_S1_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/Ctr_1_S1_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_1_S1_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_1_S1_L003_R2_001.fastq.gz"
     Ctr_2:
-      R1: "data/wgbs_raw_fastqs/Ctr_2_S2_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/Ctr_2_S2_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_2_S2_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/Ctr_2_S2_L003_R2_001.fastq.gz"
     dazl_1:
-      R1: "data/wgbs_raw_fastqs/dazl_1_S5_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/dazl_1_S5_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_1_S5_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_1_S5_L003_R2_001.fastq.gz"
     dazl_2:
-      R1: "data/wgbs_raw_fastqs/dazl_2_S6_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/dazl_2_S6_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_2_S6_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/dazl_2_S6_L003_R2_001.fastq.gz"
     ddx4_1:
-      R1: "data/wgbs_raw_fastqs/ddx4_1_S3_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/ddx4_1_S3_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_1_S3_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_1_S3_L003_R2_001.fastq.gz"
     ddx4_2:
-      R1: "data/wgbs_raw_fastqs/ddx4_2_S4_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/ddx4_2_S4_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_2_S4_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/ddx4_2_S4_L003_R2_001.fastq.gz"
     elav2_1:
-      R1: "data/wgbs_raw_fastqs/elav2_1_S7_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/elav2_1_S7_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_1_S7_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_1_S7_L003_R2_001.fastq.gz"
     elav2_2:
-      R1: "data/wgbs_raw_fastqs/elav2_2_S8_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/elav2_2_S8_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_2_S8_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/elav2_2_S8_L003_R2_001.fastq.gz"
     zar1l_1:
-      R1: "data/wgbs_raw_fastqs/zar1l_1_S9_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/zar1l_1_S9_L003_R2_001.fastq.gz"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_1_S9_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_1_S9_L003_R2_001.fastq.gz"
     zar1l_2:
-      R1: "data/wgbs_raw_fastqs/zar1l_2_S10_L003_R1_001.fastq.gz"
-      R2: "data/wgbs_raw_fastqs/zar1l_2_S10_L003_R2_001.fastq.gz"
-  qc_dir: "results/wgbs/qc"
-  trimmed_dir: "results/wgbs/trimmed_fastqs"
-  qc_trimmed_dir: "results/wgbs/qc_trimmed"
+      R1: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_2_S10_L003_R1_001.fastq.gz"
+      R2: "/mnt/nas/jlgaralc/TFM_UOC/root/CTA_Project/WGBS/zar1l_2_S10_L003_R2_001.fastq.gz"
+  qc_dir: "/home/jlgaralc/CTA/wgbs/qc"
+  trimmed_dir: "/home/jlgaralc/CTA/wgbs/trimmed_fastqs"
+  qc_trimmed_dir: "/home/jlgaralc/CTA/wgbs/qc_trimmed"
   # ref_genome must already exist; Bismark creates Bisulfite_Genome next to it.
-  ref_genome: "/home/jlgaralc/Masahito/Foxo6A/RNAseq/danrer11_lambda.fa"
-  alignment_dir: "data/wgbs/raw_bams"
-  dedup_dir: "data/wgbs/dedup_bams"
-  dedup_bam_qc_dir: "results/wgbs/dedup_bam_qc"
-  filtered_bam_dir: "data/wgbs/filtered_bams"
-  sorted_filtered_bam_dir: "data/wgbs/sorted_filtered_bams"
-  filtered_bam_qc_dir: "results/wgbs/filtered_bam_qc"
-  mbias_dir: "results/wgbs/mbias"
-  methyldackel_dir: "results/wgbs/methyldackel"
-  methyldackel_mergecontext_dir: "results/wgbs/methyldackel_mergecontext"
-  multiqc_results_dir: "results/wgbs"
+  ref_genome: "/home/jlgaralc/genomes/DanRer11/assembly/release115/Danio_rerio.GRCz11.dna.primary_assembly.fa"
+  alignment_dir: "/home/jlgaralc/CTA/wgbs/raw_bams"
+  dedup_dir: "/home/jlgaralc/CTA/wgbs/dedup_bams"
+  dedup_bam_qc_dir: "/home/jlgaralc/CTA/wgbs/dedup_bam_qc"
+  filtered_bam_dir: "/home/jlgaralc/CTA/wgbs/filtered_bams"
+  sorted_filtered_bam_dir: "/home/jlgaralc/CTA/wgbs/sorted_filtered_bams"
+  filtered_bam_qc_dir: "/home/jlgaralc/CTA/wgbs/filtered_bam_qc"
+  mbias_dir: "/home/jlgaralc/CTA/wgbs/mbias"
+  methyldackel_dir: "/home/jlgaralc/CTA/wgbs/methyldackel"
+  methyldackel_mergecontext_dir: "/home/jlgaralc/CTA/wgbs/methyldackel_mergecontext"
+  multiqc_results_dir: "/home/jlgaralc/CTA/wgbs"
+  log_dir: "/home/jlgaralc/CTA/logs/wgbs"
   fastp:
     extra_args: "-q 20 --trim_front1 10 --detect_adapter_for_pe --dont_eval_duplication --trim_poly_g --trim_poly_x --cut_tail"
   bismark:
@@ -125,7 +126,7 @@ wgbs:
     filter_threads: 8
     sort_threads: 8
     # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
-    extra_args: "mapping_quality >= 10 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
+    extra_args: "mapping_quality >= 20 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
   methyldackel_mbias:
     threads: 16
     extra_args: ""
@@ -134,7 +135,7 @@ wgbs:
     extra_args: ""
     extra_opts: "--minOppositeDepth 10 --maxVariantFrac 0.5"
   picard:
-    java_opts: "-Xmx4g" # AÑADIR --IS_BISULFITE_SEQUENCED
+    java_opts: "-Xmx4g"
 
 chip_cr:
   raw_fastqs_dir: "data/chip_test_pipeline/"
