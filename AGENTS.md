@@ -20,7 +20,7 @@
 ## Validation Strategy
 - For config-only edits, a selected-pipeline dry-run is usually the best verification.
 - For rule edits, prefer `--until <prefixed_rule_name>` first, then a concrete output if paths or filenames changed.
-- Useful concrete outputs: `results/rnaseq/kallisto/sample/abundance.tsv`, `results/wgbs/methyldackel/sample_CpG.methylKit`, `results/atacseq/peaks/sample_peaks.narrowPeak`.
+- Useful concrete outputs: `results/rnaseq/kallisto/sample/abundance.tsv`, `results/wgbs/methyldackel/sample_CpG.methylKit`, `results/atacseq/peaks/sample_peaks.narrowPeak`, `results/atacseq/featurecounts/consensus_peak_counts.txt`.
 - When changing MultiQC dependencies, dry-run the final report at `<multiqc_results_dir>/multiqc_report.html`.
 - Keep verification scoped to the active pipeline; switching `config["pipeline"]` is a config change, not a harmless test setup detail.
 
@@ -45,3 +45,5 @@
 - WGBS uses `wgbs.log_dir` when set; other pipelines default logs under `logs/<pipeline>`.
 - WGBS Bismark thread allocation derives Bowtie2 threads from `wgbs.bismark.threads / wgbs.bismark.parallel`; keep `threads >= parallel`.
 - ATAC-seq supports only `peak_caller: "macs3"` or `"genrich"`; Genrich uses a queryname-sorted intermediate but both paths expose the shared `.narrowPeak` output.
+- ATAC-seq consensus peaks use sorted BED3 inputs and configurable `consensus_peaks.minimum_support`; featureCounts and FRiP depend on the cohort-wide consensus peak set.
+- ATAC-seq MACS3 runs in true BAMPE fragment mode, while bigWigs are unshifted full-fragment CPM tracks; Tn5 insertion-site shifting is downstream analysis.

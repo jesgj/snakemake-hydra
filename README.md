@@ -110,6 +110,7 @@ Useful concrete dry-run targets:
 - RNA-seq: `results/rnaseq/kallisto/sample/abundance.tsv`.
 - WGBS: `results/wgbs/methyldackel/sample_CpG.methylKit`.
 - ATAC-seq: `results/atacseq/peaks/sample_peaks.narrowPeak`.
+- ATAC-seq quantification: `results/atacseq/featurecounts/consensus_peak_counts.txt`.
 - MultiQC: `<multiqc_results_dir>/multiqc_report.html`.
 
 ## Validation
@@ -150,6 +151,16 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - Both peak-caller paths expose the shared `peaks/<sample>_peaks.narrowPeak` output; Genrich uses an intermediate queryname-sorted BAM.
 - Duplicate reads are marked for metrics, then removed during filtered BAM generation before downstream QC, bigWig generation, and peak calling.
 - The deepTools correlation heatmap is generated only when at least 2 filtered BAMs are available.
+- MACS3 uses true paired-fragment `BAMPE` mode. Tn5 insertion-site shifting is intentionally left to downstream analysis.
+- Per-sample narrowPeak files are converted to sorted BED3 intervals before consensus construction. `consensus_peaks.minimum_support` controls how many samples must overlap a region and defaults to `1`.
+- featureCounts quantifies paired-end fragments from all filtered BAMs over the consensus peak SAF. `featurecounts.threads`, `featurecounts.minimum_mapping_quality`, and `featurecounts.extra_args` control this step.
+- The default featureCounts MAPQ threshold is `0` because mapping-quality filtering is already configurable in `sambamba.view_extra_args`.
+- `mitochondrial_contigs` lists contig names used to calculate the pre-filter mitochondrial fraction from aligned BAMs.
+- Core ATAC QC is written both as a standalone TSV and as a custom table in MultiQC. It includes aligned/final reads, Picard duplicate metrics, mitochondrial fraction, fragments in peaks, and FRiP.
+- FRiP uses the cohort-wide consensus peak set, so its value can change when samples or `consensus_peaks.minimum_support` change.
+- BigWigs contain full-fragment CPM read coverage and are not Tn5-shifted insertion-site tracks.
+- Bowtie2 and Sambamba behavior remains config-driven; choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
+- Bowtie2 indexes are validated after building and before alignment so a stale sentinel cannot silently authorize a missing index.
 
 ## Outputs
 Output paths are config-driven. Common defaults and examples include:
@@ -159,6 +170,9 @@ Output paths are config-driven. Common defaults and examples include:
 - WGBS MethylDackel: `results/wgbs/methyldackel/<sample>_CpG.methylKit`.
 - ChIP/CUT&RUN bigWig: `results/chipseq_cutrun/bigwigs/<sample>_pe.bw` or `<sample>_se.bw`.
 - ATAC-seq peaks: `results/atacseq/peaks/<sample>_peaks.narrowPeak`.
+- ATAC-seq consensus peaks: `results/atacseq/consensus_peaks/consensus_peaks.bed` and `.saf`.
+- ATAC-seq featureCounts matrix: `results/atacseq/featurecounts/consensus_peak_counts.txt`.
+- ATAC-seq QC summary: `results/atacseq/qc_summary/sample_qc_summary.tsv`.
 
 ## Troubleshooting
 - No samples found: check that `samples_info` is populated or `raw_fastqs_dir` exists with supported FASTQ names.
@@ -167,6 +181,7 @@ Output paths are config-driven. Common defaults and examples include:
 - Missing correlation heatmap: the workflow skips correlation when fewer than 2 BAMs are available.
 - Missing RNA-seq gene body coverage heatmap: it is emitted only with at least 3 samples and when gene body coverage is enabled.
 - Missing ChIP/CUT&RUN subtraction: verify names follow `<base>_repN` and `<base>_input_repN`.
+- Empty ATAC consensus peaks: lower `consensus_peaks.minimum_support` or inspect the per-sample narrowPeak files.
 - Reference or index failure: configured reference files must exist, and index directories must be writable.
 
 ## License

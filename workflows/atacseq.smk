@@ -21,6 +21,15 @@ DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "atacseq", "
 FRAGMENT_QC_DIR = config.get("fragment_qc_dir", os.path.join("results", "atacseq", "fragment_qc"))
 BIGWIG_DIR = config.get("bigwig_dir", os.path.join("results", "atacseq", "bigwigs"))
 PEAKS_DIR = config.get("peaks_dir", os.path.join("results", "atacseq", "peaks"))
+CONSENSUS_PEAKS_DIR = config.get(
+    "consensus_peaks_dir", os.path.join("results", "atacseq", "consensus_peaks")
+)
+FEATURECOUNTS_DIR = config.get(
+    "featurecounts_dir", os.path.join("results", "atacseq", "featurecounts")
+)
+QC_SUMMARY_DIR = config.get(
+    "qc_summary_dir", os.path.join("results", "atacseq", "qc_summary")
+)
 PEAK_CALLER = config.get("peak_caller", "macs3")
 
 # Reference inputs are user-managed. Only the configured Bowtie2 index directory is created here.
@@ -47,6 +56,9 @@ config["deeptools_dir"] = DEEPTOOLS_DIR
 config["fragment_qc_dir"] = FRAGMENT_QC_DIR
 config["bigwig_dir"] = BIGWIG_DIR
 config["peaks_dir"] = PEAKS_DIR
+config["consensus_peaks_dir"] = CONSENSUS_PEAKS_DIR
+config["featurecounts_dir"] = FEATURECOUNTS_DIR
+config["qc_summary_dir"] = QC_SUMMARY_DIR
 config["peak_caller"] = PEAK_CALLER
 
 # Ensure output directories exist
@@ -64,6 +76,9 @@ os.makedirs(DEEPTOOLS_DIR, exist_ok=True)
 os.makedirs(FRAGMENT_QC_DIR, exist_ok=True)
 os.makedirs(BIGWIG_DIR, exist_ok=True)
 os.makedirs(PEAKS_DIR, exist_ok=True)
+os.makedirs(CONSENSUS_PEAKS_DIR, exist_ok=True)
+os.makedirs(FEATURECOUNTS_DIR, exist_ok=True)
+os.makedirs(QC_SUMMARY_DIR, exist_ok=True)
 
 # Ensure log directories exist
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
@@ -73,12 +88,17 @@ os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_build"), exist_ok=
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_aligned"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "sambamba_filter"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "deeptools"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fragment_qc"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bamCoverage"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], PEAK_CALLER), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "consensus_peaks"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "featurecounts"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_idxstats"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_coverage"), exist_ok=True)
 if PEAK_CALLER == "genrich":
     os.makedirs(os.path.join("logs", config["pipeline"], "genrich_qname_sort"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "multiqc"), exist_ok=True)
@@ -132,6 +152,8 @@ def get_atacseq_outputs(samples):
     outputs.extend(expand(os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"), sample=samples))
     outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.stats.txt"), sample=samples))
     outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.flagstat.txt"), sample=samples))
+    outputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.coverage.tsv"), sample=samples))
+    outputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.idxstats.txt"), sample=samples))
     outputs.append(os.path.join(DEEPTOOLS_DIR, "fingerprints.png"))
     outputs.append(os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab"))
     if len(samples) >= 2:
@@ -145,6 +167,14 @@ def get_atacseq_outputs(samples):
         outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_summits.bed"), sample=samples))
         outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_treat_pileup.bdg"), sample=samples))
         outputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_peaks.xls"), sample=samples))
+    outputs.extend([
+        os.path.join(CONSENSUS_PEAKS_DIR, "consensus_peaks.bed"),
+        os.path.join(CONSENSUS_PEAKS_DIR, "consensus_peaks.saf"),
+        os.path.join(FEATURECOUNTS_DIR, "consensus_peak_counts.txt"),
+        os.path.join(FEATURECOUNTS_DIR, "consensus_peak_counts.txt.summary"),
+        os.path.join(QC_SUMMARY_DIR, "sample_qc_summary.tsv"),
+        os.path.join(QC_SUMMARY_DIR, "atac_qc_summary_mqc.tsv"),
+    ])
     return outputs
 
 
@@ -164,6 +194,9 @@ def get_atacseq_multiqc_analysis_dirs():
                 FRAGMENT_QC_DIR,
                 BIGWIG_DIR,
                 PEAKS_DIR,
+                CONSENSUS_PEAKS_DIR,
+                FEATURECOUNTS_DIR,
+                QC_SUMMARY_DIR,
                 os.path.join("logs", config["pipeline"]),
             ]
         )
@@ -188,6 +221,7 @@ include: "rules/atacseq/filter_bam.smk"
 include: "rules/atacseq/fragment_qc.smk"
 include: "rules/atacseq/bigwig.smk"
 include: "rules/atacseq/peak_calling.smk"
+include: "rules/atacseq/quantification.smk"
 include: "rules/multiqc.smk"
 
 
@@ -207,6 +241,23 @@ use rule samtools_flagstat_generic as samtools_flagstat_aligned with:
         flagstat = os.path.join(BAM_QC_DIR, "{sample}_pe.flagstat.txt")
     log:
         os.path.join("logs", config["pipeline"], "bam_qc", "{sample}_pe_flagstat.log")
+
+use rule samtools_index_bam_generic as samtools_index_aligned_bam with:
+    input:
+        bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
+    output:
+        bai = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam.bai")
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_index_aligned", "{sample}_pe.log")
+
+use rule samtools_idxstats_generic as samtools_idxstats_aligned with:
+    input:
+        bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"),
+        bai = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam.bai")
+    output:
+        idxstats = os.path.join(BAM_QC_DIR, "{sample}_pe.idxstats.txt")
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_idxstats", "{sample}_pe.log")
 
 use rule samtools_stats_generic as samtools_stats_filtered with:
     input:
@@ -231,6 +282,15 @@ use rule samtools_index_bam_generic as samtools_index_filtered_bam with:
         bai = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai")
     log:
         os.path.join("logs", config["pipeline"], "samtools_index_filtered", "{sample}_pe.log")
+
+use rule samtools_coverage_generic as samtools_coverage_filtered with:
+    input:
+        bam = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"),
+        bai = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai")
+    output:
+        coverage = os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.coverage.tsv")
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_coverage", "{sample}_pe.log")
 
 MBS_ARGS = config.get("deeptools", {}).get("multiBamSummary", {}).get("extra_args", "--binSize 10000")
 PC_ARGS = config.get("deeptools", {}).get("plotCorrelation", {}).get("extra_args", "-p heatmap --corMethod spearman --skipZeros")

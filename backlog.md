@@ -3,6 +3,10 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-07-16: Correct ATAC-seq MACS3 to true BAMPE fragment mode, add strict failure handling to alignment/filter pipelines, and validate Bowtie2 indexes before use.
+- 2026-07-16: Sort ATAC peak inputs before consensus overlap, aggregate multi-library Picard duplicate metrics, and validate peak-caller and mitochondrial-contig configuration.
+- 2026-07-16: Add an R-free ATAC-seq consensus peak set with configurable sample support, an all-sample featureCounts matrix over filtered BAMs, and per-sample FRiP metrics.
+- 2026-07-16: Add ATAC-seq aligned-BAM mitochondrial metrics, filtered-BAM coverage tables, and a consolidated QC summary rendered as MultiQC custom content.
 - 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and update the checked-in WGBS config defaults.
 - 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.
 - 2026-04-06: Make the WGBS Sambamba filter step tolerate empty `wgbs.sambamba.extra_args` instead of emitting an invalid `-F ""` command.

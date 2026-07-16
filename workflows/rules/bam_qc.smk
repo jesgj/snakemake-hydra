@@ -34,6 +34,38 @@ rule samtools_flagstat_generic:
         "pixi run samtools flagstat {input.bam} > {output.flagstat} 2> {log}"
 
 
+rule samtools_idxstats_generic:
+    """
+    Generic rule for samtools idxstats. Override I/O in parent workflow.
+    """
+    input:
+        bam = "path/to/input.bam",
+        bai = "path/to/input.bam.bai"
+    output:
+        idxstats = "path/to/output.idxstats.txt"
+    threads: 1
+    log:
+        "logs/samtools_idxstats.log"
+    shell:
+        "pixi run samtools idxstats {input.bam} > {output.idxstats} 2> {log}"
+
+
+rule samtools_coverage_generic:
+    """
+    Generic rule for samtools coverage. Override I/O in parent workflow.
+    """
+    input:
+        bam = "path/to/input.bam",
+        bai = "path/to/input.bam.bai"
+    output:
+        coverage = "path/to/output.coverage.tsv"
+    threads: 1
+    log:
+        "logs/samtools_coverage.log"
+    shell:
+        "pixi run samtools coverage {input.bam} -o {output.coverage} > {log}.out 2> {log}.err"
+
+
 rule samtools_index_bam_generic:
     """
     Generic rule for samtools index. Override I/O in parent workflow.

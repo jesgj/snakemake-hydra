@@ -37,6 +37,7 @@ rule sambamba_filter_dedup_sort:
         os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}_pe.log")
     shell:
         """
+        set -euo pipefail
         (pixi run sambamba view -t {params.filter_threads} -f bam -F '{params.filter_expression}' "{input.bam}" | \
         pixi run sambamba sort -t {params.sort_threads} -o "{output.filtered_sorted_bam}" /dev/stdin) > {log}.out 2> {log}.err
         """

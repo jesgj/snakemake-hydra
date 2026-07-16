@@ -31,7 +31,9 @@ rule bowtie2_build:
     log:
         os.path.join("logs", config["pipeline"], "bowtie2_build", "bowtie2_build.log")
     shell:
-        "pixi run bowtie2-build {input.ref} {params.prefix} > {log}.out 2> {log}.err && touch {output.sentinel}"
+        "pixi run bowtie2-build {input.ref} {params.prefix} > {log}.out 2> {log}.err && "
+        "pixi run bowtie2-inspect -n {params.prefix} > /dev/null 2>> {log}.err && "
+        "touch {output.sentinel}"
 
 
 rule bowtie2_align_pe:
@@ -52,6 +54,8 @@ rule bowtie2_align_pe:
         os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log")
     shell:
         """
+        set -euo pipefail
+        pixi run bowtie2-inspect -n {params.index_prefix} > /dev/null 2>> {log}.err
         (pixi run bowtie2 -p {threads} {params.extra} -x {params.index_prefix} -1 {input.r1} -2 {input.r2} | \
         pixi run samtools view -bS - | \
         pixi run samtools sort -@ {threads} -o {output.bam} -) > {log}.out 2> {log}.err

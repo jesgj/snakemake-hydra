@@ -178,6 +178,9 @@ atacseq:
   fragment_qc_dir: "results/atacseq/fragment_qc"
   bigwig_dir: "results/atacseq/bigwigs"
   peaks_dir: "results/atacseq/peaks"
+  consensus_peaks_dir: "results/atacseq/consensus_peaks"
+  featurecounts_dir: "results/atacseq/featurecounts"
+  qc_summary_dir: "results/atacseq/qc_summary"
   multiqc_results_dir: "results/atacseq"
   peak_caller: "macs3"  # Set to "genrich" to use Genrich instead of MACS3.
   fastp:
@@ -200,7 +203,7 @@ atacseq:
       normalize_using: "CPM"
       extra_args: ""
   macs3:
-    genome_size: "1.4e9"
+    genome_size: "1.4e9"  # Set this to the effective genome size for the configured reference.
     qvalue: 0.05
     extra_args: ""
   genrich:
@@ -209,6 +212,15 @@ atacseq:
     min_length: 0
     max_gap: 100
     extra_args: ""
+  consensus_peaks:
+    minimum_support: 1  # Number of samples that must overlap a consensus region.
+  featurecounts:
+    threads: 4
+    minimum_mapping_quality: 0  # Filtering is controlled upstream by sambamba by default.
+    extra_args: ""
+  mitochondrial_contigs:
+    - "MT"
+    - "chrM"
   picard:
     java_opts: "-Xmx2g"
     markduplicates:
