@@ -165,9 +165,12 @@ atacseq:
   qc_dir: "results/atacseq/qc_raw"
   trimmed_dir: "results/atacseq/trimmed_fastqs"
   qc_trimmed_dir: "results/atacseq/qc_trimmed"
-  # ref_genome must already exist; bowtie2_index_dir is created if needed.
+  # ref_genome must already exist. Set bowtie2_index_prefix to reuse a complete
+  # prebuilt index; otherwise Hydra builds one inside bowtie2_index_dir.
   ref_genome: "ref/genome.fa"
+  bowtie2_index_prefix: null  # Prefix passed to bowtie2 -x, without a .bt2/.bt2l suffix.
   bowtie2_index_dir: "ref/bowtie2/atacseq"
+  reference_dir: "results/atacseq/reference"
   alignment_dir: "results/atacseq/aligned_bams"
   marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Picard MarkDuplicates BAMs are written here.
   duplication_qc_dir: "results/atacseq/duplication_qc"
@@ -186,6 +189,7 @@ atacseq:
   fastp:
     extra_args: "-q 20 -l 30"
   bowtie2:
+    large_index: false  # Generated mode only; true creates and tracks .bt2l files.
     extra_args: "--very-sensitive -X 2000"
   sambamba:
     # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.

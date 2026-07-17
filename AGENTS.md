@@ -36,8 +36,8 @@
 - `src/utils.py` falls back from `<pipeline>.samples_info` to FASTQ discovery in `raw_fastqs_dir`; discovery supports `_R1/_R2`, `_1/_2`, `.R1/.R2`, and single-end `.fastq.gz`/`.fq.gz` files.
 - `rnaseq`, `wgbs`, and `atacseq` reject non-paired samples; `chip_cr` accepts PE and SE and infers `type` from presence of `R2` when omitted.
 - ChIP/CUT&RUN input subtraction is name-driven: signal `<base>_repN` pairs with input `<base>_input_repN`; `<base>` may contain underscores.
-- Reference values are required config keys but are only presence-checked at workflow parse time; actual files/permissions fail later in tool rules.
-- The pipeline does not download references. RNA-seq can build `kallisto_index` and HISAT2 indexes, WGBS creates `Bisulfite_Genome/` next to `ref_genome`, and ChIP/ATAC create configured Bowtie2 index directories.
+- Reference values are required config keys but are generally only presence-checked at workflow parse time; selected ATAC prebuilt indexes are additionally checked for a complete `.bt2` or `.bt2l` family.
+- The pipeline does not download references. RNA-seq can build `kallisto_index` and HISAT2 indexes, WGBS creates `Bisulfite_Genome/` next to `ref_genome`, and ChIP/ATAC can create configured Bowtie2 index directories.
 
 ## Pipeline Gotchas
 - RNA-seq gene body coverage is optional via `rnaseq.gene_body_coverage.enabled`; `refgene_bed` is required only when enabled, and its heatmap output exists only with at least 3 samples.
@@ -45,5 +45,7 @@
 - WGBS uses `wgbs.log_dir` when set; other pipelines default logs under `logs/<pipeline>`.
 - WGBS Bismark thread allocation derives Bowtie2 threads from `wgbs.bismark.threads / wgbs.bismark.parallel`; keep `threads >= parallel`.
 - ATAC-seq supports only `peak_caller: "macs3"` or `"genrich"`; Genrich uses a queryname-sorted intermediate but both paths expose the shared `.narrowPeak` output.
+- ATAC-seq `bowtie2_index_prefix` selects a read-only prebuilt index; otherwise Hydra builds six tracked files in `bowtie2_index_dir`. Generated `.bt2l` indexes require `bowtie2.large_index: true`.
+- ATAC-seq index validation writes a prefix-specific marker under `reference_dir`; alignments depend directly on the six index files and that marker.
 - ATAC-seq consensus peaks use sorted BED3 inputs and configurable `consensus_peaks.minimum_support`; featureCounts and FRiP depend on the cohort-wide consensus peak set.
 - ATAC-seq MACS3 runs in true BAMPE fragment mode, while bigWigs are unshifted full-fragment CPM tracks; Tn5 insertion-site shifting is downstream analysis.

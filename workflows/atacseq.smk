@@ -11,6 +11,11 @@ TRIMMED_DIR = config.get("trimmed_dir", os.path.join("results", "atacseq", "trim
 QC_TRIMMED_DIR = config.get("qc_trimmed_dir", os.path.join("results", "atacseq", "qc_trimmed"))
 REF_GENOME = config.get("ref_genome")
 BOWTIE2_INDEX_DIR = config.get("bowtie2_index_dir")
+RAW_BOWTIE2_INDEX_PREFIX = config.get("bowtie2_index_prefix")
+BOWTIE2_INDEX_PREFIX = (
+    None if RAW_BOWTIE2_INDEX_PREFIX in [None, ""] else RAW_BOWTIE2_INDEX_PREFIX
+)
+REFERENCE_DIR = config.get("reference_dir", os.path.join("results", "atacseq", "reference"))
 ALIGNMENT_DIR = config.get("alignment_dir", os.path.join("results", "atacseq", "aligned_bams"))
 MARKED_BAM_DIR = config.get("marked_bam_dir", os.path.join("results", "atacseq", "marked_bams"))
 DUPLICATION_QC_DIR = config.get("duplication_qc_dir", os.path.join("results", "atacseq", "duplication_qc"))
@@ -31,10 +36,22 @@ QC_SUMMARY_DIR = config.get(
     "qc_summary_dir", os.path.join("results", "atacseq", "qc_summary")
 )
 PEAK_CALLER = config.get("peak_caller", "macs3")
+ATAC_PIPELINE_SELECTED = config["pipeline"] == "atacseq"
 
-# Reference inputs are user-managed. Only the configured Bowtie2 index directory is created here.
+# Reference inputs are user-managed. Prebuilt indexes are read-only; Hydra creates
+# bowtie2_index_dir only when it owns the generated index.
 validate_required_path(REF_GENOME, "ref_genome")
-validate_required_path(BOWTIE2_INDEX_DIR, "bowtie2_index_dir")
+if BOWTIE2_INDEX_PREFIX is not None:
+    if not isinstance(BOWTIE2_INDEX_PREFIX, str) or not BOWTIE2_INDEX_PREFIX.strip():
+        if ATAC_PIPELINE_SELECTED:
+            raise ValueError("ATAC-seq bowtie2_index_prefix must be a non-empty string.")
+        BOWTIE2_INDEX_PREFIX = None
+    else:
+        BOWTIE2_INDEX_PREFIX = os.path.normpath(
+            os.path.expanduser(BOWTIE2_INDEX_PREFIX.strip())
+        )
+else:
+    validate_required_path(BOWTIE2_INDEX_DIR, "bowtie2_index_dir")
 
 if PEAK_CALLER not in ["macs3", "genrich"]:
     raise ValueError("ATAC-seq 'peak_caller' must be either 'macs3' or 'genrich'.")
@@ -46,6 +63,8 @@ config["trimmed_dir"] = TRIMMED_DIR
 config["qc_trimmed_dir"] = QC_TRIMMED_DIR
 config["ref_genome"] = REF_GENOME
 config["bowtie2_index_dir"] = BOWTIE2_INDEX_DIR
+config["bowtie2_index_prefix"] = BOWTIE2_INDEX_PREFIX
+config["reference_dir"] = REFERENCE_DIR
 config["alignment_dir"] = ALIGNMENT_DIR
 config["marked_bam_dir"] = MARKED_BAM_DIR
 config["duplication_qc_dir"] = DUPLICATION_QC_DIR
@@ -65,7 +84,10 @@ config["peak_caller"] = PEAK_CALLER
 os.makedirs(QC_DIR, exist_ok=True)
 os.makedirs(TRIMMED_DIR, exist_ok=True)
 os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
-os.makedirs(BOWTIE2_INDEX_DIR, exist_ok=True)
+if ATAC_PIPELINE_SELECTED:
+    if BOWTIE2_INDEX_PREFIX is None:
+        os.makedirs(BOWTIE2_INDEX_DIR, exist_ok=True)
+    os.makedirs(REFERENCE_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
 os.makedirs(MARKED_BAM_DIR, exist_ok=True)
 os.makedirs(DUPLICATION_QC_DIR, exist_ok=True)
@@ -85,6 +107,8 @@ os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=Tru
 os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_build"), exist_ok=True)
+if ATAC_PIPELINE_SELECTED:
+    os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_validate"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)

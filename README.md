@@ -146,7 +146,11 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 
 ### ATAC-seq
 - Requires paired-end samples.
-- Requires `ref_genome` and `bowtie2_index_dir` config values.
+- Requires `ref_genome` and either a writable `bowtie2_index_dir` or a complete prebuilt `bowtie2_index_prefix`.
+- `bowtie2_index_prefix` is the shared prefix passed to Bowtie2 `-x`, without `.1.bt2`, `.rev.1.bt2`, or another index suffix. A configured prebuilt prefix takes precedence over `bowtie2_index_dir`.
+- Prebuilt indexes may use either the six `.bt2` files or the six `.bt2l` files. Partial, mixed, or simultaneously complete families are rejected before the ATAC DAG runs.
+- Without a prebuilt prefix, Hydra builds and tracks all six index files in `bowtie2_index_dir`; set `bowtie2.large_index: true` to generate `.bt2l` instead of `.bt2` files.
+- The index is checked once with `bowtie2-inspect`, and a prefix-specific marker is written under `reference_dir`; prebuilt index directories are never created or modified.
 - `peak_caller` must be `macs3` or `genrich`.
 - Both peak-caller paths expose the shared `peaks/<sample>_peaks.narrowPeak` output; Genrich uses an intermediate queryname-sorted BAM.
 - Duplicate reads are marked for metrics, then removed during filtered BAM generation before downstream QC, bigWig generation, and peak calling.
@@ -160,7 +164,7 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - FRiP uses the cohort-wide consensus peak set, so its value can change when samples or `consensus_peaks.minimum_support` change.
 - BigWigs contain full-fragment CPM read coverage and are not Tn5-shifted insertion-site tracks.
 - Bowtie2 and Sambamba behavior remains config-driven; choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
-- Bowtie2 indexes are validated after building and before alignment so a stale sentinel cannot silently authorize a missing index.
+- Bowtie2 alignments depend directly on all six real index files and the pipeline-owned validation marker.
 
 ## Outputs
 Output paths are config-driven. Common defaults and examples include:
@@ -170,6 +174,7 @@ Output paths are config-driven. Common defaults and examples include:
 - WGBS MethylDackel: `results/wgbs/methyldackel/<sample>_CpG.methylKit`.
 - ChIP/CUT&RUN bigWig: `results/chipseq_cutrun/bigwigs/<sample>_pe.bw` or `<sample>_se.bw`.
 - ATAC-seq peaks: `results/atacseq/peaks/<sample>_peaks.narrowPeak`.
+- ATAC-seq Bowtie2 validation: `results/atacseq/reference/bowtie2_index_<hash>.validated.OK`.
 - ATAC-seq consensus peaks: `results/atacseq/consensus_peaks/consensus_peaks.bed` and `.saf`.
 - ATAC-seq featureCounts matrix: `results/atacseq/featurecounts/consensus_peak_counts.txt`.
 - ATAC-seq QC summary: `results/atacseq/qc_summary/sample_qc_summary.tsv`.
@@ -182,7 +187,8 @@ Output paths are config-driven. Common defaults and examples include:
 - Missing RNA-seq gene body coverage heatmap: it is emitted only with at least 3 samples and when gene body coverage is enabled.
 - Missing ChIP/CUT&RUN subtraction: verify names follow `<base>_repN` and `<base>_input_repN`.
 - Empty ATAC consensus peaks: lower `consensus_peaks.minimum_support` or inspect the per-sample narrowPeak files.
-- Reference or index failure: configured reference files must exist, and index directories must be writable.
+- Invalid prebuilt ATAC index: configure the prefix without a suffix and verify that exactly one complete six-file `.bt2` or `.bt2l` family exists.
+- Reference or index failure: configured references must exist and generated index directories must be writable; prebuilt indexes only need to be complete and readable.
 
 ## License
 See `LICENSE`.

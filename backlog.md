@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-07-16: Add explicit read-only ATAC prebuilt Bowtie2 index support, concrete `.bt2`/`.bt2l` dependencies, generated large-index selection, and pipeline-owned one-time validation markers.
 - 2026-07-16: Correct ATAC-seq MACS3 to true BAMPE fragment mode, add strict failure handling to alignment/filter pipelines, and validate Bowtie2 indexes before use.
 - 2026-07-16: Sort ATAC peak inputs before consensus overlap, aggregate multi-library Picard duplicate metrics, and validate peak-caller and mitochondrial-contig configuration.
 - 2026-07-16: Add an R-free ATAC-seq consensus peak set with configurable sample support, an all-sample featureCounts matrix over filtered BAMs, and per-sample FRiP metrics.
