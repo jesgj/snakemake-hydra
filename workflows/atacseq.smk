@@ -110,7 +110,6 @@ os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_build"), exist_ok=
 if ATAC_PIPELINE_SELECTED:
     os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_validate"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
-os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_aligned"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)

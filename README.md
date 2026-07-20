@@ -153,17 +153,17 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - The index is checked once with `bowtie2-inspect`, and a prefix-specific marker is written under `reference_dir`; prebuilt index directories are never created or modified.
 - `peak_caller` must be `macs3` or `genrich`.
 - Both peak-caller paths expose the shared `peaks/<sample>_peaks.narrowPeak` output; Genrich uses an intermediate queryname-sorted BAM.
-- Duplicate reads are marked for metrics, then removed during filtered BAM generation before downstream QC, bigWig generation, and peak calling.
+- Duplicate reads are marked with Sambamba, then removed during filtered BAM generation before downstream QC, bigWig generation, and peak calling.
 - The deepTools correlation heatmap is generated only when at least 2 filtered BAMs are available.
 - MACS3 uses true paired-fragment `BAMPE` mode. Tn5 insertion-site shifting is intentionally left to downstream analysis.
 - Per-sample narrowPeak files are converted to sorted BED3 intervals before consensus construction. `consensus_peaks.minimum_support` controls how many samples must overlap a region and defaults to `1`.
 - featureCounts quantifies paired-end fragments from all filtered BAMs over the consensus peak SAF. `featurecounts.threads`, `featurecounts.minimum_mapping_quality`, and `featurecounts.extra_args` control this step.
 - The default featureCounts MAPQ threshold is `0` because mapping-quality filtering is already configurable in `sambamba.view_extra_args`.
 - `mitochondrial_contigs` lists contig names used to calculate the pre-filter mitochondrial fraction from aligned BAMs.
-- Core ATAC QC is written both as a standalone TSV and as a custom table in MultiQC. It includes aligned/final reads, Picard duplicate metrics, mitochondrial fraction, fragments in peaks, and FRiP.
+- Core ATAC QC is written both as a standalone TSV and as a custom table in MultiQC. It includes aligned/final reads, Sambamba duplicate metrics, mitochondrial fraction, fragments in peaks, and FRiP.
 - FRiP uses the cohort-wide consensus peak set, so its value can change when samples or `consensus_peaks.minimum_support` change.
 - BigWigs contain full-fragment CPM read coverage and are not Tn5-shifted insertion-site tracks.
-- Bowtie2 and Sambamba behavior remains config-driven; choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
+- Bowtie2 and Sambamba behavior remains config-driven. `sambamba.markdup_threads` and `sambamba.markdup_extra_args` control duplicate marking; do not pass `-r`, because duplicate removal happens during filtering. Choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
 - Bowtie2 alignments depend directly on all six real index files and the pipeline-owned validation marker.
 
 ## Outputs

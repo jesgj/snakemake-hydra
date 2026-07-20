@@ -172,7 +172,7 @@ atacseq:
   bowtie2_index_dir: "ref/bowtie2/atacseq"
   reference_dir: "results/atacseq/reference"
   alignment_dir: "results/atacseq/aligned_bams"
-  marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Picard MarkDuplicates BAMs are written here.
+  marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Sambamba markdup BAMs are written here.
   duplication_qc_dir: "results/atacseq/duplication_qc"
   bam_qc_dir: "results/atacseq/bam_qc"
   filtered_bam_dir: "results/atacseq/filtered_bams"
@@ -192,6 +192,8 @@ atacseq:
     large_index: false  # Generated mode only; true creates and tracks .bt2l files.
     extra_args: "--very-sensitive -X 2000"
   sambamba:
+    markdup_threads: 4
+    markdup_extra_args: ""  # Do not use -r; duplicate removal happens during filtering.
     # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
     filter_threads: 2
@@ -227,5 +229,3 @@ atacseq:
     - "chrM"
   picard:
     java_opts: "-Xmx2g"
-    markduplicates:
-      extra_args: ""
