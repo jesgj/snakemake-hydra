@@ -1,11 +1,16 @@
 # workflows/rules/chip_cr/filter_bam.smk
 import os
 
+from utils import validate_sambamba_filter
+
 # --- CONFIGURATION ---
 ALIGNMENT_DIR = config["alignment_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 SAMBAMBA_MARKDUP_EXTRA_ARGS = config.get("sambamba", {}).get("markdup_extra_args", "")
-SAMBAMBA_VIEW_EXTRA_ARGS = config.get("sambamba", {}).get("view_extra_args", "")
+SAMBAMBA_VIEW_EXTRA_ARGS = validate_sambamba_filter(
+    config.get("sambamba", {}).get("view_extra_args", ""),
+    "chip_cr.sambamba.view_extra_args",
+)
 
 # --- HELPER FUNCTION ---
 def get_aligned_bam(wildcards):
@@ -33,9 +38,8 @@ rule sambamba_filter_dedup_sort:
         os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}_{read_type}.log")
     shell:
         """
-        pixi run bash -c "
-          sambamba markdup -t {threads} {params.markdup_extra} {input.bam} /dev/stdout |
-          sambamba view -t {threads} -f bam -F '{params.view_extra}' /dev/stdin |
-          sambamba sort -t {threads} -o {output.filtered_sorted_bam} /dev/stdin
-        " 2> {log}
+        set -euo pipefail
+        (pixi run sambamba markdup -t {threads} {params.markdup_extra} {input.bam:q} /dev/stdout |
+        pixi run sambamba view -t {threads} -f bam -F {params.view_extra:q} /dev/stdin |
+        pixi run sambamba sort -t {threads} -o {output.filtered_sorted_bam:q} /dev/stdin) > {log:q}.out 2> {log:q}.err
         """

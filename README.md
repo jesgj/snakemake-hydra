@@ -115,6 +115,8 @@ Useful concrete dry-run targets:
 
 ## Validation
 There is no configured CI, formatter, linter, typechecker, or unit-test suite in this repository. Use Snakemake dry-runs as the main validation path:
+- Snakemake parses every section of `config/config.yaml`, including inactive pipelines, so the complete YAML document must remain valid.
+- Sambamba filter expressions for the selected pipeline are parsed by Sambamba during workflow construction, before any jobs run.
 - Config-only changes: run `pixi run snakemake -n --cores 1` for the selected pipeline.
 - Rule changes: dry-run through the affected prefixed rule with `--until`.
 - Filename/path changes: dry-run a concrete output target.
@@ -134,6 +136,7 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - Requires paired-end samples.
 - `ref_genome` must point to the reference used by Bismark; Bismark creates `Bisulfite_Genome/` next to it.
 - `wgbs.log_dir` overrides the default `logs/wgbs` location.
+- `wgbs.sambamba.extra_args` is a Sambamba filter expression, not a generic command-line argument string.
 - Bismark Bowtie2 threads are derived from `wgbs.bismark.threads / wgbs.bismark.parallel`; keep `threads >= parallel`.
 - MethylDackel outputs include `<sample>_CpG.methylKit` and merged-context `<sample>_CpG.bedGraph`.
 
@@ -141,6 +144,7 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - Supports paired-end and single-end samples.
 - Requires `ref_genome`, `gene_bed`, and `bowtie2_index_dir` config values.
 - Bowtie2 indexes are created in `bowtie2_index_dir` when needed.
+- `chip_cr.sambamba.view_extra_args` is validated as a Sambamba filter expression before execution.
 - `plotFingerprint` and correlation include input controls; heatmap `computeMatrix`/`plotHeatmap` excludes `_input` samples.
 - Subtracted bigWigs are produced only for samples with matching `<base>_repN` and `<base>_input_repN` names.
 
@@ -163,7 +167,7 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - Core ATAC QC is written both as a standalone TSV and as a custom table in MultiQC. It includes aligned/final reads, Sambamba duplicate metrics, mitochondrial fraction, fragments in peaks, and FRiP.
 - FRiP uses the cohort-wide consensus peak set, so its value can change when samples or `consensus_peaks.minimum_support` change.
 - BigWigs contain full-fragment CPM read coverage and are not Tn5-shifted insertion-site tracks.
-- Bowtie2 and Sambamba behavior remains config-driven. `sambamba.markdup_threads` and `sambamba.markdup_extra_args` control duplicate marking; do not pass `-r`, because duplicate removal happens during filtering. Choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
+- Bowtie2 and Sambamba behavior remains config-driven. `sambamba.markdup_threads` and `sambamba.markdup_extra_args` control duplicate marking; do not pass `-r`, because duplicate removal happens during filtering. `sambamba.view_extra_args` is validated as a Sambamba filter expression before execution. Choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
 - Bowtie2 alignments depend directly on all six real index files and the pipeline-owned validation marker.
 
 ## Outputs

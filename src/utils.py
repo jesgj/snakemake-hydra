@@ -1,5 +1,7 @@
 import os
 import re
+import shutil
+import subprocess
 from collections import defaultdict
 
 
@@ -30,6 +32,60 @@ def validate_existing_parent_dir(path, config_name):
         raise ValueError(
             f"Config '{config_name}' must use an existing parent directory: {parent_dir}"
         )
+
+
+def validate_sambamba_filter(expression, config_name):
+    """
+    Validates a Sambamba filter expression with the installed Sambamba parser.
+    """
+    if not isinstance(expression, str):
+        raise ValueError(
+            f"Config '{config_name}' must be a Sambamba filter expression string."
+        )
+
+    expression = expression.strip()
+    if not expression:
+        return expression
+
+    sambamba = shutil.which("sambamba")
+    if sambamba is None:
+        raise RuntimeError(
+            f"Sambamba is required to validate config '{config_name}'. "
+            "Run Snakemake through 'pixi run'."
+        )
+
+    try:
+        result = subprocess.run(
+            [
+                sambamba,
+                "view",
+                "-S",
+                "-c",
+                "-F",
+                expression,
+                os.devnull,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Timed out while validating config '{config_name}' with Sambamba."
+        ) from exc
+
+    if result.returncode != 0:
+        details = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        detail = details[-1] if details else "Sambamba rejected the expression"
+        raise ValueError(
+            f"Invalid Sambamba filter in config '{config_name}': {detail}. "
+            f"Expression: {expression!r}"
+        )
+
+    return expression
 
 
 def discover_samples(raw_fastqs_dir):

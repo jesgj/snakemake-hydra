@@ -1,3 +1,4 @@
+# Snakemake parses this entire file, including sections for inactive pipelines.
 pipeline: "wgbs"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq".
 
 rnaseq:
@@ -86,7 +87,7 @@ wgbs:
   sambamba:
     filter_threads: 2
     sort_threads: 2
-    # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
+    # This is a Sambamba filter expression validated during workflow construction.
     extra_args: "mapping_quality >= 20 and proper_pair and not (unmapped or mate_is_unmapped or secondary_alignment or duplicate) and not (ref_name =~ /^(MT|chrM)/)"
   methyldackel_mbias:
     threads: 2
@@ -132,6 +133,7 @@ chip_cr:
     extra_args: ""
   sambamba:
     markdup_extra_args: "-r"
+    # This is a Sambamba filter expression validated during workflow construction.
     view_extra_args: "not unmapped"
   deeptools:
     multiBamSummary:
@@ -194,7 +196,7 @@ atacseq:
   sambamba:
     markdup_threads: 4
     markdup_extra_args: ""  # Do not use -r; duplicate removal happens during filtering.
-    # Use Sambamba field names such as ref_name, mapping_quality, and proper_pair.
+    # This is a Sambamba filter expression validated during workflow construction.
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
     filter_threads: 2
     sort_threads: 2
