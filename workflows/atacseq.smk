@@ -1,8 +1,13 @@
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data, validate_required_path
+from utils import (
+    normalize_read_group_metadata,
+    prepare_sample_data,
+    validate_required_path,
+)
 
 # --- CONFIGURATION ---
 RAW_DIR = config["raw_fastqs_dir"]
@@ -16,7 +21,14 @@ BOWTIE2_INDEX_PREFIX = (
     None if RAW_BOWTIE2_INDEX_PREFIX in [None, ""] else RAW_BOWTIE2_INDEX_PREFIX
 )
 REFERENCE_DIR = config.get("reference_dir", os.path.join("results", "atacseq", "reference"))
+FASTQ_PAIR_VALIDATION_DIR = config.get(
+    "fastq_pair_validation_dir",
+    os.path.join("results", "atacseq", "fastq_pair_validation"),
+)
 ALIGNMENT_DIR = config.get("alignment_dir", os.path.join("results", "atacseq", "aligned_bams"))
+READ_GROUP_QC_DIR = config.get(
+    "read_group_qc_dir", os.path.join("results", "atacseq", "read_group_qc")
+)
 MARKED_BAM_DIR = config.get("marked_bam_dir", os.path.join("results", "atacseq", "marked_bams"))
 DUPLICATION_QC_DIR = config.get("duplication_qc_dir", os.path.join("results", "atacseq", "duplication_qc"))
 BAM_QC_DIR = config.get("bam_qc_dir", os.path.join("results", "atacseq", "bam_qc"))
@@ -65,7 +77,9 @@ config["ref_genome"] = REF_GENOME
 config["bowtie2_index_dir"] = BOWTIE2_INDEX_DIR
 config["bowtie2_index_prefix"] = BOWTIE2_INDEX_PREFIX
 config["reference_dir"] = REFERENCE_DIR
+config["fastq_pair_validation_dir"] = FASTQ_PAIR_VALIDATION_DIR
 config["alignment_dir"] = ALIGNMENT_DIR
+config["read_group_qc_dir"] = READ_GROUP_QC_DIR
 config["marked_bam_dir"] = MARKED_BAM_DIR
 config["duplication_qc_dir"] = DUPLICATION_QC_DIR
 config["bam_qc_dir"] = BAM_QC_DIR
@@ -84,14 +98,18 @@ config["peak_caller"] = PEAK_CALLER
 os.makedirs(QC_DIR, exist_ok=True)
 os.makedirs(TRIMMED_DIR, exist_ok=True)
 os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
+os.makedirs(FASTQ_PAIR_VALIDATION_DIR, exist_ok=True)
 if ATAC_PIPELINE_SELECTED:
     if BOWTIE2_INDEX_PREFIX is None:
         os.makedirs(BOWTIE2_INDEX_DIR, exist_ok=True)
     os.makedirs(REFERENCE_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
+os.makedirs(os.path.join(ALIGNMENT_DIR, "runs"), exist_ok=True)
+os.makedirs(READ_GROUP_QC_DIR, exist_ok=True)
 os.makedirs(MARKED_BAM_DIR, exist_ok=True)
 os.makedirs(DUPLICATION_QC_DIR, exist_ok=True)
 os.makedirs(BAM_QC_DIR, exist_ok=True)
+os.makedirs(os.path.join(BAM_QC_DIR, "runs"), exist_ok=True)
 os.makedirs(FILTERED_BAM_DIR, exist_ok=True)
 os.makedirs(FILTERED_BAM_QC_DIR, exist_ok=True)
 os.makedirs(DEEPTOOLS_DIR, exist_ok=True)
@@ -104,12 +122,16 @@ os.makedirs(QC_SUMMARY_DIR, exist_ok=True)
 
 # Ensure log directories exist
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "fastq_pair_validation"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_build"), exist_ok=True)
 if ATAC_PIPELINE_SELECTED:
     os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_validate"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "samtools_merge_runs"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "read_group_validation"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "markduplicates"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_aligned"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)
@@ -126,27 +148,113 @@ if PEAK_CALLER == "genrich":
     os.makedirs(os.path.join("logs", config["pipeline"], "genrich_qname_sort"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "multiqc"), exist_ok=True)
 
-# --- SAMPLE DISCOVERY ---
+# --- SAMPLE AND RUN MANIFEST ---
 SAMPLES_INFO, SAMPLES = prepare_sample_data(config)
 
 if not SAMPLES:
-    raise ValueError("No ATAC-seq samples were found. Provide 'samples_info' or valid FASTQs in 'raw_fastqs_dir'.")
-
-invalid_samples = []
-for sample, info in SAMPLES_INFO.items():
-    has_pair = "R1" in info and "R2" in info
-    declared_type = info.get("type")
-    if has_pair and declared_type in [None, "PE"]:
-        info["type"] = "PE"
-        continue
-    invalid_samples.append(sample)
-
-config["samples_info"] = SAMPLES_INFO
-if invalid_samples:
     raise ValueError(
-        "ATAC-seq currently supports paired-end samples only (type=PE with R1 and R2). "
-        f"Invalid samples: {', '.join(invalid_samples)}"
+        "No ATAC-seq samples were found. Provide 'samples_info' or valid FASTQs "
+        "in 'raw_fastqs_dir'."
     )
+
+
+def _normalize_atac_run_manifest(samples_info):
+    flattened_runs = {}
+    run_lookup = {}
+    normalized_samples = {}
+
+    for sample, sample_info in samples_info.items():
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", sample) or "__" in sample:
+            raise ValueError(
+                f"ATAC-seq sample name {sample!r} must contain only letters, numbers, "
+                "dots, underscores, or hyphens, and must not contain '__'."
+            )
+        if sample_info.get("type") not in [None, "PE"]:
+            raise ValueError(f"ATAC-seq sample {sample!r} must have type 'PE'.")
+
+        configured_runs = sample_info.get("runs")
+        legacy_single_run = configured_runs is None
+        if legacy_single_run:
+            configured_runs = {"run1": sample_info}
+        if not isinstance(configured_runs, dict) or not configured_runs:
+            raise ValueError(f"ATAC-seq sample {sample!r} must define at least one run.")
+
+        normalized_sample = {
+            key: value
+            for key, value in sample_info.items()
+            if key not in ["R1", "R2", "read_group", "runs"]
+        }
+        normalized_sample["type"] = "PE"
+        normalized_sample["runs"] = {}
+        default_library = sample_info.get("library", sample)
+
+        for run, configured_run in configured_runs.items():
+            if not isinstance(run, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", run) or "__" in run:
+                raise ValueError(
+                    f"ATAC-seq run name {run!r} for sample {sample!r} must contain "
+                    "only letters, numbers, dots, underscores, or hyphens, and must "
+                    "not contain '__'."
+                )
+            if not isinstance(configured_run, dict):
+                raise ValueError(
+                    f"Config 'atacseq.samples_info.{sample}.runs.{run}' must be a mapping."
+                )
+            if not configured_run.get("R1") or not configured_run.get("R2"):
+                raise ValueError(
+                    f"ATAC-seq run {sample}/{run} must define both R1 and R2."
+                )
+
+            run_info = dict(configured_run)
+            configured_read_group = run_info.get(
+                "read_group", sample_info.get("read_group", {}) if legacy_single_run else {}
+            )
+            if configured_read_group is None:
+                configured_read_group = {}
+            if not isinstance(configured_read_group, dict):
+                raise ValueError(
+                    f"Config 'atacseq.samples_info.{sample}.runs.{run}.read_group' "
+                    "must be a mapping."
+                )
+
+            read_group_id = f"{sample}.{run}"
+            run_info["read_group"] = {
+                "id": configured_read_group.get("id", read_group_id),
+                "sample": configured_read_group.get("sample", sample),
+                "library": configured_read_group.get("library", default_library),
+                "platform": configured_read_group.get("platform", "ILLUMINA"),
+                "platform_unit": configured_read_group.get(
+                    "platform_unit", read_group_id
+                ),
+            }
+            unit_key = f"{sample}::{run}"
+            flattened_runs[unit_key] = run_info
+            run_lookup[unit_key] = (sample, run)
+            normalized_sample["runs"][run] = run_info
+
+        normalized_samples[sample] = normalized_sample
+
+    normalized_flattened_runs = normalize_read_group_metadata(
+        flattened_runs, "atacseq.samples_info.runs"
+    )
+    for unit_key, run_info in normalized_flattened_runs.items():
+        sample, run = run_lookup[unit_key]
+        if run_info["read_group"]["sample"] != sample:
+            raise ValueError(
+                f"ATAC-seq run {sample}/{run} must use read-group sample {sample!r}."
+            )
+        normalized_samples[sample]["runs"][run] = run_info
+
+    return normalized_samples
+
+
+SAMPLES_INFO = _normalize_atac_run_manifest(SAMPLES_INFO)
+SAMPLES = list(SAMPLES_INFO)
+RUN_UNITS = [
+    (sample, run)
+    for sample, sample_info in SAMPLES_INFO.items()
+    for run in sample_info["runs"]
+]
+config["samples_info"] = SAMPLES_INFO
 
 
 def get_all_filtered_bams(samples):
@@ -162,13 +270,72 @@ ALL_FILTERED_BAIS = get_all_filtered_bais(SAMPLES)
 HAS_MULTI_BAM_DEEPTOOLS = len(ALL_FILTERED_BAMS) >= 2
 
 
+def get_atac_run_outputs(pattern):
+    return [pattern.format(sample=sample, run=run) for sample, run in RUN_UNITS]
+
+
 def get_atacseq_outputs(samples):
     outputs = []
-    outputs.extend(expand(os.path.join(QC_DIR, "{sample}_R1_raw_fastqc.html"), sample=samples))
-    outputs.extend(expand(os.path.join(QC_DIR, "{sample}_R2_raw_fastqc.html"), sample=samples))
-    outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R1_trimmed_fastqc.html"), sample=samples))
-    outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.html"), sample=samples))
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(QC_DIR, "{sample}__{run}_R1_raw_fastqc.html")
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(QC_DIR, "{sample}__{run}_R2_raw_fastqc.html")
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(QC_TRIMMED_DIR, "{sample}__{run}_R1_trimmed_fastqc.html")
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(QC_TRIMMED_DIR, "{sample}__{run}_R2_trimmed_fastqc.html")
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(
+                FASTQ_PAIR_VALIDATION_DIR,
+                "{sample}__{run}.fastq_pair_validation.tsv",
+            )
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam")
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(
+                READ_GROUP_QC_DIR,
+                "{sample}__{run}.read_group_validation.tsv",
+            )
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(BAM_QC_DIR, "runs", "{sample}__{run}.stats.txt")
+        )
+    )
+    outputs.extend(
+        get_atac_run_outputs(
+            os.path.join(BAM_QC_DIR, "runs", "{sample}__{run}.flagstat.txt")
+        )
+    )
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=samples))
+    outputs.extend(
+        expand(
+            os.path.join(
+                READ_GROUP_QC_DIR, "{sample}_merged.read_group_validation.tsv"
+            ),
+            sample=samples,
+        )
+    )
     outputs.extend(expand(os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt"), sample=samples))
     outputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.stats.txt"), sample=samples))
     outputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.flagstat.txt"), sample=samples))
@@ -208,7 +375,9 @@ def get_atacseq_multiqc_analysis_dirs():
                 QC_DIR,
                 TRIMMED_DIR,
                 QC_TRIMMED_DIR,
+                FASTQ_PAIR_VALIDATION_DIR,
                 ALIGNMENT_DIR,
+                READ_GROUP_QC_DIR,
                 DUPLICATION_QC_DIR,
                 BAM_QC_DIR,
                 FILTERED_BAM_DIR,
@@ -234,8 +403,8 @@ config["multiqc_analysis_dirs"] = get_atacseq_multiqc_analysis_dirs()
 
 
 # --- MODULE INCLUSION ---
-include: "rules/qc.smk"
-include: "rules/trimming_and_qc.smk"
+include: "rules/atacseq/fastq_validation.smk"
+include: "rules/atacseq/preprocessing.smk"
 include: "rules/atacseq/alignment.smk"
 include: "rules/bam_qc.smk"
 include: "rules/deeptools_qc.smk"
@@ -249,6 +418,22 @@ include: "rules/multiqc.smk"
 
 
 # --- BAM QC INSTANTIATION ---
+use rule samtools_stats_generic as samtools_stats_run with:
+    input:
+        bam = os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam")
+    output:
+        stats = os.path.join(BAM_QC_DIR, "runs", "{sample}__{run}.stats.txt")
+    log:
+        os.path.join("logs", config["pipeline"], "bam_qc", "{sample}__{run}_stats.log")
+
+use rule samtools_flagstat_generic as samtools_flagstat_run with:
+    input:
+        bam = os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam")
+    output:
+        flagstat = os.path.join(BAM_QC_DIR, "runs", "{sample}__{run}.flagstat.txt")
+    log:
+        os.path.join("logs", config["pipeline"], "bam_qc", "{sample}__{run}_flagstat.log")
+
 use rule samtools_stats_generic as samtools_stats_aligned with:
     input:
         bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")

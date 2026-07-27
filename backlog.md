@@ -3,6 +3,8 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-07-25: Add run-aware ATAC manifests, complete original-pair validation, per-run trimming/alignment/RG QC, retained run metrics, sample-level BAM merging, and one post-merge Picard duplicate-marking step.
+- 2026-07-24: Validate ATAC-seq FASTQ mates before trimming, propagate and verify read groups, replace Sambamba markdup with Picard MarkDuplicates, and aggregate Picard duplication metrics in consolidated QC.
 - 2026-07-22: Validate selected-pipeline Sambamba filters during workflow construction, safely quote filter arguments, and propagate ChIP/CUT&RUN pipeline failures with `pipefail`.
 - 2026-07-22: Replace ATAC-seq Picard MarkDuplicates with configurable Sambamba markdup and parse its duplication report in the consolidated QC summary.
 - 2026-07-16: Add explicit read-only ATAC prebuilt Bowtie2 index support, concrete `.bt2`/`.bt2l` dependencies, generated large-index selection, and pipeline-owned one-time validation markers.

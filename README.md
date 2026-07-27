@@ -42,6 +42,8 @@ At minimum, configure the selected pipeline block:
 
 The checked-in config contains safe placeholder paths. Replace them for your environment, but avoid changing unrelated pipeline blocks unless you intend to switch or update them.
 
+Machine-specific paths and real sample manifests can be kept in `config/config.local.yaml`, which is ignored by Git and selected automatically when present. Set `HYDRA_CONFIG=/path/to/another.yaml` to select another complete config without recursively merging placeholder samples. Verify local files with `git check-ignore -v config/config.local.yaml` before sharing changes.
+
 Reference inputs are user-managed. The pipeline does not download genomes or annotations. Config values are checked for presence during workflow setup; missing files, permissions, or unwritable index directories fail later during Snakemake input resolution or tool execution.
 
 ## Samples
@@ -62,7 +64,8 @@ If `samples_info` is missing or empty, `src/utils.py` discovers FASTQs in `raw_f
 - Single-end: `<sample>.fastq.gz` or `<sample>.fq.gz`.
 
 Sample support differs by pipeline:
-- `rnaseq`, `wgbs`, and `atacseq` require paired-end samples with `R1` and `R2`.
+- `rnaseq` and `wgbs` require paired-end samples with `R1` and `R2`.
+- `atacseq` accepts a run-aware `samples_info.<sample>.runs.<run>` mapping. Each run contains its original `R1`, `R2`, provenance fields, and read-group assignment.
 - `chip_cr` accepts paired-end and single-end samples; `type` is inferred from `R2` when omitted.
 - ChIP/CUT&RUN subtraction pairs signal `<base>_repN` with input `<base>_input_repN`; `<base>` may contain underscores.
 
@@ -157,17 +160,21 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - The index is checked once with `bowtie2-inspect`, and a prefix-specific marker is written under `reference_dir`; prebuilt index directories are never created or modified.
 - `peak_caller` must be `macs3` or `genrich`.
 - Both peak-caller paths expose the shared `peaks/<sample>_peaks.narrowPeak` output; Genrich uses an intermediate queryname-sorted BAM.
-- Duplicate reads are marked with Sambamba, then removed during filtered BAM generation before downstream QC, bigWig generation, and peak calling.
+- Every configured R1/R2 pair is validated before trimming by normalized cluster ID, mate label, FASTQ structure, provenance, and record count. `fastq_validation.all_records: true` performs the default complete audit; setting it to `false` reports only a sampled validation of the first `fastq_validation.records` pairs.
+- `samples_info.<sample>.runs.<run>.read_group` accepts `id`, `sample`, `library`, `platform`, and `platform_unit`. Use one unique `id` per run or lane, keep `sample` stable for the biological sample, and reuse `library` only for runs from the same physical library preparation.
+- Each run is trimmed and aligned independently. Hydra validates every run BAM's complete RG header/tag assignment, retains run-level BAM and samtools QC files, and coordinate-merges runs by biological sample with `samtools merge`.
+- Picard MarkDuplicates runs exactly once on each merged biological-sample BAM. It can therefore detect recurring PCR duplicates across runs that share an `LB`; duplicate-flagged reads are removed later with Sambamba before downstream QC, bigWig generation, and peak calling.
+- Keep physical-run metadata (`provider_id`, instrument run, flowcell, lane, barcode, R1, R2, and RG values) in the manifest. Use `null` for an unavailable barcode rather than inferring it from a filename or sample label, and report the missing barcode as residual provenance uncertainty.
 - The deepTools correlation heatmap is generated only when at least 2 filtered BAMs are available.
 - MACS3 uses true paired-fragment `BAMPE` mode. Tn5 insertion-site shifting is intentionally left to downstream analysis.
 - Per-sample narrowPeak files are converted to sorted BED3 intervals before consensus construction. `consensus_peaks.minimum_support` controls how many samples must overlap a region and defaults to `1`.
 - featureCounts quantifies paired-end fragments from all filtered BAMs over the consensus peak SAF. `featurecounts.threads`, `featurecounts.minimum_mapping_quality`, and `featurecounts.extra_args` control this step.
 - The default featureCounts MAPQ threshold is `0` because mapping-quality filtering is already configurable in `sambamba.view_extra_args`.
 - `mitochondrial_contigs` lists contig names used to calculate the pre-filter mitochondrial fraction from aligned BAMs.
-- Core ATAC QC is written both as a standalone TSV and as a custom table in MultiQC. It includes aligned/final reads, Sambamba duplicate metrics, mitochondrial fraction, fragments in peaks, and FRiP.
+- Core ATAC QC is written both as a standalone TSV and as a custom table in MultiQC. It includes aligned/final reads, Picard duplicate metrics, mitochondrial fraction, fragments in peaks, and FRiP.
 - FRiP uses the cohort-wide consensus peak set, so its value can change when samples or `consensus_peaks.minimum_support` change.
 - BigWigs contain full-fragment CPM read coverage and are not Tn5-shifted insertion-site tracks.
-- Bowtie2 and Sambamba behavior remains config-driven. `sambamba.markdup_threads` and `sambamba.markdup_extra_args` control duplicate marking; do not pass `-r`, because duplicate removal happens during filtering. `sambamba.view_extra_args` is validated as a Sambamba filter expression before execution. Choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
+- Bowtie2, Picard, and Sambamba behavior remains config-driven. `picard.java_opts` and `picard.markduplicates.extra_args` control duplicate marking; duplicate removal remains downstream during filtering. `sambamba.view_extra_args` is validated as a Sambamba filter expression before execution. Choose stricter ATAC-specific alignment or filtering arguments in `bowtie2.extra_args` and `sambamba.view_extra_args` when appropriate for the dataset.
 - Bowtie2 alignments depend directly on all six real index files and the pipeline-owned validation marker.
 
 ## Outputs
@@ -178,6 +185,8 @@ Output paths are config-driven. Common defaults and examples include:
 - WGBS MethylDackel: `results/wgbs/methyldackel/<sample>_CpG.methylKit`.
 - ChIP/CUT&RUN bigWig: `results/chipseq_cutrun/bigwigs/<sample>_pe.bw` or `<sample>_se.bw`.
 - ATAC-seq peaks: `results/atacseq/peaks/<sample>_peaks.narrowPeak`.
+- ATAC-seq run BAM: `results/atacseq/aligned_bams/runs/<sample>__<run>.sorted.bam`.
+- ATAC-seq merged BAM: `results/atacseq/aligned_bams/<sample>_pe.sorted.bam`.
 - ATAC-seq Bowtie2 validation: `results/atacseq/reference/bowtie2_index_<hash>.validated.OK`.
 - ATAC-seq consensus peaks: `results/atacseq/consensus_peaks/consensus_peaks.bed` and `.saf`.
 - ATAC-seq featureCounts matrix: `results/atacseq/featurecounts/consensus_peak_counts.txt`.

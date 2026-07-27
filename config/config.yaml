@@ -161,9 +161,23 @@ atacseq:
   raw_fastqs_dir: "data/atacseq_raw_fastqs"
   samples_info:
     sample_a:
-      R1: "data/atacseq_raw_fastqs/sample_a_R1.fastq.gz"
-      R2: "data/atacseq_raw_fastqs/sample_a_R2.fastq.gz"
       type: "PE"
+      library: "sample_a_library"
+      runs:
+        flowcell_lane:
+          provider_id: "provider_run_id"
+          instrument_run: "run_number"
+          flowcell: "flowcell_id"
+          lane: "lane_number"
+          barcode: "index_barcode"
+          R1: "data/atacseq_raw_fastqs/sample_a.run1_R1.fastq.gz"
+          R2: "data/atacseq_raw_fastqs/sample_a.run1_R2.fastq.gz"
+          read_group:
+            id: "sample_a.flowcell.lane"
+            sample: "sample_a"
+            library: "sample_a_library"
+            platform: "ILLUMINA"
+            platform_unit: "flowcell.lane.index_barcode"
   qc_dir: "results/atacseq/qc_raw"
   trimmed_dir: "results/atacseq/trimmed_fastqs"
   qc_trimmed_dir: "results/atacseq/qc_trimmed"
@@ -173,8 +187,10 @@ atacseq:
   bowtie2_index_prefix: null  # Prefix passed to bowtie2 -x, without a .bt2/.bt2l suffix.
   bowtie2_index_dir: "ref/bowtie2/atacseq"
   reference_dir: "results/atacseq/reference"
+  fastq_pair_validation_dir: "results/atacseq/fastq_pair_validation"
   alignment_dir: "results/atacseq/aligned_bams"
-  marked_bam_dir: "results/atacseq/marked_bams"  # Temporary Sambamba markdup BAMs are written here.
+  read_group_qc_dir: "results/atacseq/read_group_qc"
+  marked_bam_dir: "results/atacseq/marked_bams"
   duplication_qc_dir: "results/atacseq/duplication_qc"
   bam_qc_dir: "results/atacseq/bam_qc"
   filtered_bam_dir: "results/atacseq/filtered_bams"
@@ -190,12 +206,13 @@ atacseq:
   peak_caller: "macs3"  # Set to "genrich" to use Genrich instead of MACS3.
   fastp:
     extra_args: "-q 20 -l 30"
+  fastq_validation:
+    all_records: true  # Complete audit; false samples the first `records` pairs.
+    records: 100
   bowtie2:
     large_index: false  # Generated mode only; true creates and tracks .bt2l files.
     extra_args: "--very-sensitive -X 2000"
   sambamba:
-    markdup_threads: 4
-    markdup_extra_args: ""  # Do not use -r; duplicate removal happens during filtering.
     # This is a Sambamba filter expression validated during workflow construction.
     view_extra_args: "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)"
     filter_threads: 2
@@ -231,3 +248,5 @@ atacseq:
     - "chrM"
   picard:
     java_opts: "-Xmx2g"
+    markduplicates:
+      extra_args: ""

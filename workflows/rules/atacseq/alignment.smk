@@ -1,5 +1,6 @@
 import hashlib
 import os
+import shlex
 
 
 # --- CONFIGURATION ---
@@ -9,9 +10,47 @@ CONFIGURED_BOWTIE2_INDEX_PREFIX = config.get("bowtie2_index_prefix")
 REFERENCE_DIR = config["reference_dir"]
 TRIMMED_DIR = config["trimmed_dir"]
 ALIGNMENT_DIR = config["alignment_dir"]
+READ_GROUP_QC_DIR = config["read_group_qc_dir"]
+SAMPLES_INFO = config["samples_info"]
 BOWTIE2_CONFIG = config.get("bowtie2", {})
 BOWTIE2_EXTRA_ARGS = BOWTIE2_CONFIG.get("extra_args", "")
 ACTIVE_ATAC_PIPELINE = config.get("pipeline") == "atacseq"
+
+
+def _atac_alignment_run_info(wildcards):
+    return SAMPLES_INFO[wildcards.sample]["runs"][wildcards.run]
+
+
+def _atac_sample_run_bams(wildcards):
+    return [
+        os.path.join(ALIGNMENT_DIR, "runs", f"{wildcards.sample}__{run}.sorted.bam")
+        for run in SAMPLES_INFO[wildcards.sample]["runs"]
+    ]
+
+
+def _atac_sample_run_validations(wildcards):
+    return [
+        os.path.join(
+            READ_GROUP_QC_DIR,
+            f"{wildcards.sample}__{run}.read_group_validation.tsv",
+        )
+        for run in SAMPLES_INFO[wildcards.sample]["runs"]
+    ]
+
+
+def _atac_merged_read_group_args(wildcards):
+    arguments = []
+    for run_info in SAMPLES_INFO[wildcards.sample]["runs"].values():
+        read_group = run_info["read_group"]
+        values = [
+            read_group["id"],
+            read_group["sample"],
+            read_group["library"],
+            read_group["platform"],
+            read_group["platform_unit"],
+        ]
+        arguments.append("--expected " + " ".join(shlex.quote(value) for value in values))
+    return " ".join(arguments)
 
 STANDARD_INDEX_SUFFIXES = [
     ".1.bt2",
@@ -160,29 +199,107 @@ rule bowtie2_validate:
         """
 
 
-rule bowtie2_align_pe:
+rule bowtie2_align_run_pe:
     """
     Aligns trimmed paired-end reads with Bowtie2 and sorts the resulting BAM.
     """
     input:
-        r1 = os.path.join(TRIMMED_DIR, "{sample}_R1.trimmed.fq.gz"),
-        r2 = os.path.join(TRIMMED_DIR, "{sample}_R2.trimmed.fq.gz"),
+        r1 = os.path.join(TRIMMED_DIR, "{sample}__{run}_R1.trimmed.fq.gz"),
+        r2 = os.path.join(TRIMMED_DIR, "{sample}__{run}_R2.trimmed.fq.gz"),
         index = BOWTIE2_INDEX_FILES,
         index_validated = BOWTIE2_VALIDATION_MARKER
     output:
-        bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
+        bam = os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam")
     params:
         extra = BOWTIE2_EXTRA_ARGS,
-        index_prefix = BOWTIE2_INDEX_PREFIX
+        index_prefix = BOWTIE2_INDEX_PREFIX,
+        rg_id = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["id"],
+        rg_sm = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["sample"],
+        rg_lb = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["library"],
+        rg_pl = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["platform"],
+        rg_pu = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["platform_unit"],
+        rg_sm_arg = lambda wildcards: f'SM:{_atac_alignment_run_info(wildcards)["read_group"]["sample"]}',
+        rg_lb_arg = lambda wildcards: f'LB:{_atac_alignment_run_info(wildcards)["read_group"]["library"]}',
+        rg_pl_arg = lambda wildcards: f'PL:{_atac_alignment_run_info(wildcards)["read_group"]["platform"]}',
+        rg_pu_arg = lambda wildcards: f'PU:{_atac_alignment_run_info(wildcards)["read_group"]["platform_unit"]}'
     threads: 4
     log:
-        os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log")
+        os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}__{run}.log")
     shell:
         """
         set -euo pipefail
         (pixi run bowtie2 -p {threads} {params.extra} -x "{params.index_prefix}" \
+            --rg-id {params.rg_id:q} \
+            --rg {params.rg_sm_arg:q} \
+            --rg {params.rg_lb_arg:q} \
+            --rg {params.rg_pl_arg:q} \
+            --rg {params.rg_pu_arg:q} \
             -1 "{input.r1}" -2 "{input.r2}" | \
         pixi run samtools view -bS - | \
         pixi run samtools sort -@ {threads} -o "{output.bam}" -) \
             > {log}.out 2> {log}.err
+        """
+
+
+rule validate_bowtie2_run_read_group:
+    """
+    Validates the ATAC BAM read-group header and every alignment RG tag.
+    """
+    input:
+        bam = os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam")
+    output:
+        report = os.path.join(
+            READ_GROUP_QC_DIR, "{sample}__{run}.read_group_validation.tsv"
+        )
+    params:
+        rg_id = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["id"],
+        rg_sm = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["sample"],
+        rg_lb = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["library"],
+        rg_pl = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["platform"],
+        rg_pu = lambda wildcards: _atac_alignment_run_info(wildcards)["read_group"]["platform_unit"]
+    log:
+        os.path.join(
+            "logs", config["pipeline"], "read_group_validation", "{sample}__{run}.log"
+        )
+    shell:
+        """
+        set -euo pipefail
+        pixi run samtools view -h {input.bam:q} | \
+        pixi run python3 src/validate_bam_read_group.py \
+            --expected-id {params.rg_id:q} \
+            --expected-sample {params.rg_sm:q} \
+            --expected-library {params.rg_lb:q} \
+            --expected-platform {params.rg_pl:q} \
+            --expected-platform-unit {params.rg_pu:q} \
+            > {output.report:q} 2> {log:q}.err
+        """
+
+
+rule samtools_merge_runs:
+    """
+    Merges validated coordinate-sorted run BAMs for one biological sample.
+    """
+    input:
+        bams=_atac_sample_run_bams,
+        read_group_validations=_atac_sample_run_validations
+    output:
+        bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"),
+        read_group_validation=os.path.join(
+            READ_GROUP_QC_DIR, "{sample}_merged.read_group_validation.tsv"
+        )
+    params:
+        expected_read_groups=_atac_merged_read_group_args
+    threads: 4
+    log:
+        os.path.join("logs", config["pipeline"], "samtools_merge_runs", "{sample}.log")
+    shell:
+        """
+        set -euo pipefail
+        pixi run samtools merge -f -@ {threads} -o {output.bam:q} {input.bams:q} \
+            > {log:q}.out 2> {log:q}.err
+        pixi run samtools quickcheck -v {output.bam:q} >> {log:q}.out 2>> {log:q}.err
+        pixi run samtools view -h {output.bam:q} | \
+        pixi run python3 src/validate_merged_bam_read_groups.py \
+            {params.expected_read_groups} > {output.read_group_validation:q} \
+            2>> {log:q}.err
         """

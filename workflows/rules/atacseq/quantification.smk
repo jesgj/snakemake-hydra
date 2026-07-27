@@ -168,31 +168,44 @@ def _atac_flagstat_total(path):
     return None
 
 
-def _atac_sambamba_duplication_metrics(path):
-    with open(path) as handle:
-        contents = handle.read()
-    patterns = {
-        "sorted_end_pairs": r"sorted (\d+) end pairs",
-        "single_ends": r"and (\d+) single ends",
-        "unmatched_pairs": r"among them (\d+) unmatched",
-        "duplicate_reads": r"found (\d+) duplicates",
+def _atac_picard_duplication_metrics(path):
+    required_fields = {
+        "UNPAIRED_READS_EXAMINED",
+        "READ_PAIRS_EXAMINED",
+        "UNPAIRED_READ_DUPLICATES",
+        "READ_PAIR_DUPLICATES",
     }
-    metrics = {}
-    for name, pattern in patterns.items():
-        match = re.search(pattern, contents)
-        if not match:
-            return None, None
-        metrics[name] = int(match.group(1))
+    rows = []
+    header = None
+    with open(path) as handle:
+        for line in handle:
+            fields = line.rstrip("\n").split("\t")
+            if header is None and required_fields.issubset(fields):
+                header = fields
+                continue
+            if header is None:
+                continue
+            if not line.strip() or line.startswith("##"):
+                break
+            if len(fields) != len(header):
+                continue
+            rows.append(dict(zip(header, fields)))
 
-    examined_reads = (
-        2 * metrics["sorted_end_pairs"]
-        + metrics["single_ends"]
-        - metrics["unmatched_pairs"]
+    if not rows:
+        return None, None
+
+    examined_reads = sum(
+        int(row["UNPAIRED_READS_EXAMINED"])
+        + 2 * int(row["READ_PAIRS_EXAMINED"])
+        for row in rows
     )
-    duplication_rate = (
-        100 * metrics["duplicate_reads"] / examined_reads if examined_reads else None
+    duplicate_reads = sum(
+        int(row["UNPAIRED_READ_DUPLICATES"])
+        + 2 * int(row["READ_PAIR_DUPLICATES"])
+        for row in rows
     )
-    return metrics["duplicate_reads"], duplication_rate
+    duplication_rate = 100 * duplicate_reads / examined_reads if examined_reads else None
+    return duplicate_reads, duplication_rate
 
 
 def _atac_idxstats_metrics(path):
@@ -278,7 +291,7 @@ rule atac_qc_summary:
         ]
         rows = []
         for index, sample in enumerate(SAMPLES):
-            duplicate_reads, duplication_rate = _atac_sambamba_duplication_metrics(
+            duplicate_reads, duplication_rate = _atac_picard_duplication_metrics(
                 input.duplication_metrics[index]
             )
             mitochondrial_reads, mitochondrial_fraction = _atac_idxstats_metrics(
