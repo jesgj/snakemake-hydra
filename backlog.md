@@ -3,9 +3,19 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-10-02: Reconcile run-aware ATAC processing with effective alignment/filter thread budgets; give featureCounts a unique temporary directory to avoid a buffer overflow with long output-directory paths.
 - 2026-10-02: Add ATAC Bowtie2 read groups for Picard duplicate metrics; budget alignment/sorting and Sambamba filtering/sorting against effective threads, including sequential one-core execution.
 - 2026-10-02: Fix shared SE QC/trimming wildcard constraints to match configured samples; make ChIP/CUT&RUN duplicate marking produce a temporary BAM and preserve the filter-to-Sambamba-sort pipe with effective thread allocation and a one-core sequential fallback.
 - 2026-10-02: Add reproducible small real-data fixtures for all four pipeline modes, including actual CUT&RUN, ChIP PE/SE handling, RNA gene body coverage, and both ATAC peak callers; retain synchronized random subsets with checksums and remove temporary source FASTQs.
+- 2026-07-25: Add run-aware ATAC manifests, complete original-pair validation, per-run trimming/alignment/RG QC, retained run metrics, sample-level BAM merging, and one post-merge Picard duplicate-marking step.
+- 2026-07-24: Validate ATAC-seq FASTQ mates before trimming, propagate and verify read groups, replace Sambamba markdup with Picard MarkDuplicates, and aggregate Picard duplication metrics in consolidated QC.
+- 2026-07-22: Validate selected-pipeline Sambamba filters during workflow construction, safely quote filter arguments, and propagate ChIP/CUT&RUN pipeline failures with `pipefail`.
+- 2026-07-22: Replace ATAC-seq Picard MarkDuplicates with configurable Sambamba markdup and parse its duplication report in the consolidated QC summary.
+- 2026-07-16: Add explicit read-only ATAC prebuilt Bowtie2 index support, concrete `.bt2`/`.bt2l` dependencies, generated large-index selection, and pipeline-owned one-time validation markers.
+- 2026-07-16: Correct ATAC-seq MACS3 to true BAMPE fragment mode, add strict failure handling to alignment/filter pipelines, and validate Bowtie2 indexes before use.
+- 2026-07-16: Sort ATAC peak inputs before consensus overlap, aggregate multi-library Picard duplicate metrics, and validate peak-caller and mitochondrial-contig configuration.
+- 2026-07-16: Add an R-free ATAC-seq consensus peak set with configurable sample support, an all-sample featureCounts matrix over filtered BAMs, and per-sample FRiP metrics.
+- 2026-07-16: Add ATAC-seq aligned-BAM mitochondrial metrics, filtered-BAM coverage tables, and a consolidated QC summary rendered as MultiQC custom content.
 - 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and update the checked-in WGBS config defaults.
 - 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.
 - 2026-04-06: Make the WGBS Sambamba filter step tolerate empty `wgbs.sambamba.extra_args` instead of emitting an invalid `-F ""` command.

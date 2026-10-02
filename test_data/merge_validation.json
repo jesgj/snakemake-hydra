@@ -1,0 +1,58 @@
+{
+  "checked_at_utc": "2026-10-02T20:43:37.857988+00:00",
+  "merged_remote": "4459588687d95a11beadcd722b43ef617b0ae1ca",
+  "dry_runs": [
+    {
+      "variant": "atacseq_genrich",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-atacseq_genrich.log"
+    },
+    {
+      "variant": "atacseq_macs3",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-atacseq_macs3.log"
+    },
+    {
+      "variant": "chipseq",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-chipseq.log"
+    },
+    {
+      "variant": "chipseq_se",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-chipseq_se.log"
+    },
+    {
+      "variant": "cutrun",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-cutrun.log"
+    },
+    {
+      "variant": "rnaseq",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-rnaseq.log"
+    },
+    {
+      "variant": "wgbs",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-wgbs.log"
+    },
+    {
+      "variant": "wgbs_full",
+      "exit_code": 0,
+      "log": "/tmp/hydra-merge-dry-wgbs_full.log"
+    }
+  ],
+  "atac_execution_exit_code": 0,
+  "execution_evidence": "test_data/execution.json (last run)",
+  "outputs_deleted": true,
+  "lint": {
+    "atacseq_exit_code": 1,
+    "chip_cr_exit_code": 1,
+    "findings": "Existing layout/path and per-rule environment recommendations; Pixi remains the environment strategy."
+  },
+  "resolved_issues": [
+    "featureCounts temporary-file path buffer overflow: unique scratch directory with cleanup",
+    "Snakemake subprocesses merged machine-local samples: set HYDRA_CONFIG to fixture config in test commands"
+  ]
+}

@@ -1,5 +1,7 @@
 import os
 import re
+import shutil
+import subprocess
 from collections import defaultdict
 
 
@@ -30,6 +32,60 @@ def validate_existing_parent_dir(path, config_name):
         raise ValueError(
             f"Config '{config_name}' must use an existing parent directory: {parent_dir}"
         )
+
+
+def validate_sambamba_filter(expression, config_name):
+    """
+    Validates a Sambamba filter expression with the installed Sambamba parser.
+    """
+    if not isinstance(expression, str):
+        raise ValueError(
+            f"Config '{config_name}' must be a Sambamba filter expression string."
+        )
+
+    expression = expression.strip()
+    if not expression:
+        return expression
+
+    sambamba = shutil.which("sambamba")
+    if sambamba is None:
+        raise RuntimeError(
+            f"Sambamba is required to validate config '{config_name}'. "
+            "Run Snakemake through 'pixi run'."
+        )
+
+    try:
+        result = subprocess.run(
+            [
+                sambamba,
+                "view",
+                "-S",
+                "-c",
+                "-F",
+                expression,
+                os.devnull,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Timed out while validating config '{config_name}' with Sambamba."
+        ) from exc
+
+    if result.returncode != 0:
+        details = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        detail = details[-1] if details else "Sambamba rejected the expression"
+        raise ValueError(
+            f"Invalid Sambamba filter in config '{config_name}': {detail}. "
+            f"Expression: {expression!r}"
+        )
+
+    return expression
 
 
 def discover_samples(raw_fastqs_dir):
@@ -109,3 +165,61 @@ def prepare_sample_data(config):
     samples = list(samples_info.keys())
     config['samples_info'] = samples_info
     return samples_info, samples
+
+
+def normalize_read_group_metadata(samples_info, config_name):
+    """
+    Adds validated Bowtie2 read-group metadata to each sample.
+
+    Existing manifests remain valid by using the sample name for ID, SM, LB,
+    and PU, and ILLUMINA for PL. Run-aware manifests should override these
+    defaults with a nested ``read_group`` mapping.
+    """
+    normalized_samples = {}
+    read_group_ids = {}
+    field_defaults = {
+        "id": lambda sample: sample,
+        "sample": lambda sample: sample,
+        "library": lambda sample: sample,
+        "platform": lambda sample: "ILLUMINA",
+        "platform_unit": lambda sample: sample,
+    }
+
+    for sample, info in samples_info.items():
+        normalized_info = dict(info)
+        configured_read_group = normalized_info.get("read_group", {})
+        if configured_read_group is None:
+            configured_read_group = {}
+        if not isinstance(configured_read_group, dict):
+            raise ValueError(
+                f"Config '{config_name}.{sample}.read_group' must be a mapping."
+            )
+
+        read_group = {}
+        for field, default_factory in field_defaults.items():
+            value = configured_read_group.get(field, default_factory(sample))
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    f"Config '{config_name}.{sample}.read_group.{field}' "
+                    "must be a non-empty string."
+                )
+            if any(character in value for character in ["\t", "\n", "\r"]):
+                raise ValueError(
+                    f"Config '{config_name}.{sample}.read_group.{field}' "
+                    "must not contain tabs or newlines."
+                )
+            read_group[field] = value
+
+        read_group_id = read_group["id"]
+        if read_group_id in read_group_ids:
+            raise ValueError(
+                f"Config '{config_name}' assigns read-group ID {read_group_id!r} "
+                f"to both {read_group_ids[read_group_id]!r} and {sample!r}. "
+                "Use one unique ID per run or lane."
+            )
+        read_group_ids[read_group_id] = sample
+
+        normalized_info["read_group"] = read_group
+        normalized_samples[sample] = normalized_info
+
+    return normalized_samples

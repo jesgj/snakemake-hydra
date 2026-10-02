@@ -4829,6 +4829,854 @@
       "reference_index_bytes_deleted": 598657976,
       "snakemake_exit_code": 0,
       "reproduction_command": "XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs_full.yaml --rerun-incomplete --printshellcmds"
+    },
+    {
+      "variant": "atacseq_macs3",
+      "pipeline": "atacseq",
+      "checked_at_utc": "2026-10-02T20:43:14.820173+00:00",
+      "scheduler_cores": 2,
+      "scheduler_jobs": 1,
+      "multiqc_report_verified": true,
+      "bam_quickcheck": true,
+      "mapped_alignment_records": {
+        "work/atacseq_macs3/alignment_dir/SRR1822153_pe.sorted.bam": 37155,
+        "work/atacseq_macs3/alignment_dir/SRR1822154_pe.sorted.bam": 36082,
+        "work/atacseq_macs3/alignment_dir/runs/SRR1822153__run1.sorted.bam": 37155,
+        "work/atacseq_macs3/alignment_dir/runs/SRR1822154__run1.sorted.bam": 36082,
+        "work/atacseq_macs3/filtered_bam_dir/SRR1822153_pe.filtered.sorted.bam": 19772,
+        "work/atacseq_macs3/filtered_bam_dir/SRR1822154_pe.filtered.sorted.bam": 16498
+      },
+      "peak_counts": {
+        "work/atacseq_macs3/peaks_dir/SRR1822153_peaks.narrowPeak": 131,
+        "work/atacseq_macs3/peaks_dir/SRR1822154_peaks.narrowPeak": 67
+      },
+      "artifacts": [
+        {
+          "path": "work/atacseq_macs3/alignment_dir/SRR1822153_pe.sorted.bam",
+          "bytes": 1682473,
+          "sha256": "10b206eb790ef5b7f79f69259251271c59a5968386850a1952efb9e1e6aba02b"
+        },
+        {
+          "path": "work/atacseq_macs3/alignment_dir/SRR1822153_pe.sorted.bam.bai",
+          "bytes": 17096,
+          "sha256": "a6eb809be1b086fb152d08b40135906d097f02287cc4e543b06186d85e6042aa"
+        },
+        {
+          "path": "work/atacseq_macs3/alignment_dir/SRR1822154_pe.sorted.bam",
+          "bytes": 1638740,
+          "sha256": "6a44028c19efb9016a5800c5bb82844a0784845a53687c62233e0e2f8066d03c"
+        },
+        {
+          "path": "work/atacseq_macs3/alignment_dir/SRR1822154_pe.sorted.bam.bai",
+          "bytes": 18528,
+          "sha256": "aec4e92947e06f54299eb03adbd6140bd756361b4ed3138878c121138e3bd9ed"
+        },
+        {
+          "path": "work/atacseq_macs3/alignment_dir/runs/SRR1822153__run1.sorted.bam",
+          "bytes": 1682440,
+          "sha256": "556297249de0110cd5f4b29e2b32e8c673b272a80f8044c445b3fcbb987631c8"
+        },
+        {
+          "path": "work/atacseq_macs3/alignment_dir/runs/SRR1822154__run1.sorted.bam",
+          "bytes": 1638706,
+          "sha256": "8c25bf00b22cee8a68eb5a2f11dc1fae8d76edb40fd7b5d667072c18a60438b4"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/SRR1822153_pe.flagstat.txt",
+          "bytes": 491,
+          "sha256": "a44fc72780cb600063f6062cb68020ce866b4ed4229c046e5de1648f0ecfe9be"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/SRR1822153_pe.idxstats.txt",
+          "bytes": 305,
+          "sha256": "e3d337861d91c0c0f3aba2489242bfb36c508049dc28299cc784df8537ebe6d5"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/SRR1822153_pe.stats.txt",
+          "bytes": 50834,
+          "sha256": "15baae705df8781a92d81a456569aaf3fe232b4dccb465db69062b098a9cc13b"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/SRR1822154_pe.flagstat.txt",
+          "bytes": 491,
+          "sha256": "a0922f94da0fd6afd74cf21cd3197958d1b243d00fa7e8d2f03d872337714350"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/SRR1822154_pe.idxstats.txt",
+          "bytes": 303,
+          "sha256": "96e2966b22616073e1b7002dcead7b34fad76ff99c6bd1b4be1ce6931659656c"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/SRR1822154_pe.stats.txt",
+          "bytes": 52931,
+          "sha256": "85a1a7d00bfc2d6d1d7aef8b6aa57cb073a8cb3147958dafc5abe9f0a3d1b17a"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/runs/SRR1822153__run1.flagstat.txt",
+          "bytes": 491,
+          "sha256": "a44fc72780cb600063f6062cb68020ce866b4ed4229c046e5de1648f0ecfe9be"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/runs/SRR1822153__run1.stats.txt",
+          "bytes": 50842,
+          "sha256": "dc164ee5f60f4a4c10ce1d49a7796ed1f7613abffe40e831eee4e0fd588de8ba"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/runs/SRR1822154__run1.flagstat.txt",
+          "bytes": 491,
+          "sha256": "a0922f94da0fd6afd74cf21cd3197958d1b243d00fa7e8d2f03d872337714350"
+        },
+        {
+          "path": "work/atacseq_macs3/bam_qc_dir/runs/SRR1822154__run1.stats.txt",
+          "bytes": 52939,
+          "sha256": "4959ed1392bda564bbeecbe0584f5583a1b1645e35625a7e121c70ca63749700"
+        },
+        {
+          "path": "work/atacseq_macs3/bigwig_dir/SRR1822153_pe.bw",
+          "bytes": 111948,
+          "sha256": "fc3492d96fddb13e8015370bf36cbc26750342761c104a5041fb5917a9425975"
+        },
+        {
+          "path": "work/atacseq_macs3/bigwig_dir/SRR1822154_pe.bw",
+          "bytes": 97408,
+          "sha256": "59f573709f5bbc3c842a83bbfed795d428f4837d66d8674edf9b0080736ed621"
+        },
+        {
+          "path": "work/atacseq_macs3/bowtie2_index_dir/genome.1.bt2",
+          "bytes": 8247194,
+          "sha256": "82e5ee35413e521310066b3433108ffad541fb1770fe9c4e7fb8d9052bcdd7ed"
+        },
+        {
+          "path": "work/atacseq_macs3/bowtie2_index_dir/genome.2.bt2",
+          "bytes": 3039284,
+          "sha256": "9b4b276351627fb1d4531b8d819318c75a6e7ba4618220f75ebd82424e6e8c37"
+        },
+        {
+          "path": "work/atacseq_macs3/bowtie2_index_dir/genome.3.bt2",
+          "bytes": 161,
+          "sha256": "cfb6cc1605fbae45e062a8f1f5fc7ee8c22597a17c58159e65a35e30f80bfeab"
+        },
+        {
+          "path": "work/atacseq_macs3/bowtie2_index_dir/genome.4.bt2",
+          "bytes": 3039277,
+          "sha256": "6b891074fa75b5bb14137592cf7aedba0425d9dca52d5bff3bb8f510ffac2ba4"
+        },
+        {
+          "path": "work/atacseq_macs3/bowtie2_index_dir/genome.rev.1.bt2",
+          "bytes": 8247194,
+          "sha256": "fd8837ea69eb39dce321251449a3ffbc46ea52a509d22be98a67f909d5ae624d"
+        },
+        {
+          "path": "work/atacseq_macs3/bowtie2_index_dir/genome.rev.2.bt2",
+          "bytes": 3039284,
+          "sha256": "f0a751e75041619d01094d26bedc4c78b2728aada97084a844ecabc26de53645"
+        },
+        {
+          "path": "work/atacseq_macs3/consensus_peaks_dir/consensus_peaks.bed",
+          "bytes": 2937,
+          "sha256": "94be5ea247c959b048cf879b034810a28a016e7d72b411e3d40362458c96285c"
+        },
+        {
+          "path": "work/atacseq_macs3/consensus_peaks_dir/consensus_peaks.saf",
+          "bytes": 4749,
+          "sha256": "12395eb3fb4f4028bff7e05697f5b669d96fdc366b1e4836f3232b209fc5db61"
+        },
+        {
+          "path": "work/atacseq_macs3/deeptools_dir/bam_correlation_heatmap.png",
+          "bytes": 34994,
+          "sha256": "6332422aaf32ff96eb95212cfc2943ef139f0c180b8ab0ae5f1f81ca1cee814d"
+        },
+        {
+          "path": "work/atacseq_macs3/deeptools_dir/bam_correlation_matrix.tab",
+          "bytes": 209,
+          "sha256": "1a064d272cc833fe071632620b196366f2575d2d6521bfd062eac86e447cf465"
+        },
+        {
+          "path": "work/atacseq_macs3/deeptools_dir/fingerprints.metrics.tab",
+          "bytes": 2495119,
+          "sha256": "00ebbc728c5db46f08c60377bfe037e710bde0b6afed17591fc6eec522da5d26"
+        },
+        {
+          "path": "work/atacseq_macs3/deeptools_dir/fingerprints.png",
+          "bytes": 38058,
+          "sha256": "f9128b7889686fff521c4cfe63e6fa1e7f8ccb3e2d936f18a8cef1c40cda63bc"
+        },
+        {
+          "path": "work/atacseq_macs3/deeptools_dir/read_coverage.npz",
+          "bytes": 3228,
+          "sha256": "edc3849ba775c6e17ea7928dbe28f00a2a44016f2617d34b63b9e25706505db0"
+        },
+        {
+          "path": "work/atacseq_macs3/duplication_qc_dir/SRR1822153_pe.markdup.metrics.txt",
+          "bytes": 4008,
+          "sha256": "2511dc1e859bdadc52f1852fa53fdc1a038b353fc9eb93956518a47af36b6833"
+        },
+        {
+          "path": "work/atacseq_macs3/duplication_qc_dir/SRR1822154_pe.markdup.metrics.txt",
+          "bytes": 4005,
+          "sha256": "4ef50046eb66b835d531d1aefd6241689139bbf953d43597f9bee5cdd063ee96"
+        },
+        {
+          "path": "work/atacseq_macs3/fastq_pair_validation_dir/SRR1822153__run1.fastq_pair_validation.tsv",
+          "bytes": 132,
+          "sha256": "6e07944babc0c34d846c70dce36ca3823afac6d39254b2ab279472a63b5bab12"
+        },
+        {
+          "path": "work/atacseq_macs3/fastq_pair_validation_dir/SRR1822154__run1.fastq_pair_validation.tsv",
+          "bytes": 132,
+          "sha256": "6e07944babc0c34d846c70dce36ca3823afac6d39254b2ab279472a63b5bab12"
+        },
+        {
+          "path": "work/atacseq_macs3/featurecounts_dir/consensus_peak_counts.txt",
+          "bytes": 7161,
+          "sha256": "f77761d1ca66d12af3566bfaa950733a90c0c93ebab81cc1f1a6ed1dd1193575"
+        },
+        {
+          "path": "work/atacseq_macs3/featurecounts_dir/consensus_peak_counts.txt.summary",
+          "bytes": 624,
+          "sha256": "8994d68b59195da88c1bd25857618bdcde56b9d715971f32885632345076b5d9"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_dir/SRR1822153_pe.filtered.sorted.bam",
+          "bytes": 1013442,
+          "sha256": "b2aa4a6eec89819f7a8479e3c971e8245edc47ddb62d6479371eb598c5b1410c"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_dir/SRR1822153_pe.filtered.sorted.bam.bai",
+          "bytes": 16920,
+          "sha256": "6563b839a93d18d23f71cb22c9d07e0b226ba23366b9c9c4eaa5f609a1eaa0ee"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_dir/SRR1822154_pe.filtered.sorted.bam",
+          "bytes": 869909,
+          "sha256": "6d245c6f413ff3229752238b6835a0a9e6258ebdc3df7acb4d2b39bda8173f30"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_dir/SRR1822154_pe.filtered.sorted.bam.bai",
+          "bytes": 18728,
+          "sha256": "97bf2f16e69d595d5d8364ae77a89c1b2925db2f8a7466aec858eb05fd031d39"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_qc_dir/SRR1822153_pe.filtered.coverage.tsv",
+          "bytes": 905,
+          "sha256": "b219d7a7793df6e9300bae52bd45d9ca2a381adf172fc0008049ea89ce98fe32"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_qc_dir/SRR1822153_pe.filtered.flagstat.txt",
+          "bytes": 491,
+          "sha256": "ede398c99216acf0b198feafc69719e7f7090118239a54e896a3fccf3d51f1ec"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_qc_dir/SRR1822153_pe.filtered.stats.txt",
+          "bytes": 49074,
+          "sha256": "ad9c2528e901ba7f4abe1c46dc924623154478c3e3d75a1f73993e7d3e7950d3"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_qc_dir/SRR1822154_pe.filtered.coverage.tsv",
+          "bytes": 907,
+          "sha256": "279556b33c4ef7755c3cfc69905dd108489bf3f18a7d2317c3d72070f657af48"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_qc_dir/SRR1822154_pe.filtered.flagstat.txt",
+          "bytes": 491,
+          "sha256": "c2b61713b0a4f8d99a54aa380dc9efb5d4f4d1f9617ecdc903c638d7ccaa019d"
+        },
+        {
+          "path": "work/atacseq_macs3/filtered_bam_qc_dir/SRR1822154_pe.filtered.stats.txt",
+          "bytes": 51209,
+          "sha256": "151682917e6d12d339ad4718ee894d8f25052e15134b8044eaafa8bdab1280c2"
+        },
+        {
+          "path": "work/atacseq_macs3/fragment_qc_dir/SRR1822153_pe.insert_size_histogram.pdf",
+          "bytes": 12516,
+          "sha256": "454016f714bce120a966697d11b835dd58e68c2737913b87244e271aab63b6dd"
+        },
+        {
+          "path": "work/atacseq_macs3/fragment_qc_dir/SRR1822153_pe.insert_size_metrics.txt",
+          "bytes": 5441,
+          "sha256": "21db5112adee3354f174e9e0dde83cf0ee549d7ba82fa299944de6782e00a9f4"
+        },
+        {
+          "path": "work/atacseq_macs3/fragment_qc_dir/SRR1822154_pe.insert_size_histogram.pdf",
+          "bytes": 13466,
+          "sha256": "8441724f3cbe6b96868d198fccfbfdcf499ea7779777697131c61ba5325dd5b2"
+        },
+        {
+          "path": "work/atacseq_macs3/fragment_qc_dir/SRR1822154_pe.insert_size_metrics.txt",
+          "bytes": 5975,
+          "sha256": "5fae9d5c6d7d826e46cea25d8c6e78961d7a80beb5a96bebdc8e6786991b3dab"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report.html",
+          "bytes": 2912083,
+          "sha256": "8fb0f861c8f9c54db655013e6cffd8c9265ac4790441afdac90b96983fbfae16"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/bowtie2_pe_plot.txt",
+          "bytes": 253,
+          "sha256": "9e8bdd851e8b91e18b27de89364d7ce60641a71adb17cc663f942a53b4482961"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/deeptools_correlation_plot.txt",
+          "bytes": 116,
+          "sha256": "03e14b2c8864e8ff03b848ea7930f5726622a8cf6581c8233aa9dd56e386206d"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/deeptools_fingerprint_plot.txt",
+          "bytes": 6451,
+          "sha256": "1c041bc1e2905c4e5ccd1a0035b0f61dad414c48144c65922579adaa674eb0c2"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/deeptools_plot_fingerprint_counts.txt",
+          "bytes": 3658,
+          "sha256": "14d69a094979f1f67fc36447f847a20826af3f045f41c5d1ecef634add487bf1"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-insert-size-plot.txt",
+          "bytes": 5545,
+          "sha256": "e51b6feca8492a5a51cb06fcc3ada4a456ccc5302e9e3f065b44ebc2936b1891"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-gc-plot_Read_1_After_filtering.txt",
+          "bytes": 2805,
+          "sha256": "385ef63c5074a1e6530a411d4df5d9339807e3e800c6299e38e176eb89588a15"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-gc-plot_Read_1_Before_filtering.txt",
+          "bytes": 2506,
+          "sha256": "1262a86adb2be0de4c62561d7d2706f7390282131e665d3de74f5679083d4868"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-gc-plot_Read_2_After_filtering.txt",
+          "bytes": 2715,
+          "sha256": "e0a6ad8a14f1d9a420cf8fd17329f7ad77bf6ad7650d3d77b7a7298ca99b13bf"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-gc-plot_Read_2_Before_filtering.txt",
+          "bytes": 2428,
+          "sha256": "0f7dbeae3597ad418f05f5388dabbfb3c7315abfc21df16ac2963775986c0e53"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-n-plot_Read_1_After_filtering.txt",
+          "bytes": 1896,
+          "sha256": "8362c28b07ebf7794574398714407ce2101b2566cab245c7a320397a1284dacd"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-n-plot_Read_1_Before_filtering.txt",
+          "bytes": 1844,
+          "sha256": "18236ed239aa83e8203a0b6ef3b16ed288282a11222f0a03194903b1fdd433b0"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-n-plot_Read_2_After_filtering.txt",
+          "bytes": 2005,
+          "sha256": "afe7f8812910cb66fd214625835323fe086e9a9549b783776b0e338c8cb6f78f"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-content-n-plot_Read_2_Before_filtering.txt",
+          "bytes": 2609,
+          "sha256": "67cbdad0b2ad8dacefed210ae57d945983d7a522e9f7f2444a6f7f1a06fcba41"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-quality-plot_Read_1_After_filtering.txt",
+          "bytes": 2343,
+          "sha256": "ac2dab5ae15858102ebbdc41b8f3dddd1f586bd6e8e478edd113791dd1c34757"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-quality-plot_Read_1_Before_filtering.txt",
+          "bytes": 2341,
+          "sha256": "901444977a549f1548b0a57b21b27be488ef88ccc413def9305f4644255ae021"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-quality-plot_Read_2_After_filtering.txt",
+          "bytes": 2338,
+          "sha256": "bb68a4f07df10da3e5a72c50187867c1f01527aa1833c440767d1ede5988cfab"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp-seq-quality-plot_Read_2_Before_filtering.txt",
+          "bytes": 2339,
+          "sha256": "5500cc88401358fab41f8a5bd193e17b60f8166d82ce93deafe876886b69ae9b"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastp_filtered_reads_plot.txt",
+          "bytes": 164,
+          "sha256": "7e4098de4e80e0c16649b0a0c82970e1c0ef2eaf5a2d72ee70dcf30e0d4838cf"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc-status-check-heatmap.txt",
+          "bytes": 637,
+          "sha256": "6d433457007d3fff48f9b307f26fd4200c1ae1aa9e12f942e5b143c8e8029eea"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_adapter_content_plot.txt",
+          "bytes": 18925,
+          "sha256": "051dfcc6173a29d15fb7ff291924a0b901a2ab1f525da6a78523d84416c8a1cc"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_per_base_n_content_plot.txt",
+          "bytes": 5037,
+          "sha256": "f4565a7eafb48aea698eab1a80b608d4014a10eb080d9c1775bf22c48815586c"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_per_base_sequence_quality_plot.txt",
+          "bytes": 7353,
+          "sha256": "39cde019b221ff6bdf8dab729db66a3d4af1ad572cf643efeed387f2fa1b4893"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_per_sequence_gc_content_plot_Counts.txt",
+          "bytes": 10909,
+          "sha256": "92f1495b613fc1bb2f4f915a7db647ec7421be407665ddffdd508f30836469c0"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_per_sequence_gc_content_plot_Percentages.txt",
+          "bytes": 20207,
+          "sha256": "fe553e688493e827bb658076c069b3d5c1370cb6bc8950fde00455501dae59a7"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_per_sequence_quality_scores_plot.txt",
+          "bytes": 2691,
+          "sha256": "d4223e3031ace25be15219b74111294eb57ff37742d30f7de4e078ec77ec88c9"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_sequence_counts_plot.txt",
+          "bytes": 292,
+          "sha256": "b9a2c5058b55555a3cd7dc2340b50f4aa3f85dbdcd99e2322aa6da5a534fc448"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_sequence_duplication_levels_plot.txt",
+          "bytes": 2462,
+          "sha256": "12d27e21c9d259c371a8bca87cf33b9f3b79099287eb0bfbd821511a22bc915a"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_sequence_length_distribution_plot.txt",
+          "bytes": 2691,
+          "sha256": "f4681321a0099f92149477640eccb133ba99b72e91a6a78030b1cd505f056547"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/fastqc_top_overrepresented_sequences_table.txt",
+          "bytes": 349,
+          "sha256": "515483bc1b333cba47e75d5740d829b012b7d22821ac937e077a1614efc10626"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/featureCounts_assignment_plot.txt",
+          "bytes": 114,
+          "sha256": "1d1bf907dde3dd3f944f2071bc416f59b41adfdd3cd189bd093c752157a286d5"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/llms-full.txt",
+          "bytes": 130729,
+          "sha256": "95b22e65abfdbec135ef22e87cce9cc64d88f3e42157f2b0d6da0d9c6621b6b1"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc.log",
+          "bytes": 47296,
+          "sha256": "43dad67f4f51bfa0e4fc2352b66d995bade9de8c56b7e8a34550a81f11c11eba"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc.parquet",
+          "bytes": 3865748,
+          "sha256": "88335177f5b2c52bf087e9701447ddec86ab74d667c21f3eb1a5d9f6df41eaa2"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_atac_qc_summary_table.txt",
+          "bytes": 310,
+          "sha256": "8aeb9eb8b07252b9015c2248be34772d91939581807b19b44bd27ae7c2b3cb21"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_bowtie2.txt",
+          "bytes": 471,
+          "sha256": "46eb42424c30905d9916190ff965326db002b573aec92f4596fd9a33c20738f2"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_citations.txt",
+          "bytes": 614,
+          "sha256": "eec06f0239026d11abe99802c1dc0c2c238b132fec7fd0497df00da1f5949023"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_data.json",
+          "bytes": 3170824,
+          "sha256": "99f059df435eb8e45fa99bab7988edf1cb52f9354c199265919f292e8604b1f1"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_fastp.txt",
+          "bytes": 192160,
+          "sha256": "f8f49f815175c062816a15e49ff541b34e556ac8c8d42b72e100bd53e850a837"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_fastqc.txt",
+          "bytes": 2082,
+          "sha256": "eae01effa7146aeed4a35830237c8384d600703218275c7e1cc7c26ad4b5d96b"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_featurecounts.txt",
+          "bytes": 493,
+          "sha256": "4245c65141102c37b50a54c30c55f8c1128af4d9e154c4d18c44165c10d880c4"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_general_stats.txt",
+          "bytes": 3852,
+          "sha256": "4df68e685f6947216496e4282077ecf66e57392aff9d3107c06dc0c7cdd42b07"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_macs.txt",
+          "bytes": 127,
+          "sha256": "a078bbb43f190b7b002cb5ee0acdebe722dd316a3099c1ac1fa76fc8f53309b2"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_picard_dups.txt",
+          "bytes": 387,
+          "sha256": "d95f5e4f67fa5899957ee80237b7094d0ee564dff617037d65f215dcf61fa63d"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_picard_insertSize.txt",
+          "bytes": 774,
+          "sha256": "26d1d35b2591578e99db3061cfc18c1090be62f9aa2414258b56433101410799"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_samtools_coverage.txt",
+          "bytes": 5806,
+          "sha256": "f985dd2f9ccbc90fa8fc87f24b3269533667b0b28e105c5c2623e85d38749d9b"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_samtools_flagstat.txt",
+          "bytes": 1570,
+          "sha256": "b42e86f6fd64ddd502b97d4625920459f2f0b08275439adede8d762045d134e4"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_samtools_idxstats.txt",
+          "bytes": 612,
+          "sha256": "4fa0785d7da7d91399b4497c8c77fc5d6f990645f66af34744ff9fef235447ee"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_samtools_stats.txt",
+          "bytes": 3141,
+          "sha256": "6d1d54e2e7a01a1d8fe7bc8d109bcf13f98735f904c12ffd721e7f7f4b6ebce8"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_software_versions.txt",
+          "bytes": 99,
+          "sha256": "557ee11d21503c5506de99e576d033b2b86e39670029408467dac948ff26d04e"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/multiqc_sources.txt",
+          "bytes": 5978,
+          "sha256": "54cd3a8356a7d02a2c4ed363cf7f5a90ec0291e771eba3a958811969fad06f61"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_MarkIlluminaAdapters_histogram.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_MeanQualityByCycle_histogram.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_MeanQualityByCycle_histogram_1.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_QualityScoreDistribution_histogram.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_deduplication.txt",
+          "bytes": 181,
+          "sha256": "70167b3c6d1a89db699265d16f23eabf6dfd1bfb797f0f080ce5f83fd2951088"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_insert_size_Counts.txt",
+          "bytes": 11285,
+          "sha256": "3089aac1a1ac5e9615a8c3abdbffa1d72b35e3f8d524554047ce10fb34d7d8d6"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/picard_insert_size_Percentages.txt",
+          "bytes": 28811,
+          "sha256": "d92ae4aa1878206c4027061acd7e41e67dd796cf2be8987c46b4858b14befae6"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage-table.txt",
+          "bytes": 336,
+          "sha256": "9fc2ac3750581fc83719531ef0dd05c41dabcc762e337f0a74aa84551632f73a"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage_BQ.txt",
+          "bytes": 564,
+          "sha256": "7667d5ea25379954c228c31c76da5f192ba04d962e772c7f1a4e0bf8b391f29f"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage_Bases.txt",
+          "bytes": 593,
+          "sha256": "3019d60074d9fb2952751786ec4c97bfc694a4199c07f6cc3ac34beb969af998"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage_Coverage.txt",
+          "bytes": 655,
+          "sha256": "d63d7580b967bfa2e5d74b8f57522b6b60cfe0921ec23cf89158336858f70075"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage_MQ.txt",
+          "bytes": 564,
+          "sha256": "81230e68883c8417534d5a80bd3ad5e2b853786a81cb7a43cd9f24c13126efb6"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage_Mean_depth.txt",
+          "bytes": 701,
+          "sha256": "3cd3a0588c5d9afb5b1775535d9457daadb40781a2d5c27d471e20fbfe7bfb59"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-coverage_Reads.txt",
+          "bytes": 545,
+          "sha256": "758e58eba6ecaa76a3e6be9fd528f88958a8e10448abaf5c149cad491c88365b"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-flagstat-pct-table.txt",
+          "bytes": 931,
+          "sha256": "d3ccb1a12f2ba96afeca1e4e85be1267631287b8fee3b4325314a7b3caf57a4d"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-flagstat-table.txt",
+          "bytes": 899,
+          "sha256": "0105b208bb8425f6c16774f7690b45afe3351c5241cf1dbf72233b9f158b52f7"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-idxstats-mapped-reads-plot_Normalised_Counts.txt",
+          "bytes": 1052,
+          "sha256": "f52e7d32be47076226b38f7c79b531d730e9676065b9ee0dc414b4ff9ea6411c"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-idxstats-mapped-reads-plot_Observed_over_Expected_Counts.txt",
+          "bytes": 1009,
+          "sha256": "c51e17bac7ab493cec9503b0a4bf9ddc75adc06679abab40ed70648ccfecf150"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-idxstats-mapped-reads-plot_Raw_Counts.txt",
+          "bytes": 518,
+          "sha256": "1f7f1b00b6fb047e31bed9bfa77706e5e903716f730fa32f9f1d4f2ea60680df"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools-stats-dp.txt",
+          "bytes": 985,
+          "sha256": "41e40fe1c43e06c51f3f909cf4b8fcfa62893e912be698a0de7d4ea27e2cc5e0"
+        },
+        {
+          "path": "work/atacseq_macs3/multiqc_results_dir/multiqc_report_data/samtools_alignment_plot.txt",
+          "bytes": 261,
+          "sha256": "1dfb318d513f25c7c73f4df6f5d44692f25159b9643ca3aac825d0929cd3f2d4"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822153_control_lambda.bdg",
+          "bytes": 543803,
+          "sha256": "ebf655fcd212af47a631055ca86b9f74524eb13a3f5acb666dee2f2f97a7485c"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822153_peaks.narrowPeak",
+          "bytes": 8962,
+          "sha256": "b3c7fbe775182fe68c3abb425af28a0388810f0e3461f574c73638d1d037ab51"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822153_peaks.xls",
+          "bytes": 10785,
+          "sha256": "b5d8ec92e08fadc1bd32e2bb85dd6944f59fe1f345ed3db4fffb2bfa661bc9ed"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822153_summits.bed",
+          "bytes": 5777,
+          "sha256": "349527757f6ad9343d9e4c6e99c82a069c80c5f819872dc71fbbdc30b0b9faab"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822153_treat_pileup.bdg",
+          "bytes": 482686,
+          "sha256": "a4c207c119f5d62909f1a85a3f03cedf93b7b84267983b32d6516c5a64348c94"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822154_control_lambda.bdg",
+          "bytes": 436137,
+          "sha256": "92854e6bdd7c25e1477ab1f5fecfeba0b83afaeac5a37188f53dc16276b61cb7"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822154_peaks.narrowPeak",
+          "bytes": 4545,
+          "sha256": "d9182a1ac78f551217d161a51f387146f206e3c1b78f56c0e3e8213e7a580276"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822154_peaks.xls",
+          "bytes": 6071,
+          "sha256": "ffe019ac498aaed33d977a3e6af6f0473a47ab521806160ae0d5105b6ff124ea"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822154_summits.bed",
+          "bytes": 2920,
+          "sha256": "04788a62c7148bcec3feb85baac3ec2399e3335e84bd7418acf93958260eb7cc"
+        },
+        {
+          "path": "work/atacseq_macs3/peaks_dir/SRR1822154_treat_pileup.bdg",
+          "bytes": 396096,
+          "sha256": "bbb58e39749b6d55568ac6629fc9f7f289d853cbc0fe07075746d17fdfc554eb"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822153__run1_R1_raw_fastqc.html",
+          "bytes": 629894,
+          "sha256": "cfc14d080246283e8fa9e515efb6fcd749fae45bfa07a6a4aa48135f6840b2c6"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822153__run1_R1_raw_fastqc.zip",
+          "bytes": 513010,
+          "sha256": "f6c4bff6c9d3c52b8315de4804d2cf9272147f766f1e7674a0243c2329794458"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822153__run1_R2_raw_fastqc.html",
+          "bytes": 645944,
+          "sha256": "ff25e715f1c5f19c4a2a57937812af877ce75bb690654619fd2f9422a90b41e9"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822153__run1_R2_raw_fastqc.zip",
+          "bytes": 521700,
+          "sha256": "f31a8d3da899aa0c04ed9ad0963bd599cb93435c1f4d8e0d39f10c19e7b8227b"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822154__run1_R1_raw_fastqc.html",
+          "bytes": 630147,
+          "sha256": "cced8f12e5f72d9d5cf3d690a70069199f41c433f33a636ac392fb2c16153bb9"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822154__run1_R1_raw_fastqc.zip",
+          "bytes": 513134,
+          "sha256": "68154d518c4a17b914db6af46fc54ffb393f9c6db5d547eaf7b363d1b18ea8eb"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822154__run1_R2_raw_fastqc.html",
+          "bytes": 640827,
+          "sha256": "e241d47a7e1e6e9a7130d1223d2b82309c57d8c81501623062991f53360a4d34"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_dir/SRR1822154__run1_R2_raw_fastqc.zip",
+          "bytes": 517247,
+          "sha256": "97c5c4289c086396a0de7a3c415a770852bab2b6baacf9baa1506e53be98faf3"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_summary_dir/atac_qc_summary_mqc.tsv",
+          "bytes": 575,
+          "sha256": "78da26b4bb574e1bea6270502a65a8107e566e1ac6da32e28c2291513cbaaf2f"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_summary_dir/sample_qc_summary.tsv",
+          "bytes": 310,
+          "sha256": "591eb8045cfefb66f79b1ad7ccdb19e303694710336c70a6fd1f8b888853718d"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822153__run1_R1_trimmed_fastqc.html",
+          "bytes": 670509,
+          "sha256": "a836836dd89552dd8991aa57ee47e9a040fefe88b96492f3915340c279d04aea"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822153__run1_R1_trimmed_fastqc.zip",
+          "bytes": 508681,
+          "sha256": "60fecc0565462aeab9332ba7a978bc84edae780dad8a49cf745463978c178a8c"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822153__run1_R2_trimmed_fastqc.html",
+          "bytes": 668673,
+          "sha256": "4294431a0631c4f199189956dbe4d9452691e10f089c794f58925115143fd1bf"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822153__run1_R2_trimmed_fastqc.zip",
+          "bytes": 509431,
+          "sha256": "ac1ba43d14622deca0c48868f5cd53aa5a9c9d9d05cbe6ebcb9772e4f9c5f538"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822154__run1_R1_trimmed_fastqc.html",
+          "bytes": 670481,
+          "sha256": "918622245790559ce357da116448edcae44e0e3e361771b3f9ca5b335c67c157"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822154__run1_R1_trimmed_fastqc.zip",
+          "bytes": 510185,
+          "sha256": "5deb2eddf512c9b86f704a7ba301773204d56e42ac1c3faac1e73b7c2b3f5ff7"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822154__run1_R2_trimmed_fastqc.html",
+          "bytes": 668351,
+          "sha256": "8ef29926a7366e65ed89593b240de7ec5ac3b5b7c70d4c36c7d8ab54fe03c14b"
+        },
+        {
+          "path": "work/atacseq_macs3/qc_trimmed_dir/SRR1822154__run1_R2_trimmed_fastqc.zip",
+          "bytes": 511619,
+          "sha256": "900e5e4cb859a33663b7d622b2c9e4479e2ede2edf454166a3159d09ee03b6db"
+        },
+        {
+          "path": "work/atacseq_macs3/read_group_qc_dir/SRR1822153__run1.read_group_validation.tsv",
+          "bytes": 160,
+          "sha256": "3e0b15ca33da25c12550024a926470a2dbdf84f71820196d4e92e4d66bc102cb"
+        },
+        {
+          "path": "work/atacseq_macs3/read_group_qc_dir/SRR1822153_merged.read_group_validation.tsv",
+          "bytes": 135,
+          "sha256": "a3e00079174d4f9955196be65ea891b02d6befd33c18b274f0d03f454d4fab4f"
+        },
+        {
+          "path": "work/atacseq_macs3/read_group_qc_dir/SRR1822154__run1.read_group_validation.tsv",
+          "bytes": 160,
+          "sha256": "3be8b6d44c2ded060459394b609e9934022bb45e57d5602cad50534baa23ca3f"
+        },
+        {
+          "path": "work/atacseq_macs3/read_group_qc_dir/SRR1822154_merged.read_group_validation.tsv",
+          "bytes": 135,
+          "sha256": "4cf63eff2d8a352bc5e6665ba8a7e1ee8762b3d372325f9d4596060ab5d5e2b1"
+        },
+        {
+          "path": "work/atacseq_macs3/reference_dir/bowtie2_index_80b2acd075b6.validated.OK",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822153__run1.fastp.html",
+          "bytes": 439297,
+          "sha256": "bbf85d9136c134572c588f63720a0e59ebbe335c3e0d30483457f0d4ecb2086f"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822153__run1.fastp.json",
+          "bytes": 96823,
+          "sha256": "e834ee5ae1da7caeac3e8ce4932847bb7fb3a263371fa2c5c6524a45a8e82dba"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822153__run1_R1.trimmed.fq.gz",
+          "bytes": 1022072,
+          "sha256": "7b505b3175ef00fcf56e57f9f119e024cf66e859ee961b5b5e5f956906c22091"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822153__run1_R2.trimmed.fq.gz",
+          "bytes": 1019663,
+          "sha256": "188be41ad80930b47fac1ad1f76c8b98f73eecd831ec22e62946bd21b5859135"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822154__run1.fastp.html",
+          "bytes": 439959,
+          "sha256": "f3ae351f63141c6e2ca53e3f78ac8bbdde369cd88d705ff72aaa3ddd3d7510a9"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822154__run1.fastp.json",
+          "bytes": 97178,
+          "sha256": "880b7a918368cc00b8f6ee1423767b06c39b69976b8e77d95f146c0511e6fa71"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822154__run1_R1.trimmed.fq.gz",
+          "bytes": 1023528,
+          "sha256": "5ec87cdfaab7bdfe2ec987eddc4451466f1867a5b35a1d5ea931ff1677641b48"
+        },
+        {
+          "path": "work/atacseq_macs3/trimmed_dir/SRR1822154__run1_R2.trimmed.fq.gz",
+          "bytes": 1035830,
+          "sha256": "b9e5c218170f0fd981bf29546c1dbc0390765886b67f70cb044aae8d100577fb"
+        }
+      ],
+      "output_bytes": 64279190,
+      "outputs_deleted": true,
+      "context": "Post-merge validation of origin/main 4459588 with local sorting and thread-budget fixes",
+      "snakemake_exit_code": 0,
+      "reproduction_command": "HYDRA_CONFIG=test_data/configs/atacseq_macs3.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake --configfile test_data/configs/atacseq_macs3.yaml --replace-workflow-config --cores 2 --jobs 1 --rerun-incomplete --printshellcmds --latency-wait 60"
     }
   ],
   "environment": {

@@ -1,5 +1,14 @@
-# Load config file
-configfile: "config/config.yaml"
+import os
+
+
+# Prefer an ignored machine-local config without recursively merging placeholders.
+CONFIG_FILE = os.environ.get(
+    "HYDRA_CONFIG",
+    "config/config.local.yaml"
+    if os.path.isfile("config/config.local.yaml")
+    else "config/config.yaml",
+)
+configfile: CONFIG_FILE
 
 # Import modules for different pipelines
 rnaseq_config = config["rnaseq"].copy()

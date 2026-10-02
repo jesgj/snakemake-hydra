@@ -1,11 +1,16 @@
 # workflows/rules/filter_bam.smk
 import os
 
+from utils import validate_sambamba_filter
+
 # --- CONFIGURATION ---
 DEDUP_DIR = config["dedup_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 SORTED_FILTERED_BAM_DIR = config["sorted_filtered_bam_dir"]
-SAMBAMBA_EXTRA_ARGS = config.get("sambamba", {}).get("extra_args", "")
+SAMBAMBA_EXTRA_ARGS = validate_sambamba_filter(
+    config.get("sambamba", {}).get("extra_args", ""),
+    "wgbs.sambamba.extra_args",
+)
 SAMBAMBA_FILTER_THREADS = int(config.get("sambamba", {}).get("filter_threads", 8))
 SAMBAMBA_SORT_THREADS = int(config.get("sambamba", {}).get("sort_threads", 8))
 LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
@@ -31,10 +36,10 @@ rule sambamba_filter:
     shell:
         """
         set -euo pipefail
-        if [ -n "{params.extra}" ]; then
-            pixi run sambamba view -t {threads} -f bam -h -F '{params.extra}' {input.bam} -o {output.filtered_bam} > {log}.out 2> {log}.err
+        if [ -n {params.extra:q} ]; then
+            pixi run sambamba view -t {threads} -f bam -h -F {params.extra:q} {input.bam:q} -o {output.filtered_bam:q} > {log:q}.out 2> {log:q}.err
         else
-            pixi run sambamba view -t {threads} -f bam -h {input.bam} -o {output.filtered_bam} > {log}.out 2> {log}.err
+            pixi run sambamba view -t {threads} -f bam -h {input.bam:q} -o {output.filtered_bam:q} > {log:q}.out 2> {log:q}.err
         fi
         """
 
@@ -52,7 +57,7 @@ rule sambamba_sort:
     shell:
         """
         set -euo pipefail
-        pixi run sambamba sort -t {threads} -o {output.sorted_bam} {input.bam} > {log}.out 2> {log}.err
+        pixi run sambamba sort -t {threads} -o {output.sorted_bam:q} {input.bam:q} > {log:q}.out 2> {log:q}.err
         """
 
 rule samtools_index_filtered_bam:
@@ -68,5 +73,5 @@ rule samtools_index_filtered_bam:
         os.path.join(LOG_DIR, "samtools_index_filtered", "{sample}.log")
     shell:
         """
-        pixi run samtools index -@ {threads} {input.bam} {output.bai} > {log}.out 2> {log}.err
+        pixi run samtools index -@ {threads} {input.bam:q} {output.bai:q} > {log:q}.out 2> {log:q}.err
         """

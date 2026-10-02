@@ -1,17 +1,41 @@
 import os
+import math
 
 # --- CONFIGURATION ---
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 PEAKS_DIR = config["peaks_dir"]
 PEAK_CALLER = config.get("peak_caller", "macs3")
 MACS3_GENOME_SIZE = str(config.get("macs3", {}).get("genome_size", "1.4e9"))
-MACS3_QVALUE = config.get("macs3", {}).get("qvalue", 0.05)
+MACS3_QVALUE = float(config.get("macs3", {}).get("qvalue", 0.05))
 MACS3_EXTRA_ARGS = config.get("macs3", {}).get("extra_args", "")
-GENRICH_QVALUE = config.get("genrich", {}).get("qvalue", 0.05)
-GENRICH_MIN_AUC = config.get("genrich", {}).get("min_auc", 20.0)
-GENRICH_MIN_LENGTH = config.get("genrich", {}).get("min_length", 0)
-GENRICH_MAX_GAP = config.get("genrich", {}).get("max_gap", 100)
+GENRICH_QVALUE = float(config.get("genrich", {}).get("qvalue", 0.05))
+GENRICH_MIN_AUC = float(config.get("genrich", {}).get("min_auc", 20.0))
+GENRICH_MIN_LENGTH = int(config.get("genrich", {}).get("min_length", 0))
+GENRICH_MAX_GAP = int(config.get("genrich", {}).get("max_gap", 100))
 GENRICH_EXTRA_ARGS = config.get("genrich", {}).get("extra_args", "")
+
+if not 0 < MACS3_QVALUE <= 1:
+    raise ValueError("ATAC-seq macs3.qvalue must be greater than 0 and at most 1.")
+if MACS3_GENOME_SIZE not in {"hs", "mm", "ce", "dm"}:
+    try:
+        genome_size_value = float(MACS3_GENOME_SIZE)
+        if not math.isfinite(genome_size_value) or genome_size_value <= 0:
+            raise ValueError
+    except ValueError:
+        raise ValueError(
+            "ATAC-seq macs3.genome_size must be positive or one of hs, mm, ce, or dm."
+        )
+if not 0 < GENRICH_QVALUE <= 1:
+    raise ValueError("ATAC-seq genrich.qvalue must be greater than 0 and at most 1.")
+if (
+    not math.isfinite(GENRICH_MIN_AUC)
+    or GENRICH_MIN_AUC < 0
+    or GENRICH_MIN_LENGTH < 0
+    or GENRICH_MAX_GAP < 0
+):
+    raise ValueError(
+        "ATAC-seq Genrich min_auc, min_length, and max_gap values cannot be negative."
+    )
 
 
 if PEAK_CALLER == "macs3":
@@ -44,9 +68,6 @@ if PEAK_CALLER == "macs3":
                 -n {params.sample_name} \
                 --outdir {params.outdir} \
                 -q {params.qvalue} \
-                --nomodel \
-                --shift -75 \
-                --extsize 150 \
                 --keep-dup all \
                 -B \
                 --call-summits \

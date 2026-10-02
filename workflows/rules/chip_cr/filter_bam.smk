@@ -2,11 +2,16 @@
 import os
 import shlex
 
+from utils import validate_sambamba_filter
+
 # --- CONFIGURATION ---
 ALIGNMENT_DIR = config["alignment_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 SAMBAMBA_MARKDUP_EXTRA_ARGS = config.get("sambamba", {}).get("markdup_extra_args", "")
-SAMBAMBA_VIEW_EXTRA_ARGS = config.get("sambamba", {}).get("view_extra_args", "")
+SAMBAMBA_VIEW_EXTRA_ARGS = validate_sambamba_filter(
+    config.get("sambamba", {}).get("view_extra_args", ""),
+    "chip_cr.sambamba.view_extra_args",
+)
 
 # --- HELPER FUNCTION ---
 def get_aligned_bam(wildcards):
@@ -50,6 +55,7 @@ rule sambamba_filter_dedup_sort:
         os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}_{read_type}.log")
     shell:
         """
+        set -euo pipefail
         (
           if [ {threads} -eq 1 ]; then
             # A one-core job runs the tools sequentially to respect its CPU budget.
@@ -61,5 +67,5 @@ rule sambamba_filter_dedup_sort:
             pixi run sambamba view -t {params.view_threads} -f bam {params.filter_args} {input.bam:q} | \
             pixi run sambamba sort -t {params.sort_threads} -o {output.filtered_sorted_bam:q} /dev/stdin
           fi
-        ) > {log}.out 2> {log}.err
+        ) > {log:q}.out 2> {log:q}.err
         """

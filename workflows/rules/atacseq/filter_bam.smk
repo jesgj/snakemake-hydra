@@ -1,17 +1,19 @@
 import os
 
+from utils import validate_sambamba_filter
+
 # --- CONFIGURATION ---
 MARKED_BAM_DIR = config["marked_bam_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
 SAMBAMBA_CONFIG = config.get("sambamba", {})
 SAMBAMBA_FILTER_THREADS = max(1, int(SAMBAMBA_CONFIG.get("filter_threads", 2)))
 SAMBAMBA_SORT_THREADS = max(1, int(SAMBAMBA_CONFIG.get("sort_threads", 2)))
-SAMBAMBA_VIEW_EXTRA_ARGS = config.get(
-    "sambamba",
-    {},
-).get(
-    "view_extra_args",
-    "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)",
+SAMBAMBA_VIEW_EXTRA_ARGS = validate_sambamba_filter(
+    SAMBAMBA_CONFIG.get(
+        "view_extra_args",
+        "not unmapped and proper_pair and mapping_quality >= 10 and not (ref_name =~ /^(MT|chrM)/)",
+    ),
+    "atacseq.sambamba.view_extra_args",
 )
 
 if SAMBAMBA_VIEW_EXTRA_ARGS:
@@ -37,6 +39,7 @@ rule sambamba_filter_dedup_sort:
         os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}_pe.log")
     shell:
         """
+        set -euo pipefail
         (
           if [ {threads} -eq 1 ]; then
             TMP_BAM={output.filtered_sorted_bam:q}.filter.tmp.bam
@@ -47,5 +50,5 @@ rule sambamba_filter_dedup_sort:
             pixi run sambamba view -t {params.filter_threads} -f bam -F {params.filter_expression:q} {input.bam:q} | \
             pixi run sambamba sort -t {params.sort_threads} -o {output.filtered_sorted_bam:q} /dev/stdin
           fi
-        ) > {log}.out 2> {log}.err
+        ) > {log:q}.out 2> {log:q}.err
         """

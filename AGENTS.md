@@ -3,13 +3,13 @@
 ## Source Of Truth
 
 - This is a Snakemake + Pixi NGS pipeline, not a Python package; workflow behavior lives in `Snakefile`, `workflows/*.smk`, `workflows/rules/**/*.smk`, and `src/utils.py`.
-- `Snakefile` reads `config/config.yaml`, builds config objects for all four modules, then imports only the selected pipeline with prefixed rule names like `rnaseq_*`, `wgbs_*`, `chip_cr_*`, or `atacseq_*`.
+- `Snakefile` reads the selected configuration, builds config objects for all four modules, then imports only the selected pipeline with prefixed rule names like `rnaseq_*`, `wgbs_*`, `chip_cr_*`, or `atacseq_*`.
 - Keep all four top-level pipeline config mappings present: `Snakefile` accesses each before selecting rules. Inside a module, `config` is that pipeline's subsection plus `pipeline`; use `config["samples_info"]`, not `config["rnaseq"]["samples_info"]`.
 - Supported `config["pipeline"]` values are `rnaseq`, `wgbs`, `chip_cr`, and `atacseq`; focused rule/target runs must match the selected pipeline or the rule will not be imported.
 - `pixi.toml` targets `linux-64`, has dependencies but no tasks, and is paired with committed `pixi.lock`; use explicit `pixi run ...` commands. Keep manifest and lockfile consistent when changing dependencies.
 - No CI, pre-commit, formatter, linter, typechecker, or unit-test config is present; do not invent repo-wide `pytest`, `ruff`, `black`, etc. Snakemake's built-in `--lint` is available without a repository linter config.
 - Inspect `git status --short` before editing and preserve existing user changes. Treat sample, reference, and output paths in `config/config.yaml` as user configuration; do not rewrite them to make validation pass.
-- `config/config.local.yaml` is ignored by Git but is not automatically loaded by `Snakefile`.
+- `config/config.local.yaml` is ignored by Git and automatically preferred by `Snakefile` when present; `HYDRA_CONFIG` overrides the selected config file.
 
 ## Where To Make Changes
 
@@ -37,7 +37,7 @@ Run from the repository root; config paths and the `src` import depend on the wo
 - For config-only edits, a selected-pipeline dry-run is usually the best verification.
 - For rule edits, prefer `--until <prefixed_rule_name>` first, then a concrete output if paths or filenames changed.
 - For workflow/rule edits, also use `pixi run snakemake --lint` when the selected workflow can be parsed. Address findings introduced by the change; distinguish existing warnings and recommendations that do not fit the repository's Pixi environment strategy.
-- Useful output templates: `<kallisto_output_dir>/<sample>/abundance.tsv`, `<methyldackel_dir>/<sample>_CpG.methylKit`, `<peaks_dir>/<sample>_peaks.narrowPeak`. Substitute actual selected-pipeline config values and sample IDs; do not copy placeholders literally.
+- Useful output templates: `<kallisto_output_dir>/<sample>/abundance.tsv`, `<methyldackel_dir>/<sample>_CpG.methylKit`, `<peaks_dir>/<sample>_peaks.narrowPeak`, `<featurecounts_dir>/consensus_peak_counts.txt`. Substitute actual selected-pipeline config values and sample IDs; do not copy placeholders literally.
 - When changing MultiQC dependencies, dry-run the final report at `<multiqc_results_dir>/multiqc_report.html`.
 - Keep verification scoped to the active pipeline; switching `config["pipeline"]` is a config change, not a harmless test setup detail.
 - Dry-runs and DAG generation still execute module-level Python, including sample discovery and `os.makedirs` for output, log, and index directories. Inspect configured paths first.
@@ -93,8 +93,8 @@ Official references: [best practices](https://snakemake.readthedocs.io/en/stable
 - Discovery supports `_R1/_R2`, `_1/_2`, `.R1/.R2`, optional `_001` suffixes, and single-end `.fastq.gz`/`.fq.gz` files. It does not merge lanes; avoid ambiguous duplicate files for a sample/read.
 - `rnaseq`, `wgbs`, and `atacseq` reject non-paired samples; `chip_cr` accepts PE and SE and infers `type` from presence of `R2` when omitted.
 - ChIP/CUT&RUN input subtraction is name-driven: signal `<base>_repN` pairs with input `<base>_input_repN`; `<base>` may contain underscores.
-- Workflows use `validate_required_path` to check that required reference values are nonempty, not that files exist. Missing files can fail during DAG input resolution; directory permissions can fail during module setup. The stricter helpers in `src/utils.py` are not the current workflow validation contract.
-- The pipeline does not download references. RNA-seq can build `kallisto_index` and HISAT2 indexes, WGBS creates `Bisulfite_Genome/` next to `ref_genome`, and ChIP/ATAC create configured Bowtie2 index directories.
+- Reference values are required config keys but are generally only presence-checked at workflow parse time; selected ATAC prebuilt indexes are additionally checked for a complete `.bt2` or `.bt2l` family.
+- The pipeline does not download references. RNA-seq can build `kallisto_index` and HISAT2 indexes, WGBS creates `Bisulfite_Genome/` next to `ref_genome`, and ChIP/ATAC can create configured Bowtie2 index directories.
 
 ## Pipeline Gotchas
 
@@ -106,3 +106,7 @@ Official references: [best practices](https://snakemake.readthedocs.io/en/stable
 - WGBS Bismark thread allocation derives Bowtie2 threads from `wgbs.bismark.threads / wgbs.bismark.parallel`; keep `threads >= parallel`.
 - ATAC-seq supports only `peak_caller: "macs3"` or `"genrich"`; Genrich uses a queryname-sorted intermediate but both paths expose the shared `.narrowPeak` output.
 - ATAC-seq marks duplicates for metrics, then removes duplicate-flagged reads during filtering. Downstream QC, bigWigs, and peaks use the filtered BAMs.
+- ATAC-seq `bowtie2_index_prefix` selects a read-only prebuilt index; otherwise Hydra builds six tracked files in `bowtie2_index_dir`. Generated `.bt2l` indexes require `bowtie2.large_index: true`.
+- ATAC-seq index validation writes a prefix-specific marker under `reference_dir`; alignments depend directly on the six index files and that marker.
+- ATAC-seq consensus peaks use sorted BED3 inputs and configurable `consensus_peaks.minimum_support`; featureCounts and FRiP depend on the cohort-wide consensus peak set.
+- ATAC-seq MACS3 runs in true BAMPE fragment mode, while bigWigs are unshifted full-fragment CPM tracks; Tn5 insertion-site shifting is downstream analysis.

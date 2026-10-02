@@ -83,17 +83,19 @@ from `config/config.yaml`; regenerate them after changing defaults:
 pixi run python test_data/prepare.py --configs-only
 ```
 
+Set `HYDRA_CONFIG` to the same fixture config passed with `--configfile` so
+Snakemake subprocesses also use the fixture instead of a production local config.
 Inspect the DAG first; choose one variant per invocation:
 
 ```bash
-XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml
-XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml
+HYDRA_CONFIG=test_data/configs/wgbs.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml
+HYDRA_CONFIG=test_data/configs/atacseq_genrich.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml
 ```
 
 For a real smoke run, use a single job at a time and two scheduler cores:
 
 ```bash
-XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs.yaml --printshellcmds --latency-wait 60
+HYDRA_CONFIG=test_data/configs/wgbs.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs.yaml --printshellcmds --latency-wait 60
 ```
 
 These options limit scheduled concurrency, not every tool's physical memory or
@@ -140,3 +142,8 @@ path, and per-rule environment recommendations; the repository uses Pixi.
 
 These small subsets test execution and file interfaces. Their coverage and peak
 counts are unsuitable for biological conclusions.
+
+After merging remote commit `4459588`, all eight fixture DAGs passed again and
+the run-aware ATAC MACS3 workflow completed, including consensus featureCounts,
+FRiP, read-group checks, and MultiQC. See `merge_validation.json` and the last
+entry in `execution.json`. Its outputs were verified and deleted.
