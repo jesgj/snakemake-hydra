@@ -30,13 +30,22 @@ rule sambamba_filter_dedup_sort:
         filtered_sorted_bam = os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam")
     params:
         filter_expression = SAMBAMBA_FILTER_EXPRESSION,
-        filter_threads = SAMBAMBA_FILTER_THREADS,
-        sort_threads = SAMBAMBA_SORT_THREADS
+        filter_threads = lambda wildcards, threads: max(1, min(SAMBAMBA_FILTER_THREADS, threads // 2)),
+        sort_threads = lambda wildcards, threads: max(1, min(SAMBAMBA_SORT_THREADS, threads - max(1, min(SAMBAMBA_FILTER_THREADS, threads // 2))))
     threads: SAMBAMBA_FILTER_THREADS + SAMBAMBA_SORT_THREADS
     log:
         os.path.join("logs", config["pipeline"], "sambamba_filter", "{sample}_pe.log")
     shell:
         """
-        (pixi run sambamba view -t {params.filter_threads} -f bam -F '{params.filter_expression}' "{input.bam}" | \
-        pixi run sambamba sort -t {params.sort_threads} -o "{output.filtered_sorted_bam}" /dev/stdin) > {log}.out 2> {log}.err
+        (
+          if [ {threads} -eq 1 ]; then
+            TMP_BAM={output.filtered_sorted_bam:q}.filter.tmp.bam
+            trap 'rm -f "$TMP_BAM"' EXIT
+            pixi run sambamba view -t 1 -f bam -F {params.filter_expression:q} -o "$TMP_BAM" {input.bam:q}
+            pixi run sambamba sort -t 1 -o {output.filtered_sorted_bam:q} "$TMP_BAM"
+          else
+            pixi run sambamba view -t {params.filter_threads} -f bam -F {params.filter_expression:q} {input.bam:q} | \
+            pixi run sambamba sort -t {params.sort_threads} -o {output.filtered_sorted_bam:q} /dev/stdin
+          fi
+        ) > {log}.out 2> {log}.err
         """

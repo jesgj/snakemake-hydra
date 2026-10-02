@@ -142,6 +142,11 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - MethylDackel outputs include `<sample>_CpG.methylKit` and merged-context `<sample>_CpG.bedGraph`.
 
 ### ChIP-seq/CUT&RUN
+
+Single-end QC and trimming select sample names explicitly from `samples_info`.
+Duplicate marking writes a temporary BAM; filtering pipes into Sambamba sorting
+with a shared thread budget. One-core filtering jobs run the tools sequentially.
+
 - Supports paired-end and single-end samples.
 - Requires `ref_genome`, `gene_bed`, and `bowtie2_index_dir` config values.
 - Bowtie2 indexes are created in `bowtie2_index_dir` when needed.
@@ -149,6 +154,11 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - Subtracted bigWigs are produced only for samples with matching `<base>_repN` and `<base>_input_repN` names.
 
 ### ATAC-seq
+
+Bowtie2 adds per-sample read groups required by Picard. Alignment and filtering
+share the effective job thread budget with their sorting processes. Filtering
+pipes into Sambamba sort; one-core jobs use temporary files to run sequentially.
+
 - Requires paired-end samples.
 - Requires `ref_genome` and `bowtie2_index_dir` config values.
 - `peak_caller` must be `macs3` or `genrich`.

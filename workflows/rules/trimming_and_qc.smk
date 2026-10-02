@@ -1,8 +1,12 @@
 # workflows/rules/trimming_and_qc.smk
 import os
+import re
 
 # This module now expects SAMPLES_INFO to be in the config
 SAMPLES_INFO = config['samples_info']
+SE_SAMPLE_PATTERN = "|".join(
+    re.escape(sample) for sample, reads in SAMPLES_INFO.items() if not reads.get("R2")
+) or r"(?!)"
 TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
 FASTP_EXTRA_ARGS = config.get("fastp", {}).get("extra_args", "")
@@ -47,7 +51,7 @@ rule fastp_trim_se:
         html = os.path.join(TRIMMED_DIR, "{sample}_se.fastp.html"),
         json = os.path.join(TRIMMED_DIR, "{sample}_se.fastp.json")
     wildcard_constraints:
-        sample=r"^(?!.*_R[12]$).*"
+        sample=SE_SAMPLE_PATTERN
     params:
         extra = FASTP_EXTRA_ARGS
     threads: 4
@@ -111,7 +115,7 @@ rule fastqc_trimmed_se:
         html = os.path.join(QC_TRIMMED_DIR, "{sample}_SE_trimmed_fastqc.html"),
         zip = os.path.join(QC_TRIMMED_DIR, "{sample}_SE_trimmed_fastqc.zip")
     wildcard_constraints:
-        sample=r"^(?!.*_R[12]$).*"
+        sample=SE_SAMPLE_PATTERN
     params:
         outdir = QC_TRIMMED_DIR
     threads: 1

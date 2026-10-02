@@ -3,6 +3,8 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-10-02: Add ATAC Bowtie2 read groups for Picard duplicate metrics; budget alignment/sorting and Sambamba filtering/sorting against effective threads, including sequential one-core execution.
+- 2026-10-02: Fix shared SE QC/trimming wildcard constraints to match configured samples; make ChIP/CUT&RUN duplicate marking produce a temporary BAM and preserve the filter-to-Sambamba-sort pipe with effective thread allocation and a one-core sequential fallback.
 - 2026-10-02: Add reproducible small real-data fixtures for all four pipeline modes, including actual CUT&RUN, ChIP PE/SE handling, RNA gene body coverage, and both ATAC peak callers; retain synchronized random subsets with checksums and remove temporary source FASTQs.
 - 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and update the checked-in WGBS config defaults.
 - 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.

@@ -86,21 +86,33 @@ pixi run python test_data/prepare.py --configs-only
 Inspect the DAG first; choose one variant per invocation:
 
 ```bash
-pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml
-pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml
+XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml
+XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml
 ```
 
 For a real smoke run, use a single job at a time and two scheduler cores:
 
 ```bash
-pixi run snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs.yaml --printshellcmds --latency-wait 60
+XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs.yaml --printshellcmds --latency-wait 60
 ```
 
 These options limit scheduled concurrency, not every tool's physical memory or
 subprocess count. In particular, Bismark starts multiple aligner processes; do
 not infer a hard OS CPU/RAM cap from `--cores`. No execution-time promise is made.
-Keep runs sequential and review `test_data/validation.json` for the preparation
-and DAG checks actually performed. Dry-run success does not confirm tool execution.
+Keep runs sequential. `validation.json` records preparation and DAG checks;
+`execution.json` records actual execution checks, artifact hashes, tool versions,
+and cleanup. Dry-run success alone does not confirm tool execution.
+
+After Snakemake exits successfully, verify the final report, BAM integrity, mapped
+read counts, and peak record structure, record hashes, then delete that run:
+
+```bash
+pixi run python test_data/finish_run.py wgbs --cores 2
+```
+
+Use the variant name and actual scheduler core count. This helper refuses cleanup
+if required checks fail. It deletes the variant work directory and generated
+WGBS reference indexes, while retaining original reference FASTAs and FASTQs.
 
 Generated FASTQs, references, configs, and results are locally ignored by Git;
 the catalog, preparer, and provenance records remain reviewable. The preparer
@@ -113,11 +125,18 @@ All 150,000 retained pairs passed FASTQ structure, synchronization, count, and
 checksum checks. A sampling check on real reads confirmed that identical seeds
 give identical outputs and a changed seed changes the selected subset.
 
-The PE RNA-seq, WGBS, ChIP-seq, CUT&RUN, and both ATAC caller DAGs constructed
-successfully. The SE ChIP DAG exposes an existing workflow defect: the trimmed
-`<sample>_SE.trimmed.fq.gz` input has no matching producer. The shared
-`fastp_trim_se` rule uses anchored `^...$` wildcard constraints inside a complete
-path pattern, preventing its output pattern from matching. This fixture records
-the failure rather than supplying fake trimmed files. Workflow rules were not
-changed during data preparation. See `validation.json` for individual results;
-full analysis tools have not been run.
+All eight variant DAGs construct successfully. All eight complete execution runs
+passed: RNA-seq (including three-sample gene body coverage), WGBS chromosome 5
+and full TAIR10, ChIP PE and SE, actual CUT&RUN, and ATAC MACS3 and Genrich.
+ChIP SE and ATAC Genrich ran with one core; the others used two cores. Every
+run used one scheduled job at a time. Execution records are in
+`execution.json`; each successful run was checked before its outputs were deleted.
+The runs exposed three defects, now fixed: shared SE wildcard constraints,
+ChIP/CUT&RUN duplicate-marking streaming, and missing ATAC read groups for Picard.
+ChIP/CUT&RUN and ATAC filtering pipe directly into Sambamba sorting with an
+allocation derived from effective job threads. One-core runs process the stages
+sequentially using temporary files. Snakemake lint still reports existing layout,
+path, and per-rule environment recommendations; the repository uses Pixi.
+
+These small subsets test execution and file interfaces. Their coverage and peak
+counts are unsuitable for biological conclusions.

@@ -1,8 +1,12 @@
 # workflows/rules/qc.smk
 import os
+import re
 
 # This module now expects SAMPLES_INFO to be in the config
 SAMPLES_INFO = config['samples_info']
+SE_SAMPLE_PATTERN = "|".join(
+    re.escape(sample) for sample, reads in SAMPLES_INFO.items() if not reads.get("R2")
+) or r"(?!)"
 QC_DIR = config["qc_dir"]
 LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
@@ -58,7 +62,7 @@ rule fastqc_raw_se:
         html = os.path.join(QC_DIR, "{sample}_raw_fastqc.html"),
         zip = os.path.join(QC_DIR, "{sample}_raw_fastqc.zip")
     wildcard_constraints:
-        sample=r"^(?!.*_R[12]$).*"
+        sample=SE_SAMPLE_PATTERN
     params:
         outdir = QC_DIR
     threads: 1

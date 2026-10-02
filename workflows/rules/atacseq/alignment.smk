@@ -46,13 +46,29 @@ rule bowtie2_align_pe:
         bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
     params:
         extra = BOWTIE2_EXTRA_ARGS,
-        index_prefix = BOWTIE2_INDEX_PREFIX
+        index_prefix = BOWTIE2_INDEX_PREFIX,
+        sample = lambda wildcards: wildcards.sample,
+        bowtie_threads = lambda wildcards, threads: max(1, threads // 2),
+        sort_extra_threads = lambda wildcards, threads: max(0, threads - max(1, threads // 2) - 1)
     threads: 4
     log:
         os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log")
     shell:
         """
-        (pixi run bowtie2 -p {threads} {params.extra} -x {params.index_prefix} -1 {input.r1} -2 {input.r2} | \
-        pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} -o {output.bam} -) > {log}.out 2> {log}.err
+        (
+          BOWTIE_CMD=(pixi run bowtie2 -p {params.bowtie_threads} {params.extra}
+            -x {params.index_prefix:q} --rg-id {params.sample:q}
+            --rg "SM:{params.sample}" --rg "LB:{params.sample}"
+            --rg "PL:ILLUMINA" --rg "PU:{params.sample}"
+            -1 {input.r1:q} -2 {input.r2:q})
+          if [ {threads} -eq 1 ]; then
+            TMP_SAM={output.bam:q}.alignment.tmp.sam
+            trap 'rm -f "$TMP_SAM"' EXIT
+            "${{BOWTIE_CMD[@]}}" -S "$TMP_SAM"
+            pixi run samtools sort -@ 0 -o {output.bam:q} "$TMP_SAM"
+          else
+            "${{BOWTIE_CMD[@]}}" | \
+            pixi run samtools sort -@ {params.sort_extra_threads} -o {output.bam:q} -
+          fi
+        ) > {log}.out 2> {log}.err
         """
