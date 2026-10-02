@@ -113,6 +113,11 @@ Useful concrete dry-run targets:
 - MultiQC: `<multiqc_results_dir>/multiqc_report.html`.
 
 ## Validation
+Small real-data fixtures for RNA-seq, WGBS, ChIP-seq/CUT&RUN, and both ATAC-seq
+peak callers are documented in [test_data/README.md](test_data/README.md).
+The preparer retains seeded random subsets, removes temporary source FASTQs,
+and generates separate configs without editing production paths.
+
 There is no configured CI, formatter, linter, typechecker, or unit-test suite in this repository. Use Snakemake dry-runs as the main validation path:
 - Config-only changes: run `pixi run snakemake -n --cores 1` for the selected pipeline.
 - Rule changes: dry-run through the affected prefixed rule with `--until`.

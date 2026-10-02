@@ -1,0 +1,130 @@
+{
+  "sampler_checks": {
+    "real_data": true,
+    "same_seed_deterministic": true,
+    "different_seed_changes_output": true
+  },
+  "fastq_integrity": [
+    {
+      "category": "rnaseq",
+      "sample": "SRR6357070",
+      "pairs": 10000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "rnaseq",
+      "sample": "SRR6357071",
+      "pairs": 10000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "rnaseq",
+      "sample": "SRR6357072",
+      "pairs": 10000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "atacseq",
+      "sample": "SRR1822153",
+      "pairs": 20000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "atacseq",
+      "sample": "SRR1822154",
+      "pairs": 20000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "chipseq",
+      "sample": "spt5_rep1",
+      "pairs": 20000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "chipseq",
+      "sample": "spt5_input_rep1",
+      "pairs": 20000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "wgbs",
+      "sample": "SRR1792821",
+      "pairs": 20000,
+      "sha256_verified": true,
+      "synchronized": true
+    },
+    {
+      "category": "cutrun",
+      "sample": "SRR5071545",
+      "pairs": 20000,
+      "sha256_verified": true,
+      "synchronized": true
+    }
+  ],
+  "dry_runs": [
+    {
+      "config": "test_data/configs/atacseq_genrich.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-atacseq_genrich.txt"
+    },
+    {
+      "config": "test_data/configs/atacseq_macs3.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_macs3.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-atacseq_macs3.txt"
+    },
+    {
+      "config": "test_data/configs/chipseq.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/chipseq.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-chipseq.txt"
+    },
+    {
+      "config": "test_data/configs/chipseq_se.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/chipseq_se.yaml",
+      "exit_code": 1,
+      "log": "/tmp/hydra-dryrun-chipseq_se.txt",
+      "error_tail": "Config file config/config.yaml is replaced by additional config specified via the command line.\nhost: popo\nBuilding DAG of jobs...\nMissingInputException in rule chip_cr_bowtie2_align_se in file \"/home/jlgaralc/Dev/Projects/snakemake-hydra/workflows/rules/chip_cr/alignment.smk\", line 65:\nMissing input files for rule chip_cr_bowtie2_align_se:\n    output: /home/jlgaralc/Dev/Projects/snakemake-hydra/test_data/work/chipseq_se/alignment_dir/spt5_rep1_se.sorted.bam\n    wildcards: sample=spt5_rep1\n    affected files:\n        /home/jlgaralc/Dev/Projects/snakemake-hydra/test_data/work/chipseq_se/trimmed_dir/spt5_rep1_SE.trimmed.fq.gz"
+    },
+    {
+      "config": "test_data/configs/cutrun.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/cutrun.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-cutrun.txt"
+    },
+    {
+      "config": "test_data/configs/rnaseq.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/rnaseq.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-rnaseq.txt"
+    },
+    {
+      "config": "test_data/configs/wgbs.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-wgbs.txt"
+    },
+    {
+      "config": "test_data/configs/wgbs_full.yaml",
+      "command": "pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs_full.yaml",
+      "exit_code": 0,
+      "log": "/tmp/hydra-dryrun-wgbs_full.txt"
+    }
+  ],
+  "executed_analysis": false,
+  "known_blockers": [
+    {
+      "config": "chipseq_se.yaml",
+      "existing_workflow_defect": "Anchored fastp_trim_se wildcard constraint prevents matching its SE trimmed FASTQ output"
+    }
+  ]
+}

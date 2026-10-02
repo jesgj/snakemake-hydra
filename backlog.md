@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-10-02: Add reproducible small real-data fixtures for all four pipeline modes, including actual CUT&RUN, ChIP PE/SE handling, RNA gene body coverage, and both ATAC peak callers; retain synchronized random subsets with checksums and remove temporary source FASTQs.
 - 2026-04-10: Add configurable `wgbs.log_dir` support so WGBS logs can live outside the repository, and update the checked-in WGBS config defaults.
 - 2026-04-06: Fix WGBS Bismark output naming to match the workflow's `_pe` convention and wire `wgbs.bismark.threads` into Bowtie2 thread allocation.
 - 2026-04-06: Make the WGBS Sambamba filter step tolerate empty `wgbs.sambamba.extra_args` instead of emitting an invalid `-F ""` command.
