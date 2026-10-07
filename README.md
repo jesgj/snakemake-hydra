@@ -4,6 +4,10 @@
 
 Snakemake + Pixi pipeline for four NGS workflows: RNA-seq, WGBS, ChIP-seq/CUT&RUN, and ATAC-seq. A single value in `config/config.yaml` selects which workflow is imported and run.
 
+## Workflow Overview
+
+![Hydra workflow overview: configuration and read preparation feed one of four analysis branches, with results consolidated in MultiQC.](pipeline_v2.svg)
+
 ## Repository Map
 - `Snakefile`: top-level entrypoint; dispatches to the selected workflow.
 - `config/config.yaml`: main configuration and sample/reference paths.
@@ -221,5 +225,3 @@ Output paths are config-driven. Common defaults and examples include:
 
 ## License
 See `LICENSE`.
-
-![Pipeline](pipeline_v2.svg)

@@ -1,164 +1,191 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1840" viewBox="0 0 1600 1840" role="img" aria-labelledby="title desc">
-  <title id="title">Snakemake-Hydra modular NGS workflow</title>
-  <desc id="desc">Shared configuration and preprocessing dispatch into RNA-seq, WGBS, ChIP-seq and CUT&amp;RUN, or ATAC-seq analysis. Each selected workflow produces analysis outputs and a MultiQC report.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1610" viewBox="0 0 1200 1610" role="img" aria-labelledby="title desc">
+  <title id="title">Hydra: four NGS workflows, one reproducible environment</title>
+  <desc id="desc">A configuration selects one Snakemake workflow. FASTQ quality control and trimming feed RNA-seq expression analysis, WGBS methylation analysis, ChIP-seq or CUT&amp;RUN enrichment analysis, or ATAC-seq accessibility analysis. ATAC validates original pairs, aligns each run with read groups, and merges runs before sample-level duplicate marking. Each selected workflow produces analysis files and a MultiQC report. This is an overview, not an exact dependency DAG.</desc>
   <defs>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity=".10"/>
-    </filter>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-      <path d="M1 1 9 5 1 9Z" fill="#64748b"/>
-    </marker>
-    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-      <path d="M1 1 9 5 1 9Z" fill="#2563eb"/>
-    </marker>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1 9 5 1 9" fill="none" stroke="#64748b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
     <style>
-      text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
-      .title{font-size:40px;font-weight:800;fill:#0f172a}.subtitle{font-size:18px;fill:#475569}
-      .eyebrow{font-size:14px;font-weight:800;letter-spacing:1.8px;fill:#2563eb}
-      .section{font-size:23px;font-weight:800;fill:#0f172a}.lane-title{font-size:27px;font-weight:800;fill:#0f172a}
-      .lane-sub{font-size:15px;font-weight:500;fill:#475569}.step-title{font-size:17px;font-weight:750;fill:#0f172a}
-      .copy{font-size:14px;fill:#475569}.tool{font-size:12px;font-weight:750;letter-spacing:.25px;fill:#64748b}
-      .num{font-size:14px;font-weight:800;fill:#fff;text-anchor:middle;dominant-baseline:central}
-      .out-title{font-size:14px;font-weight:800;letter-spacing:.8px;fill:#0f172a}.out{font-size:13px;font-weight:500;fill:#475569}
-      .flow{fill:none;stroke:#64748b;stroke-width:2;marker-end:url(#arrow)}
-      .flow-blue{fill:none;stroke:#2563eb;stroke-width:2.5;marker-end:url(#arrow-blue)}
-      .divider{stroke:#cbd5e1;stroke-width:1.5}.legend{font-size:13px;font-weight:600;fill:#475569}
+      text { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+      .title { font-size: 40px; font-weight: 750; fill: #122238; }
+      .subtitle { font-size: 20px; fill: #526176; }
+      .label { font-size: 14px; font-weight: 700; letter-spacing: 1.6px; fill: #526176; }
+      .heading { font-size: 25px; font-weight: 750; fill: #122238; }
+      .step { font-size: 20px; font-weight: 650; fill: #122238; }
+      .copy { font-size: 17px; fill: #526176; }
+      .small { font-size: 15px; fill: #526176; }
+      .tag { font-size: 15px; font-weight: 650; font-family: ui-monospace, "DejaVu Sans Mono", monospace; }
+      .number { font-size: 15px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+      .flow { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .choice { fill: none; stroke: #94a3b8; stroke-width: 2; stroke-dasharray: 5 6; }
     </style>
   </defs>
-
-  <rect width="1600" height="1840" fill="#f8fafc"/>
-  <circle cx="1485" cy="30" r="205" fill="#dbeafe" opacity=".55"/>
-  <circle cx="30" cy="1800" r="190" fill="#e0f2fe" opacity=".5"/>
-
-  <!-- Header -->
-  <text class="eyebrow" x="800" y="45" text-anchor="middle">MODULAR NGS ANALYSIS</text>
-  <text class="title" x="800" y="92" text-anchor="middle">Snakemake-Hydra workflow</text>
-  <text class="subtitle" x="800" y="126" text-anchor="middle">One configuration selects one reproducible analysis branch powered by Pixi + Snakemake</text>
-
-  <!-- Configuration and dispatch -->
-  <g filter="url(#shadow)"><rect x="90" y="165" width="1420" height="142" rx="22" fill="#fff" stroke="#bfdbfe" stroke-width="2"/></g>
-  <text class="section" x="125" y="204">1  Configure and select</text>
-  <rect x="125" y="226" width="330" height="57" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.5"/>
-  <text class="step-title" x="150" y="250">config/config.yaml</text><text class="copy" x="150" y="272">samples • references • tools • resources</text>
-  <path class="flow-blue" d="M455 255h65"/>
-  <rect x="520" y="226" width="390" height="57" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.5"/>
-  <text class="step-title" x="545" y="250">Snakefile dispatcher</text><text class="copy" x="545" y="272">imports only the selected workflow</text>
-  <path class="flow-blue" d="M910 255h65"/>
-  <rect x="975" y="213" width="500" height="83" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-  <text class="step-title" x="1225" y="239" text-anchor="middle">pipeline</text>
-  <text class="copy" x="1225" y="264" text-anchor="middle">rnaseq  •  wgbs  •  chip_cr  •  atacseq</text>
-  <text class="tool" x="1225" y="284" text-anchor="middle">RULES RECEIVE THE SELECTED PIPELINE PREFIX</text>
-
-  <!-- Shared intake -->
-  <g filter="url(#shadow)"><rect x="90" y="345" width="1420" height="225" rx="22" fill="#fff" stroke="#bae6fd" stroke-width="2"/></g>
-  <text class="section" x="125" y="386">2  Shared sample intake and read preparation</text>
-  <circle cx="165" cy="451" r="19" fill="#0284c7"/><text class="num" x="165" y="451">1</text>
-  <text class="step-title" x="200" y="445">Resolve samples</text><text class="copy" x="200" y="469">config or FASTQ discovery</text><text class="tool" x="200" y="489">SRC/UTILS.PY</text>
-  <path class="flow" d="M405 452h70"/>
-  <circle cx="515" cy="451" r="19" fill="#0284c7"/><text class="num" x="515" y="451">2</text>
-  <text class="step-title" x="550" y="445">Raw read QC</text><text class="copy" x="550" y="469">R1/R2 or chip_cr SE</text><text class="tool" x="550" y="489">FASTQC</text>
-  <path class="flow" d="M735 452h70"/>
-  <circle cx="845" cy="451" r="19" fill="#0284c7"/><text class="num" x="845" y="451">3</text>
-  <text class="step-title" x="880" y="445">Trim reads</text><text class="copy" x="880" y="469">adapter + quality trimming</text><text class="tool" x="880" y="489">FASTP</text>
-  <path class="flow" d="M1065 452h70"/>
-  <circle cx="1175" cy="451" r="19" fill="#0284c7"/><text class="num" x="1175" y="451">4</text>
-  <text class="step-title" x="1210" y="445">Trimmed read QC</text><text class="copy" x="1210" y="469">downstream-ready FASTQs</text><text class="tool" x="1210" y="489">FASTQC</text>
-  <rect x="125" y="515" width="1350" height="35" rx="9" fill="#f0f9ff"/>
-  <text class="copy" x="800" y="538" text-anchor="middle">Paired-end: RNA-seq, WGBS, ATAC-seq  •  Paired- or single-end: ChIP-seq / CUT&amp;RUN</text>
-  <text class="eyebrow" x="800" y="615" text-anchor="middle">3  SELECTED ANALYSIS BRANCH</text>
-
-  <!-- Reusable lane pattern: RNA-seq -->
-  <g filter="url(#shadow)"><rect x="70" y="645" width="710" height="470" rx="24" fill="#fff" stroke="#6ee7b7" stroke-width="2"/></g>
-  <rect x="70" y="645" width="12" height="470" rx="6" fill="#059669"/>
-  <circle cx="125" cy="697" r="25" fill="#d1fae5"/><path d="M113 696h24m-20-9 16 18m-16 0 16-18" stroke="#047857" stroke-width="2.5" stroke-linecap="round"/>
-  <text class="lane-title" x="165" y="693">RNA-seq</text><text class="lane-sub" x="165" y="717">Paired-end • expression + genome-aligned coverage</text>
-  <line class="divider" x1="105" y1="742" x2="745" y2="742"/>
-  <circle cx="125" cy="786" r="17" fill="#059669"/><text class="num" x="125" y="786">1</text>
-  <text class="step-title" x="158" y="781">Parallel quantification and alignment paths</text>
-  <text class="copy" x="158" y="804">Kallisto abundance  |  HISAT2 sorted genomic BAM + index</text><text class="tool" x="158" y="824">KALLISTO  •  HISAT2  •  SAMTOOLS</text>
-  <path class="flow" d="M125 808v35"/>
-  <circle cx="125" cy="866" r="17" fill="#059669"/><text class="num" x="125" y="866">2</text>
-  <text class="step-title" x="158" y="861">Duplicate metrics and normalized tracks</text>
-  <text class="copy" x="158" y="884">mark duplicates without removal; create per-sample bigWig</text><text class="tool" x="158" y="904">PICARD MARKDUPLICATES  •  BAMCOVERAGE</text>
-  <path class="flow" d="M125 888v35"/>
-  <circle cx="125" cy="946" r="17" fill="#059669"/><text class="num" x="125" y="946">3</text>
-  <text class="step-title" x="158" y="941">Cohort and optional gene-body QC</text>
-  <text class="copy" x="158" y="964">correlation with ≥2 BAMs; gene-body heatmap with ≥3 samples</text><text class="tool" x="158" y="984">DEEPTOOLS  •  OPTIONAL RSEQC</text>
-  <rect x="105" y="1014" width="640" height="67" rx="13" fill="#ecfdf5" stroke="#a7f3d0"/>
-  <text class="out-title" x="128" y="1040">KEY OUTPUTS</text>
-  <text class="out" x="128" y="1063">abundance.tsv • BAM/BAI • markdup metrics • bigWig • optional QC plots</text>
-
-  <!-- WGBS -->
-  <g filter="url(#shadow)"><rect x="820" y="645" width="710" height="470" rx="24" fill="#fff" stroke="#c4b5fd" stroke-width="2"/></g>
-  <rect x="820" y="645" width="12" height="470" rx="6" fill="#7c3aed"/>
-  <circle cx="875" cy="697" r="25" fill="#ede9fe"/><path d="M863 686c20 7 20 16 0 23m24-23c-20 7-20 16 0 23m-19-18h14m-15 12h16" fill="none" stroke="#6d28d9" stroke-width="2.4" stroke-linecap="round"/>
-  <text class="lane-title" x="915" y="693">WGBS</text><text class="lane-sub" x="915" y="717">Paired-end • genome-wide CpG methylation</text>
-  <line class="divider" x1="855" y1="742" x2="1495" y2="742"/>
-  <circle cx="875" cy="786" r="17" fill="#7c3aed"/><text class="num" x="875" y="786">1</text>
-  <text class="step-title" x="908" y="781">Prepare bisulfite genome and align</text>
-  <text class="copy" x="908" y="804">create Bisulfite_Genome and paired-end alignment report</text><text class="tool" x="908" y="824">BISMARK GENOME PREPARATION  •  BISMARK</text>
-  <path class="flow" d="M875 808v35"/>
-  <circle cx="875" cy="866" r="17" fill="#7c3aed"/><text class="num" x="875" y="866">2</text>
-  <text class="step-title" x="908" y="861">Deduplicate, filter, sort, index, and QC</text>
-  <text class="copy" x="908" y="884">assess deduplicated and final filtered BAMs</text><text class="tool" x="908" y="904">DEDUPLICATE_BISMARK  •  SAMBAMBA  •  SAMTOOLS  •  PICARD</text>
-  <path class="flow" d="M875 888v35"/>
-  <circle cx="875" cy="946" r="17" fill="#7c3aed"/><text class="num" x="875" y="946">3</text>
-  <text class="step-title" x="908" y="941">Measure bias and extract methylation</text>
-  <text class="copy" x="908" y="964">derive M-bias options; extract and merge CpG contexts</text><text class="tool" x="908" y="984">METHYLDACKEL MBIAS  •  EXTRACT  •  MERGECONTEXT</text>
-  <rect x="855" y="1014" width="640" height="67" rx="13" fill="#f5f3ff" stroke="#ddd6fe"/>
-  <text class="out-title" x="878" y="1040">KEY OUTPUTS</text>
-  <text class="out" x="878" y="1063">filtered BAM/BAI • M-bias TSV • CpG.methylKit • CpG.bedGraph</text>
-
-  <!-- ChIP / CUT&RUN -->
-  <g filter="url(#shadow)"><rect x="70" y="1150" width="710" height="470" rx="24" fill="#fff" stroke="#fdba74" stroke-width="2"/></g>
-  <rect x="70" y="1150" width="12" height="470" rx="6" fill="#ea580c"/>
-  <circle cx="125" cy="1202" r="25" fill="#ffedd5"/><path d="M111 1211q14-28 28 0m-24-9h20m-15-8h10" fill="none" stroke="#c2410c" stroke-width="2.4" stroke-linecap="round"/>
-  <text class="lane-title" x="165" y="1198">ChIP-seq / CUT&amp;RUN</text><text class="lane-sub" x="165" y="1222">Paired- or single-end • protein–DNA enrichment</text>
-  <line class="divider" x1="105" y1="1247" x2="745" y2="1247"/>
-  <circle cx="125" cy="1291" r="17" fill="#ea580c"/><text class="num" x="125" y="1291">1</text>
-  <text class="step-title" x="158" y="1286">Build index and align PE or SE reads</text>
-  <text class="copy" x="158" y="1309">read layout is inferred when type is omitted</text><text class="tool" x="158" y="1329">BOWTIE2  •  SAMTOOLS</text>
-  <path class="flow" d="M125 1313v35"/>
-  <circle cx="125" cy="1371" r="17" fill="#ea580c"/><text class="num" x="125" y="1371">2</text>
-  <text class="step-title" x="158" y="1366">Remove duplicates, filter, and assess enrichment</text>
-  <text class="copy" x="158" y="1389">BAM QC + fingerprints; correlation when ≥2 BAMs</text><text class="tool" x="158" y="1409">SAMBAMBA  •  SAMTOOLS  •  PICARD  •  DEEPTOOLS</text>
-  <path class="flow" d="M125 1393v35"/>
-  <circle cx="125" cy="1451" r="17" fill="#ea580c"/><text class="num" x="125" y="1451">3</text>
-  <text class="step-title" x="158" y="1446">Create signal tracks and gene-centered heatmap</text>
-  <text class="copy" x="158" y="1469">optional signal − matched input subtraction by sample name</text><text class="tool" x="158" y="1489">BAMCOVERAGE  •  BIGWIGCOMPARE  •  COMPUTEMATRIX / PLOTHEATMAP</text>
-  <rect x="105" y="1519" width="640" height="67" rx="13" fill="#fff7ed" stroke="#fed7aa"/>
-  <text class="out-title" x="128" y="1545">KEY OUTPUTS</text>
-  <text class="out" x="128" y="1568">filtered BAM/BAI • QC plots • bigWig • subtracted bigWig • heatmap</text>
-
-  <!-- ATAC-seq -->
-  <g filter="url(#shadow)"><rect x="820" y="1150" width="710" height="470" rx="24" fill="#fff" stroke="#fda4af" stroke-width="2"/></g>
-  <rect x="820" y="1150" width="12" height="470" rx="6" fill="#e11d48"/>
-  <circle cx="875" cy="1202" r="25" fill="#ffe4e6"/><path d="M860 1212q8-24 15 0 8-24 15 0m-29-16h28" fill="none" stroke="#be123c" stroke-width="2.4" stroke-linecap="round"/>
-  <text class="lane-title" x="915" y="1198">ATAC-seq</text><text class="lane-sub" x="915" y="1222">Paired-end • accessible chromatin + cohort counts</text>
-  <line class="divider" x1="855" y1="1247" x2="1495" y2="1247"/>
-  <circle cx="875" cy="1291" r="17" fill="#e11d48"/><text class="num" x="875" y="1291">1</text>
-  <text class="step-title" x="908" y="1286">Align, mark duplicates, filter, and QC</text>
-  <text class="copy" x="908" y="1309">remove duplicate-marked reads; assess BAMs and fragments</text><text class="tool" x="908" y="1329">BOWTIE2  •  PICARD  •  SAMBAMBA  •  SAMTOOLS  •  DEEPTOOLS</text>
-  <path class="flow" d="M875 1313v35"/>
-  <circle cx="875" cy="1371" r="17" fill="#e11d48"/><text class="num" x="875" y="1371">2</text>
-  <text class="step-title" x="908" y="1366">Create coverage and call per-sample peaks</text>
-  <text class="copy" x="908" y="1389">full-fragment CPM bigWig; MACS3 BAMPE or Genrich</text><text class="tool" x="908" y="1409">BAMCOVERAGE  •  MACS3 OR GENRICH</text>
-  <path class="flow" d="M875 1393v35"/>
-  <circle cx="875" cy="1451" r="17" fill="#e11d48"/><text class="num" x="875" y="1451">3</text>
-  <text class="step-title" x="908" y="1446">Build consensus, count fragments, summarize QC</text>
-  <text class="copy" x="908" y="1469">minimum-support peaks; featureCounts; mitochondrial fraction + FRiP</text><text class="tool" x="908" y="1489">BEDTOOLS  •  FEATURECOUNTS  •  CUSTOM MULTIQC TABLE</text>
-  <rect x="855" y="1519" width="640" height="67" rx="13" fill="#fff1f2" stroke="#fecdd3"/>
-  <text class="out-title" x="878" y="1545">KEY OUTPUTS</text>
-  <text class="out" x="878" y="1568">bigWig • narrowPeak • consensus BED/SAF • count matrix • QC summary</text>
-
-  <!-- Reporting -->
-  <path class="flow-blue" d="M425 1620v45h295"/><path class="flow-blue" d="M1175 1620v45H880"/>
-  <g filter="url(#shadow)"><rect x="250" y="1665" width="1100" height="105" rx="22" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/></g>
-  <circle cx="315" cy="1718" r="27" fill="#0284c7"/><path d="M302 1724h26m-22-8h18m-14-8h10" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-  <text class="section" x="365" y="1709">MultiQC report + selected-pipeline final targets</text>
-  <text class="copy" x="365" y="1738">Results and logs are consolidated into &lt;multiqc_results_dir&gt;/multiqc_report.html</text>
-
-  <!-- Footer note -->
-  <text class="legend" x="800" y="1814" text-anchor="middle">Conditions are stated inline  •  Only one analysis branch is imported and run at a time</text>
+  <rect width="1200" height="1610" rx="24" fill="#f5f7fb"/>
+  <!-- Configuration selects a workflow; dashed lines denote alternatives. -->
+  <text class="label" x="48" y="44">SNAKEMAKE + PIXI</text>
+  <text class="title" x="48" y="94">One pipeline. Four analysis paths.</text>
+  <text class="subtitle" x="48" y="129">Reproducible NGS processing, from original reads to analysis-ready results.</text>
+  <rect x="48" y="162" width="1104" height="98" rx="16" fill="#122238"/>
+  <text x="72" y="194" fill="#a9bfdc" font-size="14" font-weight="700" letter-spacing="1.4">01 / CONFIGURE</text>
+  <text x="72" y="226" fill="#fff" font-size="21" font-weight="650">Samples + references + tool settings</text>
+  <path d="M521 210h64" stroke="#a9bfdc" stroke-width="2"/>
+  <text x="612" y="194" fill="#a9bfdc" font-size="14" font-weight="700" letter-spacing="1.4">SELECT ONE WORKFLOW</text>
+  <text x="612" y="226" fill="#fff" font-size="20" font-family="ui-monospace, monospace">config["pipeline"] → Snakefile</text>
+  <path class="flow" d="M600 260v28"/>
+  <rect x="48" y="290" width="1104" height="130" rx="16" fill="#fff" stroke="#d5ddea"/>
+  <text class="label" x="72" y="320">02 / READ PREPARATION</text>
+  <text class="step" x="72" y="354">Resolve samples</text>
+  <text class="small" x="72" y="383">Manifest or discovery</text>
+  <path class="flow" d="M265 352h42"/>
+  <text class="step" x="328" y="354">Raw read QC</text>
+  <text class="small" x="328" y="383">FastQC</text>
+  <path class="flow" d="M503 352h42"/>
+  <text class="step" x="566" y="354">Trim adapters</text>
+  <text class="small" x="566" y="383">fastp · quality filtering</text>
+  <path class="flow" d="M785 352h42"/>
+  <text class="step" x="848" y="354">Trimmed read QC</text>
+  <text class="small" x="848" y="383">FastQC</text>
+  <text class="label" x="48" y="461">03 / ANALYZE</text>
+  <text class="small" x="1152" y="461" text-anchor="end">Alternatives, not four simultaneous workflows</text>
+  <path class="choice" d="M600 420v61M324 493v-12h552v12M48 481H30v498h18M1152 481h18v498h-18"/>
+  <g aria-label="RNA-seq">
+  <rect x="48" y="493" width="536" height="454" rx="18" fill="#fff" stroke="#d5ddea"/>
+  <path d="M66 493h500" stroke="#087f68" stroke-width="4" stroke-linecap="round"/>
+  <text class="heading" x="72" y="535" >RNA-seq</text>
+  <rect x="450" y="512" width="110" height="30" rx="8" fill="#e8f6f0"/>
+  <text class="tag" x="505.0" y="533" fill="#087f68" text-anchor="middle">rnaseq</text>
+  <text class="copy" x="72" y="563" >Paired-end · gene expression</text>
+  <path d="M72 583h488" stroke="#e3e8f0"/>
+  <circle cx="86" cy="611" r="14" fill="#e8f6f0"/>
+  <text class="number" x="86" y="611" fill="#087f68">1</text>
+  <text class="step" x="112" y="617" >Quantify transcripts ∥ align reads</text>
+  <text class="small" x="112" y="641" >Kallisto abundance · HISAT2 genomic alignment</text>
+  <path d="M86 629v27" stroke="#087f68" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="86" cy="675" r="14" fill="#e8f6f0"/>
+  <text class="number" x="86" y="675" fill="#087f68">2</text>
+  <text class="step" x="112" y="681" >Mark duplicates; retain reads</text>
+  <text class="small" x="112" y="705" >Picard metrics · sorted BAM + index</text>
+  <path d="M86 693v27" stroke="#087f68" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="86" cy="739" r="14" fill="#e8f6f0"/>
+  <text class="number" x="86" y="739" fill="#087f68">3</text>
+  <text class="step" x="112" y="745" >Generate normalized coverage</text>
+  <text class="small" x="112" y="769" >deepTools bamCoverage → bigWig</text>
+  <path d="M86 757v27" stroke="#087f68" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="86" cy="803" r="14" fill="#e8f6f0"/>
+  <text class="number" x="86" y="803" fill="#087f68">4</text>
+  <text class="step" x="112" y="809" >Assess cohort and gene-body QC</text>
+  <text class="small" x="112" y="833" >Correlation ≥2 BAMs · optional RSeQC</text>
+  <rect x="64" y="845" width="504" height="90" rx="12" fill="#e8f6f0"/>
+  <text class="label" x="80" y="864" style="fill:#087f68; font-size:12px">DELIVERABLES</text>
+  <text class="copy" x="80" y="888">abundance.tsv · BAM / BAI · duplicate metrics</text>
+  <text class="copy" x="80" y="910">bigWig · correlation / gene-body plots</text>
+  <text class="small" x="80" y="928" style="font-size:13px">Gene-body heatmap: enabled and ≥3 samples.</text>
+  </g>
+  <g aria-label="WGBS">
+  <rect x="616" y="493" width="536" height="454" rx="18" fill="#fff" stroke="#d5ddea"/>
+  <path d="M634 493h500" stroke="#7051c4" stroke-width="4" stroke-linecap="round"/>
+  <text class="heading" x="640" y="535" >WGBS</text>
+  <rect x="1018" y="512" width="110" height="30" rx="8" fill="#f1edfa"/>
+  <text class="tag" x="1073.0" y="533" fill="#7051c4" text-anchor="middle">wgbs</text>
+  <text class="copy" x="640" y="563" >Paired-end · CpG methylation</text>
+  <path d="M640 583h488" stroke="#e3e8f0"/>
+  <circle cx="654" cy="611" r="14" fill="#f1edfa"/>
+  <text class="number" x="654" y="611" fill="#7051c4">1</text>
+  <text class="step" x="680" y="617" >Prepare genome; align reads</text>
+  <text class="small" x="680" y="641" >Bismark bisulfite index + alignment</text>
+  <path d="M654 629v27" stroke="#7051c4" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="654" cy="675" r="14" fill="#f1edfa"/>
+  <text class="number" x="654" y="675" fill="#7051c4">2</text>
+  <text class="step" x="680" y="681" >Deduplicate and filter</text>
+  <text class="small" x="680" y="705" >deduplicate_bismark · Sambamba</text>
+  <path d="M654 693v27" stroke="#7051c4" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="654" cy="739" r="14" fill="#f1edfa"/>
+  <text class="number" x="654" y="739" fill="#7051c4">3</text>
+  <text class="step" x="680" y="745" >Sort, index, and assess BAMs</text>
+  <text class="small" x="680" y="769" >Samtools · Picard alignment metrics</text>
+  <path d="M654 757v27" stroke="#7051c4" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="654" cy="803" r="14" fill="#f1edfa"/>
+  <text class="number" x="654" y="803" fill="#7051c4">4</text>
+  <text class="step" x="680" y="809" >Measure bias; extract methylation</text>
+  <text class="small" x="680" y="833" >MethylDackel mbias → extract → mergeContext</text>
+  <rect x="632" y="845" width="504" height="90" rx="12" fill="#f1edfa"/>
+  <text class="label" x="648" y="864" style="fill:#7051c4; font-size:12px">DELIVERABLES</text>
+  <text class="copy" x="648" y="888">Filtered BAM / BAI · M-bias TSV</text>
+  <text class="copy" x="648" y="910">CpG.methylKit · CpG.bedGraph</text>
+  <text class="small" x="648" y="928" style="font-size:13px">M-bias-derived options guide methylation extraction.</text>
+  </g>
+  <g aria-label="ChIP / CUT&amp;RUN">
+  <rect x="48" y="979" width="536" height="454" rx="18" fill="#fff" stroke="#d5ddea"/>
+  <path d="M66 979h500" stroke="#b25d17" stroke-width="4" stroke-linecap="round"/>
+  <text class="heading" x="72" y="1021" >ChIP / CUT&amp;RUN</text>
+  <rect x="444" y="998" width="116" height="30" rx="8" fill="#fff3e7"/>
+  <text class="tag" x="502.0" y="1019" fill="#b25d17" text-anchor="middle">chip_cr</text>
+  <text class="copy" x="72" y="1049" >Paired- or single-end · protein–DNA enrichment</text>
+  <path d="M72 1069h488" stroke="#e3e8f0"/>
+  <circle cx="86" cy="1097" r="14" fill="#fff3e7"/>
+  <text class="number" x="86" y="1097" fill="#b25d17">1</text>
+  <text class="step" x="112" y="1103" >Align reads to the genome</text>
+  <text class="small" x="112" y="1127" >Bowtie2 → sorted BAM</text>
+  <path d="M86 1115v27" stroke="#b25d17" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="86" cy="1161" r="14" fill="#fff3e7"/>
+  <text class="number" x="86" y="1161" fill="#b25d17">2</text>
+  <text class="step" x="112" y="1167" >Remove duplicates; filter and QC</text>
+  <text class="small" x="112" y="1191" >Sambamba · Samtools · Picard · deepTools</text>
+  <path d="M86 1179v27" stroke="#b25d17" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="86" cy="1225" r="14" fill="#fff3e7"/>
+  <text class="number" x="86" y="1225" fill="#b25d17">3</text>
+  <text class="step" x="112" y="1231" >Create coverage and contrast tracks</text>
+  <text class="small" x="112" y="1255" >bamCoverage · matched-input bigWigCompare</text>
+  <path d="M86 1243v27" stroke="#b25d17" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="86" cy="1289" r="14" fill="#fff3e7"/>
+  <text class="number" x="86" y="1289" fill="#b25d17">4</text>
+  <text class="step" x="112" y="1295" >Summarize gene-centered signal</text>
+  <text class="small" x="112" y="1319" >computeMatrix → plotHeatmap</text>
+  <rect x="64" y="1331" width="504" height="90" rx="12" fill="#fff3e7"/>
+  <text class="label" x="80" y="1350" style="fill:#b25d17; font-size:12px">DELIVERABLES</text>
+  <text class="copy" x="80" y="1374">Filtered BAM / BAI · bigWig · QC plots</text>
+  <text class="copy" x="80" y="1396">Matched-input tracks · gene-centered heatmap</text>
+  <text class="small" x="80" y="1414" style="font-size:13px">Subtraction only for name-matched signal / input pairs.</text>
+  </g>
+  <g aria-label="ATAC-seq">
+  <rect x="616" y="979" width="536" height="454" rx="18" fill="#fff" stroke="#d5ddea"/>
+  <path d="M634 979h500" stroke="#b93759" stroke-width="4" stroke-linecap="round"/>
+  <text class="heading" x="640" y="1021" >ATAC-seq</text>
+  <rect x="1018" y="998" width="110" height="30" rx="8" fill="#fceef2"/>
+  <text class="tag" x="1073.0" y="1019" fill="#b93759" text-anchor="middle">atacseq</text>
+  <text class="copy" x="640" y="1049" >Paired-end · chromatin accessibility</text>
+  <path d="M640 1069h488" stroke="#e3e8f0"/>
+  <circle cx="654" cy="1097" r="14" fill="#fceef2"/>
+  <text class="number" x="654" y="1097" fill="#b93759">1</text>
+  <text class="step" x="680" y="1103" >Validate pairs; align each run</text>
+  <text class="small" x="680" y="1127" >Before trimming: mate audit · Bowtie2 + RG QC</text>
+  <path d="M654 1115v27" stroke="#b93759" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="654" cy="1161" r="14" fill="#fceef2"/>
+  <text class="number" x="654" y="1161" fill="#b93759">2</text>
+  <text class="step" x="680" y="1167" >Merge runs by biological sample</text>
+  <text class="small" x="680" y="1191" >Samtools merge → Picard once → filter + QC</text>
+  <path d="M654 1179v27" stroke="#b93759" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="654" cy="1225" r="14" fill="#fceef2"/>
+  <text class="number" x="654" y="1225" fill="#b93759">3</text>
+  <text class="step" x="680" y="1231" >Generate coverage; call peaks</text>
+  <text class="small" x="680" y="1255" >Fragment CPM bigWig · MACS3 BAMPE / Genrich</text>
+  <path d="M654 1243v27" stroke="#b93759" stroke-opacity=".3" stroke-width="2"/>
+  <circle cx="654" cy="1289" r="14" fill="#fceef2"/>
+  <text class="number" x="654" y="1289" fill="#b93759">4</text>
+  <text class="step" x="680" y="1295" >Build consensus; count fragments</text>
+  <text class="small" x="680" y="1319" >BEDTools · featureCounts · mito fraction / FRiP</text>
+  <rect x="632" y="1331" width="504" height="90" rx="12" fill="#fceef2"/>
+  <text class="label" x="648" y="1350" style="fill:#b93759; font-size:12px">DELIVERABLES</text>
+  <text class="copy" x="648" y="1374">Run + sample BAMs · bigWig · narrowPeak</text>
+  <text class="copy" x="648" y="1396">Consensus BED / SAF · count matrix · QC TSV</text>
+  <text class="small" x="648" y="1414" style="font-size:13px">FRiP uses consensus peaks; coverage is not Tn5-shifted.</text>
+  </g>
+  <!-- Reporting rails collect outputs from every alternative, not just the bottom row. -->
+  <path class="choice" d="M48 720H18v733h582M1152 720h30v733H600M324 1433v20M884 1433v20"/>
+  <path class="flow" d="M600 1453v22"/>
+  <rect x="48" y="1478" width="1104" height="84" rx="16" fill="#122238"/>
+  <text x="72" y="1512" fill="#a9bfdc" font-size="14" font-weight="700" letter-spacing="1.4">04 / REPORT</text>
+  <text x="72" y="1540" fill="#fff" font-size="21" font-weight="650">MultiQC + selected-workflow results</text>
+  <text x="1128" y="1514" text-anchor="end" fill="#fff" font-size="18">multiqc_report.html</text>
+  <text x="1128" y="1539" text-anchor="end" fill="#a9bfdc" font-size="15">Config-driven output directories</text>
+  <text class="small" x="48" y="1592">Overview, not an exact DAG · QC reports are side outputs; arrows summarize analysis stages.</text>
 </svg>

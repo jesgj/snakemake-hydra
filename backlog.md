@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-10-08: Redesign the README workflow SVG with larger typography, consistent analysis cards, explicit alternative-branch/reporting connections, and run-aware ATAC validation/alignment/merging; move the overview near the README introduction.
 - 2026-10-02: Reconcile run-aware ATAC processing with effective alignment/filter thread budgets; give featureCounts a unique temporary directory to avoid a buffer overflow with long output-directory paths.
 - 2026-10-02: Add ATAC Bowtie2 read groups for Picard duplicate metrics; budget alignment/sorting and Sambamba filtering/sorting against effective threads, including sequential one-core execution.
 - 2026-10-02: Fix shared SE QC/trimming wildcard constraints to match configured samples; make ChIP/CUT&RUN duplicate marking produce a temporary BAM and preserve the filter-to-Sambamba-sort pipe with effective thread allocation and a one-core sequential fallback.
