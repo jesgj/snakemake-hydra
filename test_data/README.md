@@ -147,3 +147,28 @@ After merging remote commit `4459588`, all eight fixture DAGs passed again and
 the run-aware ATAC MACS3 workflow completed, including consensus featureCounts,
 FRiP, read-group checks, and MultiQC. See `merge_validation.json` and the last
 entry in `execution.json`. Its outputs were verified and deleted.
+
+## Configurable 16S amplicons
+
+The fifth Hydra branch has an independent smoke helper:
+
+```bash
+pixi run --locked python test_data/amplicon_smoke.py
+```
+
+It uses two 1,500-pair samples and a small taxonomy training set bundled with
+pinned DADA2 1.38.0, so no fixture downloads are required. It validates PE merging
+and taxonomy with separate sequencing batches, uncompressed SE discovery with
+one scheduler core, a TSV manifest with explicit R2-only analysis, and Cutadapt
+primer removal. The primer variant adds engineered 5' prefixes to real reads;
+a separate small contract check adds 3' read-through and requires both mates'
+5' primers. Those modifications are software tests, not evidence for choosing
+primers in a biological dataset. Mismatched mate IDs and missing primers are
+rejected; insufficient PE overlap must fail without a fallback.
+
+The helper checks ASV/count/sequence correspondence, read retention, taxonomy
+status, distinct raw/prepared FastQC entries in MultiQC, and an up-to-date repeat
+run. Outputs and current-run validation records are ignored under
+`test_data/work/amplicon_smoke/`. Full configuration guidance is in
+[docs/amplicon.md](../docs/amplicon.md). The original fixture preparer and its
+provenance records are unchanged.

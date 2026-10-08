@@ -2,16 +2,20 @@
 
 ![Pipeline logo](logo.png)
 
-Snakemake + Pixi pipeline for four NGS workflows: RNA-seq, WGBS, ChIP-seq/CUT&RUN, and ATAC-seq. A single value in `config/config.yaml` selects which workflow is imported and run.
+Snakemake + Pixi pipeline for five NGS workflows: RNA-seq, WGBS, ChIP-seq/CUT&RUN, ATAC-seq, and configurable 16S amplicons. A single value in `config/config.yaml` selects which workflow is imported and run.
 
 ## Workflow Overview
 
 ![Hydra workflow overview: configuration and read preparation feed one of four analysis branches, with results consolidated in MultiQC.](pipeline_v2.svg)
 
+The overview above shows the four genome/transcriptome workflows. The fifth branch,
+[`amplicon`](docs/amplicon.md), supports SE/PE 16S reads with configurable primers,
+DADA2 denoising, optional reference-based taxonomy, and ASV/read-retention outputs.
+
 ## Repository Map
 - `Snakefile`: top-level entrypoint; dispatches to the selected workflow.
 - `config/config.yaml`: main configuration and sample/reference paths.
-- `workflows/*.smk`: top-level workflow modules for `rnaseq`, `wgbs`, `chip_cr`, and `atacseq`.
+- `workflows/*.smk`: top-level workflow modules for `rnaseq`, `wgbs`, `chip_cr`, `atacseq`, and `amplicon`.
 - `workflows/rules/**/*.smk`: reusable and pipeline-specific Snakemake rules.
 - `src/utils.py`: sample discovery and config helper functions.
 - `backlog.md`: notable implemented changes and planned work.
@@ -35,14 +39,14 @@ pixi install
 Edit `config/config.yaml` before running.
 
 ```yaml
-pipeline: "wgbs"  # rnaseq, wgbs, chip_cr, or atacseq
+pipeline: "wgbs"  # rnaseq, wgbs, chip_cr, atacseq, or amplicon
 ```
 
 At minimum, configure the selected pipeline block:
 - `raw_fastqs_dir` and/or `samples_info`.
 - Reference FASTA/BED/index paths required by that pipeline.
 - Output directories if the defaults are not suitable.
-- `<pipeline>.multiqc_results_dir` for the MultiQC report location.
+- `<pipeline>.multiqc_results_dir` for the MultiQC report location (amplicons use `<amplicon.output_dir>/multiqc`).
 
 The checked-in config contains safe placeholder paths. Replace them for your environment, but avoid changing unrelated pipeline blocks unless you intend to switch or update them.
 
@@ -71,6 +75,7 @@ Sample support differs by pipeline:
 - `rnaseq` and `wgbs` require paired-end samples with `R1` and `R2`.
 - `atacseq` accepts a run-aware `samples_info.<sample>.runs.<run>` mapping. Each run contains its original `R1`, `R2`, provenance fields, and read-group assignment.
 - `chip_cr` accepts paired-end and single-end samples; `type` is inferred from `R2` when omitted.
+- `amplicon` accepts SE/PE manifests or a TSV, plus strict FASTQ discovery. Explicit primer handling and a comparable region/mode per cohort are required; see [amplicon configuration](docs/amplicon.md).
 - ChIP/CUT&RUN subtraction pairs signal `<base>_repN` with input `<base>_input_repN`; `<base>` may contain underscores.
 
 ## Run Commands
@@ -135,6 +140,10 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 - MultiQC dependency changes: dry-run the final `multiqc_report.html` path.
 
 ## Pipeline Notes
+
+### Amplicons (16S)
+
+See [the amplicon guide](docs/amplicon.md) for read-layout detection, primers, per-sample filtering, sequencing batches, optional taxonomy, and the executable smoke checks. Select `pipeline: amplicon`; existing configurations for other pipelines do not need an amplicon section.
 
 ### RNA-seq
 - Requires paired-end samples.

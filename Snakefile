@@ -37,6 +37,12 @@ module atacseq:
     snakefile: "workflows/atacseq.smk"
     config: atacseq_config
 
+amplicon_config = config.get("amplicon", {}).copy()
+amplicon_config["pipeline"] = config["pipeline"]
+module amplicon:
+    snakefile: "workflows/amplicon.smk"
+    config: amplicon_config
+
 # Conditional rule import and rule_all definition
 if config["pipeline"] == "rnaseq":
     use rule * from rnaseq as rnaseq_*
@@ -67,7 +73,13 @@ elif config["pipeline"] == "atacseq":
     rule all:
         default_target: True
         input: rules.atacseq_all.input
+elif config["pipeline"] == "amplicon":
+    use rule * from amplicon as amplicon_*
+
+    rule all:
+        default_target: True
+        input: rules.amplicon_all.input
 else:
     rule all:
         default_target: True
-        input: "ERROR: Write 'rnaseq', 'wgbs', 'chip_cr', or 'atacseq' in config.yaml"
+        input: "ERROR: Write 'rnaseq', 'wgbs', 'chip_cr', 'atacseq', or 'amplicon' in config.yaml"
