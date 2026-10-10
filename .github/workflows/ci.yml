@@ -146,6 +146,7 @@ jobs:
         shell: bash
         run: |
           pixi run --locked snakemake --dry-run --cores "$CORES" --jobs 1 \
+            --resources ci_slots=1 --default-resources ci_slots=1 \
             --replace-workflow-config --configfile "$HYDRA_CONFIG" \
             2>&1 | tee "test_data/work/ci/$VARIANT/dry-run.log"
 
@@ -153,6 +154,7 @@ jobs:
         shell: bash
         run: |
           pixi run --locked snakemake --cores "$CORES" --jobs 1 \
+            --resources ci_slots=1 --default-resources ci_slots=1 \
             --replace-workflow-config --configfile "$HYDRA_CONFIG" \
             --printshellcmds --latency-wait 60 \
             2>&1 | tee "test_data/work/ci/$VARIANT/run.log"
