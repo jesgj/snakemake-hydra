@@ -11,6 +11,28 @@ from itertools import zip_longest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+VARIANTS = {
+    "rnaseq": "rnaseq", "wgbs": "wgbs", "wgbs_full": "wgbs",
+    "chipseq": "chip_cr", "chipseq_se": "chip_cr", "cutrun": "chip_cr",
+    "atacseq_macs3": "atacseq", "atacseq_genrich": "atacseq",
+}
+
+
+def fixture_selection(catalog, variants):
+    categories = {mode if mode in ("atacseq", "wgbs") else variant.removesuffix("_se")
+                  for variant in variants for mode in [VARIANTS[variant]]}
+    references = set()
+    for variant in variants:
+        if variant == "rnaseq":
+            references.update(("rnaseq/genome.fa", "rnaseq/transcriptome.fa", "rnaseq/genes.gtf"))
+        elif variant in ("wgbs", "wgbs_full"):
+            references.add("tair10/genome.fa" if variant == "wgbs_full" else "wgbs/genome.fa")
+        else:
+            references.add("yeast/genome.fa")
+            if VARIANTS[variant] == "chip_cr":
+                references.add("yeast/genes.bed")
+    return ([sample for sample in catalog["samples"] if sample["category"] in categories],
+            [reference for reference in catalog["references"] if reference["path"] in references])
 
 
 def digest(path, algorithm="sha256"):
@@ -73,17 +95,15 @@ def sample_pair(paths, count, seed, outpaths):
     return total
 
 
-def make_configs(catalog):
+def make_configs(catalog, variants=None):
     import copy
     import yaml  # Already provided by the committed Pixi environment.
 
     base = yaml.safe_load((ROOT.parent / "config/config.yaml").read_text())
     configs = ROOT / "configs"
     configs.mkdir(exist_ok=True)
-    variants = [("rnaseq", "rnaseq"), ("wgbs", "wgbs"), ("wgbs_full", "wgbs"), ("chipseq", "chip_cr"),
-                ("chipseq_se", "chip_cr"), ("cutrun", "chip_cr"),
-                ("atacseq_macs3", "atacseq"), ("atacseq_genrich", "atacseq")]
-    for variant, mode in variants:
+    for variant in VARIANTS if variants is None else variants:
+        mode = VARIANTS[variant]
         category = mode if mode in ("atacseq", "wgbs") else variant.removesuffix("_se")
         config = {"pipeline": mode, **{key: {} for key in ("rnaseq", "wgbs", "chip_cr", "atacseq")}}
         section = copy.deepcopy(base[mode])
@@ -154,13 +174,19 @@ def bed12_from_gtf():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--configs-only", action="store_true", help="Regenerate isolated configs without downloads")
+    parser.add_argument("--variants", nargs="+", choices=VARIANTS, default=list(VARIANTS),
+                        help="Prepare only the selected variants (default: all)")
+    parser.add_argument("--provenance", type=Path, default=ROOT / "provenance.json",
+                        help="Destination for source and sample checksums")
     args = parser.parse_args()
     catalog = json.loads((ROOT / "datasets.json").read_text())
     if args.configs_only:
-        make_configs(catalog)
+        make_configs(catalog, args.variants)
         return
+    samples, references = fixture_selection(catalog, args.variants)
+    args.provenance.parent.mkdir(parents=True, exist_ok=True)
     report = {"seed": catalog["seed"], "method": "paired reservoir sampling without replacement over every source record", "samples": [], "references": []}
-    for sample in catalog["samples"]:
+    for sample in samples:
         print(f"Preparing {sample['category']}: {sample['sample']}", flush=True)
         outdir = ROOT / "fastqs" / sample["category"]
         outdir.mkdir(parents=True, exist_ok=True)
@@ -179,9 +205,9 @@ def main():
         entry = dict(sample, source_pairs=total, source_bytes=source_bytes, source_sha256=source_hashes,
                      output_sha256=[digest(path) for path in outpaths], output_bytes=[path.stat().st_size for path in outpaths])
         report["samples"].append(entry)
-        (ROOT / "provenance.json").write_text(json.dumps(report, indent=2) + "\n")
+        args.provenance.write_text(json.dumps(report, indent=2) + "\n")
         print(f"  retained {sample['pairs']:,}/{total:,} pairs; temporary originals deleted", flush=True)
-    for reference in catalog["references"]:
+    for reference in references:
         path = ROOT / "references" / reference["path"]
         path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="hydra-reference-") as temporary:
@@ -195,10 +221,11 @@ def main():
             else:
                 path.write_bytes(original.read_bytes())
         report["references"].append(dict(reference, source_sha256=source_hash, output_sha256=digest(path)))
-    bed12_from_gtf()
-    (ROOT / "provenance.json").write_text(json.dumps(report, indent=2) + "\n")
-    make_configs(catalog)
-    print("Ready: test_data/fastqs, references, configs and provenance.json", flush=True)
+    if "rnaseq" in args.variants:
+        bed12_from_gtf()
+    args.provenance.write_text(json.dumps(report, indent=2) + "\n")
+    make_configs(catalog, args.variants)
+    print(f"Ready: {', '.join(args.variants)}; provenance: {args.provenance}", flush=True)
 
 
 if __name__ == "__main__":

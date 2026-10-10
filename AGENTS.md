@@ -7,7 +7,7 @@
 - Keep the original four top-level pipeline config mappings present: `Snakefile` accesses each before selecting rules. Inside a module, `config` is that pipeline's subsection plus `pipeline`; use `config["samples_info"]`, not `config["rnaseq"]["samples_info"]`.
 - Supported `config["pipeline"]` values are `rnaseq`, `wgbs`, `chip_cr`, `atacseq`, and `amplicon`; focused rule/target runs must match the selected pipeline or the rule will not be imported.
 - `pixi.toml` targets `linux-64`, has dependencies but no tasks, and is paired with committed `pixi.lock`; use explicit `pixi run ...` commands. Keep manifest and lockfile consistent when changing dependencies.
-- No CI, pre-commit, formatter, linter, typechecker, or unit-test config is present; do not invent repo-wide `pytest`, `ruff`, `black`, etc. Snakemake's built-in `--lint` is available without a repository linter config.
+- GitHub Actions CI runs locked Pixi installation, Python syntax checks, the existing 16S smoke helper, and all eight real-data fixture variants on PRs and pushes to main; a manual input enables the public ENA fixture. No pre-commit, formatter, typechecker, or general unit-test config is present; do not invent repo-wide `pytest`, `ruff`, `black`, etc. Snakemake's built-in `--lint` is available without a repository linter config.
 - Inspect `git status --short` before editing and preserve existing user changes. Treat sample, reference, and output paths in `config/config.yaml` as user configuration; do not rewrite them to make validation pass.
 - `config/config.local.yaml` is ignored by Git and automatically preferred by `Snakefile` when present; `HYDRA_CONFIG` overrides the selected config file.
 
