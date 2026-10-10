@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-10-10: Pair audited amplicon reads positionally in DADA2 to support archive-style headers; declare filtered reads and error-model directories as denoising outputs. Add header-equivalence and deleted-directory rebuild checks plus a reproducible bounded ENA ERR777695 V4 fixture with RDP 19 taxonomy.
 - 2026-10-08: Add configurable SE/PE 16S amplicons with strict input discovery/TSV/YAML manifests, explicit Cutadapt primer handling, DADA2 batch-aware denoising and chimera removal, optional versioned taxonomy, ASV/read-retention outputs, and MultiQC.
 - 2026-10-08: Redesign the README workflow SVG with larger typography, consistent analysis cards, explicit alternative-branch/reporting connections, and run-aware ATAC validation/alignment/merging; move the overview near the README introduction.
 - 2026-10-02: Reconcile run-aware ATAC processing with effective alignment/filter thread budgets; give featureCounts a unique temporary directory to avoid a buffer overflow with long output-directory paths.

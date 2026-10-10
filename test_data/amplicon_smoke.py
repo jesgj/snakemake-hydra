@@ -8,6 +8,7 @@ import gzip
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +24,7 @@ from amplicon_reads import audit
 
 def run(config, cores, log, target=None):
     env = {**os.environ, "HYDRA_CONFIG": str(config)}
-    command = ["pixi", "run", "--locked", "snakemake", "--cores", str(cores), "--jobs", "1"]
+    command = ["pixi", "run", "--locked", "snakemake", "--cores", str(cores), "--jobs", "1", "--rerun-incomplete"]
     if target:
         command.append(str(target))
     with log.open("w") as handle:
@@ -50,6 +51,11 @@ def verify(root, taxonomy_enabled):
     assert json.loads((root / "taxonomy_metadata.json").read_text())["status"] == ("completed" if taxonomy_enabled else "not_requested")
     report = root / "multiqc/multiqc_report.html"
     assert report.stat().st_size > 1000 and "amplicon_read_retention" in report.read_text()
+    assert list((root / "filtered").glob("*.fastq.gz"))
+    metadata = json.loads((root / "run_metadata.json").read_text())
+    assert metadata["error_learning_groups"]
+    for group in metadata["error_learning_groups"]:
+        assert (root / group["file"]).stat().st_size > 0
     samples = json.loads((root / "resolved_config.json").read_text())["samples_info"]
     expected_qc = 2 * sum(2 if s.get("R2") else 1 for s in samples.values())
     fastqc = list(csv.DictReader((root / "multiqc/multiqc_report_data/multiqc_fastqc.txt").open(), delimiter="\t"))
@@ -125,7 +131,7 @@ def main():
         raise AssertionError("Mixed merged/partial amplicons must be rejected")
     report = {"dada2_fixture_version": "1.38.0", "checks": {"invalid_configs": "passed", "primer_contract_and_mate_validation": "passed"}}
     (work / "validation.json").write_text(json.dumps(report, indent=2) + "\n")
-    for variant in ("paired", "single", "reverse", "primers", "no_overlap"):
+    for variant in ("paired", "slash_ids", "single", "reverse", "primers", "no_overlap"):
         cfg = copy.deepcopy(base)
         a = cfg["amplicon"]
         root = work / variant
@@ -135,6 +141,21 @@ def main():
             a["taxonomy"].update(enabled=True, training_set=str(ext / "example_train_set.fa.gz"), reference_version="DADA2 1.38.0 bundled test example")
             for i in (1, 2):
                 a["samples_info"][f"sam{i}"]["batch"] = f"run{i}"
+        elif variant == "slash_ids":
+            # Real reads and qualities, with archive-style mate IDs that DADA2
+            # cannot automatically identify. Preparation still audits every pair.
+            raw = work / "slash_id_inputs"
+            raw.mkdir(exist_ok=True)
+            for i in (1, 2):
+                for mate, suffix in ((1, "F"), (2, "R")):
+                    target = raw / f"sam{i}_R{mate}.fastq.gz"
+                    with gzip.open(ext / f"sam{i}{suffix}.fastq.gz", "rt") as src, gzip.open(target, "wt") as dst:
+                        number = 0
+                        while src.readline():
+                            number += 1
+                            seq, plus, qual = [src.readline() for _ in range(3)]
+                            dst.writelines([f"@sam{i}.{number}/{mate}\n", seq, plus, qual])
+                    a["samples_info"][f"sam{i}"][f"R{mate}"] = str(target)
         elif variant == "single":
             # Test strict automatic discovery, including uncompressed single-end inputs.
             raw = work / "single_inputs"
@@ -178,6 +199,8 @@ def main():
             if code:
                 raise RuntimeError(f"{variant} failed; inspect {log}")
             report["checks"][variant] = verify(root, variant == "paired")
+            if variant == "slash_ids":
+                assert (root / "asv_counts.tsv").read_bytes() == (work / "paired/asv_counts.tsv").read_bytes(), "Archive headers changed inferred counts"
             if variant == "primers":
                 assert report["checks"][variant]["retained"] == report["checks"]["paired"]["retained"], "Primer removal altered retained reads"
                 for i in (1, 2):
@@ -189,6 +212,20 @@ def main():
     repeat = work / "repeat.log"
     assert run(work / "paired.yaml", 2, repeat) == 0
     assert "Nothing to be done" in repeat.read_text()
+    # Missing owned side-output directories must trigger denoising and preserve
+    # scientific outputs on a fresh execution, not merely an up-to-date repeat.
+    root = work / "paired"
+    stable = {name: (root / name).read_bytes() for name in ("asv_counts.tsv", "asv_sequences.fasta", "read_tracking.tsv")}
+    for directory in ("errors", "filtered"):
+        shutil.rmtree(root / directory)
+        rebuild = work / f"rebuild_{directory}.log"
+        assert run(work / "paired.yaml", 2, rebuild) == 0
+        assert any("reason:" in line and "Missing output files:" in line and str(root / directory) in line
+                   for line in rebuild.read_text().splitlines()), "Deleted directory did not schedule denoising"
+        verify(root, True)
+        assert all((root / name).read_bytes() == data for name, data in stable.items())
+        report["checks"][f"rebuild_{directory}"] = "passed; scientific outputs unchanged"
+    (work / "validation.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"Checks passed; current-run evidence: {work / 'validation.json'}", flush=True)
 
 
