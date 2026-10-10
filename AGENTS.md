@@ -3,9 +3,9 @@
 ## Source Of Truth
 
 - This is a Snakemake + Pixi NGS pipeline, not a Python package; workflow behavior lives in `Snakefile`, `workflows/*.smk`, `workflows/rules/**/*.smk`, and `src/utils.py`.
-- `Snakefile` reads the selected configuration, builds config objects for all four modules, then imports only the selected pipeline with prefixed rule names like `rnaseq_*`, `wgbs_*`, `chip_cr_*`, or `atacseq_*`.
-- Keep all four top-level pipeline config mappings present: `Snakefile` accesses each before selecting rules. Inside a module, `config` is that pipeline's subsection plus `pipeline`; use `config["samples_info"]`, not `config["rnaseq"]["samples_info"]`.
-- Supported `config["pipeline"]` values are `rnaseq`, `wgbs`, `chip_cr`, and `atacseq`; focused rule/target runs must match the selected pipeline or the rule will not be imported.
+- `Snakefile` reads the selected configuration, builds config objects for the original four modules and the optional amplicon module, then imports only the selected pipeline with prefixed rule names like `rnaseq_*`, `wgbs_*`, `chip_cr_*`, `atacseq_*`, or `amplicon_*`.
+- Keep the original four top-level pipeline config mappings present: `Snakefile` accesses each before selecting rules. Inside a module, `config` is that pipeline's subsection plus `pipeline`; use `config["samples_info"]`, not `config["rnaseq"]["samples_info"]`.
+- Supported `config["pipeline"]` values are `rnaseq`, `wgbs`, `chip_cr`, `atacseq`, and `amplicon`; focused rule/target runs must match the selected pipeline or the rule will not be imported.
 - `pixi.toml` targets `linux-64`, has dependencies but no tasks, and is paired with committed `pixi.lock`; use explicit `pixi run ...` commands. Keep manifest and lockfile consistent when changing dependencies.
 - No CI, pre-commit, formatter, linter, typechecker, or unit-test config is present; do not invent repo-wide `pytest`, `ruff`, `black`, etc. Snakemake's built-in `--lint` is available without a repository linter config.
 - Inspect `git status --short` before editing and preserve existing user changes. Treat sample, reference, and output paths in `config/config.yaml` as user configuration; do not rewrite them to make validation pass.
@@ -110,3 +110,10 @@ Official references: [best practices](https://snakemake.readthedocs.io/en/stable
 - ATAC-seq index validation writes a prefix-specific marker under `reference_dir`; alignments depend directly on the six index files and that marker.
 - ATAC-seq consensus peaks use sorted BED3 inputs and configurable `consensus_peaks.minimum_support`; featureCounts and FRiP depend on the cohort-wide consensus peak set.
 - ATAC-seq MACS3 runs in true BAMPE fragment mode, while bigWigs are unshifted full-fragment CPM tracks; Tn5 insertion-site shifting is downstream analysis.
+
+## Amplicons
+
+- `workflows/amplicon.smk`, `workflows/rules/amplicon/*.smk`, `src/amplicon_config.py`, and `scripts/amplicon_*.R`/`scripts/amplicon_reads.py` own the configurable 16S branch. An amplicon section is optional for the original pipelines.
+- Validate primer handling explicitly; never guess primers or silently fall back from PE merging to a single mate. Do not pool merged and partial amplicons into one cohort.
+- Use DADA2 for quality filtering, with separate error learning by sequencing batch/read. Keep reference inputs and scripts in Snakemake dependencies.
+- Run `pixi run --locked python test_data/amplicon_smoke.py` for PE/SE, primer, TSV, R2-only, taxonomy, batch, overlap-failure, and repeatability checks. Fixtures come from the pinned DADA2 package; outputs are ignored under test_data/work.

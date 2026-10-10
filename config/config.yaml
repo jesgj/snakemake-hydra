@@ -250,3 +250,37 @@ atacseq:
     java_opts: "-Xmx2g"
     markduplicates:
       extra_args: ""
+
+# Configurable short-read amplicons: one comparable locus/primer set per cohort.
+amplicon:
+  raw_fastqs_dir: "data/amplicon"
+  sample_sheet: null  # Optional TSV: sample, R1, optional R2, mode, batch.
+  samples_info: {}  # Alternative YAML manifest; replaces discovery.
+  output_dir: "results/amplicon"
+  log_dir: "logs/amplicon"
+  threads: 4
+  mode: "auto"  # PE -> merge, SE -> forward; explicit forward/reverse for PE fallback.
+  primers:
+    mode: "remove"  # Must explicitly choose remove or already_removed.
+    forward: null  # Full IUPAC primer at the 5' start, in R1 read orientation.
+    reverse: null  # Full IUPAC primer at the 5' start, in R2 read orientation.
+    error_rate: 0.1
+    min_overlap: 10  # Optional 3' read-through primer matching; 5' primers are full-length.
+  dada2:
+    trunc_len: [0, 0]  # No fixed truncation; choose from actual quality/overlap.
+    trim_left: [0, 0]  # Additional bases after primer removal.
+    max_ee: [2, 2]
+    trunc_q: 2
+    min_len: 50
+    min_overlap: 12
+    max_mismatch: 0
+    chimera_method: "consensus"  # consensus, pooled, per-sample.
+    pool: false  # false, true, or pseudo; within a batch/read only.
+    nbases: 100000000
+    seed: 1
+  taxonomy:
+    enabled: false
+    training_set: null  # DADA2-formatted training FASTA, optionally gzipped.
+    reference_version: null  # Record the database name and release explicitly.
+    min_boot: 50
+    try_rc: true

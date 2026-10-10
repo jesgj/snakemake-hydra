@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-10-08: Add configurable SE/PE 16S amplicons with strict input discovery/TSV/YAML manifests, explicit Cutadapt primer handling, DADA2 batch-aware denoising and chimera removal, optional versioned taxonomy, ASV/read-retention outputs, and MultiQC.
 - 2026-10-08: Redesign the README workflow SVG with larger typography, consistent analysis cards, explicit alternative-branch/reporting connections, and run-aware ATAC validation/alignment/merging; move the overview near the README introduction.
 - 2026-10-02: Reconcile run-aware ATAC processing with effective alignment/filter thread budgets; give featureCounts a unique temporary directory to avoid a buffer overflow with long output-directory paths.
 - 2026-10-02: Add ATAC Bowtie2 read groups for Picard duplicate metrics; budget alignment/sorting and Sambamba filtering/sorting against effective threads, including sequential one-core execution.

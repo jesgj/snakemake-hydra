@@ -6,3 +6,7 @@ logs/rnaseq/
 results/rnaseq/
 ref/
 src/__pycache__/
+
+scripts/__pycache__/
+logs/amplicon/
+results/amplicon/
