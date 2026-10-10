@@ -23,4 +23,6 @@ rule all:
         os.path.join(OUT, "taxonomy.tsv"),
         os.path.join(OUT, "taxonomy_metadata.json"),
         os.path.join(OUT, "run_metadata.json"),
+        os.path.join(OUT, "filtered"),
+        os.path.join(OUT, "errors"),
         os.path.join(OUT, "multiqc", "multiqc_report.html")

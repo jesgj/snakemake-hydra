@@ -34,7 +34,10 @@ for (s in samples) {
         result <- filterAndTrim(prepared(s, 1), filtered(s, 1), prepared(s, 2), filtered(s, 2),
                                 truncLen = tl, trimLeft = left, maxEE = ee, maxN = 0,
                                 truncQ = f$trunc_q, minLen = f$min_len, rm.phix = TRUE,
-                                compress = TRUE, multithread = mt, matchIDs = TRUE)
+                                # Preparation audits every pair before and after trimming.
+                                # Match by position here: DADA2's automatic ID detection
+                                # rejects valid archive headers such as @SRR123.1/1.
+                                compress = TRUE, multithread = mt, matchIDs = FALSE)
     } else {
         result <- filterAndTrim(prepared(s, mates), filtered(s, mates),
                                 truncLen = tl, trimLeft = left, maxEE = ee, maxN = 0,

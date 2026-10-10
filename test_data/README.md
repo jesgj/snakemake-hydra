@@ -172,3 +172,30 @@ run. Outputs and current-run validation records are ignored under
 `test_data/work/amplicon_smoke/`. Full configuration guidance is in
 [docs/amplicon.md](../docs/amplicon.md). The original fixture preparer and its
 provenance records are unchanged.
+
+The smoke helper additionally checks archive-style paired headers and rebuilds
+after deleting `errors/` and `filtered/`, preserving scientific TSV/FASTA outputs.
+
+For real independently downloaded 16S reads, run:
+
+```bash
+pixi run --locked python test_data/amplicon_public.py
+HYDRA_CONFIG=test_data/configs/amplicon_public.yaml pixi run --locked snakemake --cores 2
+pixi run --locked python test_data/amplicon_public.py --verify
+```
+
+This samples 20,000 paired reads from ENA ERR777695 (593,868 source pairs, seed
+20261011) with verified original MD5s and deterministic compressed output. The
+originals are temporary and automatically removed; sampled reads, source/output
+checksums, quality profiles, and results are retained in the ignored public-fixture
+work directory. The helper downloads and verifies the
+[RDP 19 DADA2 training reference](https://doi.org/10.5281/zenodo.14168771)
+to exercise taxonomy and generates a complete isolated configuration.
+
+The fixture uses DI V4 target primers F515A `GTGBCAGCMGCCGCGGTAA` and 805R
+`GACTACHVGGGTATCTAATCC` from Table S1 of the
+[study supplement](https://doi.org/10.1093/nar/gku1341). Table S3 labels M35's
+primers `515 & 805RA`; the deposited R1 starts match the degenerate DI F515A
+sequence. The fixture retains 200/180 bases after primer removal to avoid the
+lower-quality R2 tail while retaining V4 overlap. These choices are specific
+to this accession; inspect the generated quality profiles before adapting them.

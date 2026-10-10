@@ -13,7 +13,9 @@ rule denoise:
         tracking=os.path.join(OUT, "read_tracking.tsv"),
         rds=os.path.join(OUT, "dada2.rds"),
         metadata=os.path.join(OUT, "run_metadata.json"),
-        multiqc=os.path.join(OUT, "amplicon_read_retention_mqc.tsv")
+        multiqc=os.path.join(OUT, "amplicon_read_retention_mqc.tsv"),
+        filtered=directory(os.path.join(OUT, "filtered")),
+        errors=directory(os.path.join(OUT, "errors"))
     threads: THREADS
     log:
         os.path.join(LOG_DIR, "dada2.log")

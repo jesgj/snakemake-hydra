@@ -145,6 +145,10 @@ There is no configured CI, formatter, linter, typechecker, or unit-test suite in
 
 See [the amplicon guide](docs/amplicon.md) for read-layout detection, primers, per-sample filtering, sequencing batches, optional taxonomy, and the executable smoke checks. Select `pipeline: amplicon`; existing configurations for other pipelines do not need an amplicon section.
 
+The [test-data instructions](test_data/README.md#configurable-16s-amplicons)
+include a reproducible public ENA V4 fixture with random paired subsampling,
+verified checksums, documented primers, and RDP 19 taxonomy.
+
 ### RNA-seq
 - Requires paired-end samples.
 - Required config values include `transcriptome_fasta`, `kallisto_index`, `ref_genome`, and `hisat2_index_dir`.
