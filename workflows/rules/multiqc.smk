@@ -25,10 +25,10 @@ rule multiqc:
     output:
         report = os.path.join(_MULTIQC_RESULTS_DIR, "multiqc_report.html")
     params:
-        analysis_dirs = " ".join(_ANALYSIS_DIRS),
+        analysis_dirs = _ANALYSIS_DIRS,
         output_dir = _MULTIQC_RESULTS_DIR,
         filename = "multiqc_report.html"
     log:
         os.path.join(_LOG_DIR, "multiqc", "multiqc.log")
     shell:
-        "pixi run multiqc {params.analysis_dirs} -o {params.output_dir} --filename {params.filename} --force > {log}.out 2> {log}.err"
+        "pixi run multiqc {params.analysis_dirs:q} -o {params.output_dir:q} --filename {params.filename:q} --force > {log:q}.out 2> {log:q}.err"

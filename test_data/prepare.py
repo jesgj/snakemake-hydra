@@ -51,6 +51,13 @@ def fetch(url, path):
     ], check=True)
 
 
+def verify_source(path, expected_sha256):
+    observed = digest(path)
+    if observed != expected_sha256:
+        raise ValueError(f"Source SHA-256 mismatch: {path}; expected {expected_sha256}, found {observed}")
+    return observed
+
+
 def records(path):
     with gzip.open(path, "rb") as handle:
         while header := handle.readline():
@@ -95,6 +102,32 @@ def sample_pair(paths, count, seed, outpaths):
     return total
 
 
+def atac_run_paths(sample, run):
+    return [ROOT / "fastqs" / "atacseq" / "split_runs" / f"{sample}__{run}_R{mate}.fastq.gz"
+            for mate in (1, 2)]
+
+
+def split_atac_runs(catalog):
+    """Partition real pairs into two software run fixtures, without duplicating reads."""
+    evidence = []
+    for sample in catalog["samples"]:
+        if sample["category"] != "atacseq":
+            continue
+        name = sample["sample"]
+        for offset, run in enumerate(("part1", "part2")):
+            outputs = atac_run_paths(name, run)
+            if any(path.exists() for path in outputs):
+                raise FileExistsError(f"Split fixture already exists: {outputs}")
+            outputs[0].parent.mkdir(parents=True, exist_ok=True)
+            for mate, output in enumerate(outputs, 1):
+                source = ROOT / "fastqs" / "atacseq" / f"{name}_R{mate}.fastq.gz"
+                write_fastq(output, (record for i, record in enumerate(records(source)) if i % 2 == offset))
+            evidence.append({"sample": name, "run": run, "method": "alternating synchronized pairs",
+                             "pairs": sum(1 for _ in records(outputs[0])),
+                             "output_sha256": {str(p.relative_to(ROOT)): digest(p) for p in outputs}})
+    return evidence
+
+
 def make_configs(catalog, variants=None):
     import copy
     import yaml  # Already provided by the committed Pixi environment.
@@ -124,6 +157,16 @@ def make_configs(catalog, variants=None):
             info = {"R1": str(stem) + "_R1.fastq.gz", "type": "SE" if variant.endswith("_se") else "PE"}
             if info["type"] == "PE":
                 info["R2"] = str(stem) + "_R2.fastq.gz"
+            if variant == "atacseq_macs3":
+                info = {"type": "PE", "library": f"{sample['sample']}.library", "runs": {}}
+                for run in ("part1", "part2"):
+                    r1, r2 = atac_run_paths(sample["sample"], run)
+                    info["runs"][run] = {
+                        "R1": str(r1), "R2": str(r2),
+                        "read_group": {"id": f"{sample['sample']}.{run}",
+                                       "sample": sample["sample"], "library": info["library"],
+                                       "platform": "ILLUMINA", "platform_unit": f"{sample['sample']}.{run}.unit"},
+                    }
             section["samples_info"][sample["sample"]] = info
         section.setdefault("picard", {})["java_opts"] = "-Xmx1g"
         if mode == "rnaseq":
@@ -199,7 +242,7 @@ def main():
                 fetch(url, path)
                 if "md5" in sample and digest(path, "md5") != sample["md5"][index]:
                     raise ValueError(f"Source MD5 mismatch: {url}")
-            source_hashes = [digest(path) for path in originals]
+            source_hashes = [verify_source(path, sample["sha256"][index]) for index, path in enumerate(originals)]
             source_bytes = [path.stat().st_size for path in originals]
             total = sample_pair(originals, sample["pairs"], catalog["seed"], outpaths)
         entry = dict(sample, source_pairs=total, source_bytes=source_bytes, source_sha256=source_hashes,
@@ -213,7 +256,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix="hydra-reference-") as temporary:
             original = Path(temporary) / "reference"
             fetch(reference["url"], original)
-            source_hash = digest(original)
+            source_hash = verify_source(original, reference["sha256"])
             if reference["url"].endswith(".gz"):
                 import shutil
                 with gzip.open(original, "rb") as src, path.open("wb") as dst:
@@ -223,6 +266,8 @@ def main():
         report["references"].append(dict(reference, source_sha256=source_hash, output_sha256=digest(path)))
     if "rnaseq" in args.variants:
         bed12_from_gtf()
+    if "atacseq_macs3" in args.variants:
+        report["atac_split_runs"] = split_atac_runs(catalog)
     args.provenance.write_text(json.dumps(report, indent=2) + "\n")
     make_configs(catalog, args.variants)
     print(f"Ready: {', '.join(args.variants)}; provenance: {args.provenance}", flush=True)

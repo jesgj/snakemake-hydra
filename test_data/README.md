@@ -56,6 +56,10 @@ checksums, compressed sizes, and sampling scope. WGBS source MD5s are also check
 against ENA metadata. Stored gzip outputs have deterministic headers. RAM for
 sampling scales with the retained count, not library size.
 
+The catalog also pins expected SHA-256 values for every source FASTQ and reference,
+taken from the matching URLs in committed provenance. Preparation rejects a
+checksum mismatch before sampling or unpacking a source.
+
 This is uniform sampling within the specified source population. The nf-core
 subsets and chromosome-restricted references introduce deliberate limitations:
 WGBS reads from other chromosomes will not map; CUT&RUN spike-in reads will not
@@ -80,11 +84,37 @@ production configuration is not edited.
 | `chipseq.yaml` | PE ChIP-seq, matched input subtraction and correlation |
 | `chipseq_se.yaml` | SE code path using just R1 of the same real ChIP libraries |
 | `cutrun.yaml` | Actual PE CUT&RUN, with a 20 bp minimum to retain its 25 bp reads |
-| `atacseq_macs3.yaml` | PE ATAC-seq, two samples, correlation and MACS3 |
-| `atacseq_genrich.yaml` | Same ATAC inputs, with Genrich |
+| `atacseq_macs3.yaml` | PE ATAC-seq, two samples each split into two runs, merged read groups, correlation and MACS3 |
+| `atacseq_genrich.yaml` | Same ATAC inputs using legacy sample-level R1/R2, with Genrich |
 
 The SE variant exercises software handling of single reads; it is not a separate
 biological SE experiment. RNA-seq BED12 is derived from the matching real GTF.
+The MACS3 variant partitions each real ATAC sample into alternating synchronized
+pairs under `fastqs/atacseq/split_runs/`. Each original pair appears in exactly one
+partition, with its sequence, quality and header unchanged. These are software
+run fixtures from one experimental run, not independent sequencing runs. Both
+partitions share library/sample metadata and have distinct RG IDs/platform units.
+Preparation records partition counts and SHA-256 checksums in provenance.
+Execution verification checks merged RG headers and each group's record count
+against its run BAM, and rejects missing or extra contributions. The Genrich
+variant retains coverage of the legacy single-run manifest.
+
+After the MACS3 fixture finishes, run the focused discovery/empty-peak checks:
+
+```bash
+pixi run --locked python test_data/review_regressions.py --atac-config test_data/configs/atacseq_macs3.yaml
+```
+
+This executes the production quantification and reporting rules with synthetic
+peak edge cases and the real fixture's filtered BAMs/QC files, including paths
+with spaces. It checks all-empty peaks, one empty sample, and insufficient
+consensus support. With an empty consensus, the count matrix has zero rows,
+featureCounts processes zero fragments, and FRiP is `NA`. CI runs these checks
+after MACS3 verification. Omitting `--atac-config` runs discovery checks only.
+CI exercises chromosome-5 WGBS with one scheduler core to cover implicit
+single-thread Bismark execution; full-genome WGBS remains at two cores.
+Snakemake lint recommendations are collected as nonblocking diagnostic steps
+because the existing Pixi/layout recommendations are not a clean lint baseline.
 RNA-seq bootstraps are disabled for speed; Picard heaps are limited to 1 GB, and
 ATAC MACS3 uses a yeast genome size. Configs inherit other current tool options
 from `config/config.yaml`; regenerate them after changing defaults:
@@ -92,6 +122,9 @@ from `config/config.yaml`; regenerate them after changing defaults:
 ```bash
 pixi run python test_data/prepare.py --configs-only
 ```
+
+`--configs-only` does not create missing split FASTQs. Prepare the MACS3 fixture
+normally once before executing its generated config.
 
 Set `HYDRA_CONFIG` to the same fixture config passed with `--configfile` so
 Snakemake subprocesses also use the fixture instead of a production local config.
@@ -191,8 +224,8 @@ The helper checks ASV/count/sequence correspondence, read retention, taxonomy
 status, distinct raw/prepared FastQC entries in MultiQC, and an up-to-date repeat
 run. Outputs and current-run validation records are ignored under
 `test_data/work/amplicon_smoke/`. Full configuration guidance is in
-[docs/amplicon.md](../docs/amplicon.md). The original fixture preparer and its
-provenance records are unchanged.
+[docs/amplicon.md](../docs/amplicon.md). The original-pipeline fixture preparer and
+the amplicon helpers maintain separate provenance records.
 
 The smoke helper additionally checks archive-style paired headers and rebuilds
 after deleting `errors/` and `filtered/`, preserving scientific TSV/FASTA outputs.

@@ -10,6 +10,9 @@ CONFIG_FILE = os.environ.get(
 )
 configfile: CONFIG_FILE
 
+if config.get("pipeline") not in ("rnaseq", "wgbs", "chip_cr", "atacseq", "amplicon"):
+    raise ValueError("config.pipeline must be rnaseq, wgbs, chip_cr, atacseq, or amplicon.")
+
 # Import modules for different pipelines
 rnaseq_config = config["rnaseq"].copy()
 rnaseq_config["pipeline"] = config["pipeline"]
@@ -79,7 +82,3 @@ elif config["pipeline"] == "amplicon":
     rule all:
         default_target: True
         input: rules.amplicon_all.input
-else:
-    rule all:
-        default_target: True
-        input: "ERROR: Write 'rnaseq', 'wgbs', 'chip_cr', 'atacseq', or 'amplicon' in config.yaml"

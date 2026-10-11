@@ -91,13 +91,13 @@ rule picard_collect_alignment_metrics_generic:
         metrics = "path/to/output.metrics.txt"
     threads: 4
     params:
-        java_opts=config.get("picard", {}).get("java_opts", "-Xmx4g")
+        java_opts=config.get("picard", {}).get("java_opts", "-Xmx4g"),
+        bisulfite="true" if config.get("pipeline") == "wgbs" else "false"
     log:
         "logs/picard_metrics.log"
     shell:
         """
-        mkdir -p "$(dirname "{output.metrics}")"
         pixi run picard {params.java_opts} CollectAlignmentSummaryMetrics \
-            -I {input.bam} \
-            -O {output.metrics} --IS_BISULFITE_SEQUENCED true > {log}.out 2> {log}.err
+            -I {input.bam:q} -R {input.ref:q} \
+            -O {output.metrics:q} --IS_BISULFITE_SEQUENCED {params.bisulfite} > {log:q}.out 2> {log:q}.err
         """

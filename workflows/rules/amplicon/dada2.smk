@@ -46,6 +46,7 @@ rule multiqc:
         retention=os.path.join(OUT, "amplicon_read_retention_mqc.tsv"),
         stats=PREPARED_STATS,
         cutadapt=expand(os.path.join(OUT, "primers", "{sample}.cutadapt.txt"), sample=SAMPLES),
+        cutadapt_json=expand(os.path.join(OUT, "primers", "{sample}.cutadapt.json"), sample=SAMPLES),
         taxonomy=os.path.join(OUT, "taxonomy.tsv")
     output:
         report=os.path.join(OUT, "multiqc", "multiqc_report.html")

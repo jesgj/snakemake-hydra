@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import warnings
 from collections import defaultdict
 
 
@@ -105,27 +106,31 @@ def discover_samples(raw_fastqs_dir):
     # It can handle _R1, _R2, _1, _2, and other common separators.
     pattern = re.compile(r"(.+?)[_.-]?(R[12]|[12])(_001)?\.(fastq|fq)\.gz")
 
-    files = os.listdir(raw_fastqs_dir)
+    files = sorted(f for f in os.listdir(raw_fastqs_dir)
+                   if os.path.isfile(os.path.join(raw_fastqs_dir, f)))
+    matched_files = set()
     
     # First pass for paired-end files
     for filename in files:
-        match = pattern.match(filename)
+        match = pattern.fullmatch(filename)
         if match:
-            sample_name = match.group(1)
+            sample_name = match.group(1).rstrip('-_.')
             read_identifier = match.group(2)
             read = 'R1' if read_identifier in ['R1', '1'] else 'R2'
             
-            if samples[sample_name][read] is None:
-                samples[sample_name][read] = os.path.join(raw_fastqs_dir, filename)
+            if samples[sample_name][read] is not None:
+                raise ValueError(f"Ambiguous FASTQs for {sample_name}/{read}; use an explicit samples_info manifest.")
+            samples[sample_name][read] = os.path.join(raw_fastqs_dir, filename)
+            matched_files.add(filename)
 
     # Second pass for single-end files (those that didn't match PE pattern)
-    matched_files = {f for s in samples.values() for f in s.values() if f}
     for filename in files:
         full_path = os.path.join(raw_fastqs_dir, filename)
-        if full_path not in matched_files and filename.endswith(('.fastq.gz', '.fq.gz')):
-            sample_name = re.sub(r'(\.fastq\.gz|\.fq\.gz)$', '', filename)
-            if sample_name not in samples:
-                samples[sample_name]['R1'] = full_path
+        if filename not in matched_files and filename.endswith(('.fastq.gz', '.fq.gz')):
+            sample_name = re.sub(r'(\.fastq\.gz|\.fq\.gz)$', '', filename).rstrip('-_.')
+            if sample_name in samples:
+                raise ValueError(f"Ambiguous FASTQs for {sample_name}; use an explicit samples_info manifest.")
+            samples[sample_name]['R1'] = full_path
 
     # Finalize types and convert to dict
     final_samples = {}
@@ -136,12 +141,21 @@ def discover_samples(raw_fastqs_dir):
         elif info['R1']:
             info['type'] = 'SE'
         else:
-            continue # Skip if no R1 file was found
+            raise ValueError(f"Orphan R2 FASTQ for {sample_name}; provide its R1 or an explicit samples_info manifest.")
         
         # remove None values
         final_info = {k:v for k,v in info.items() if v is not None}
         final_samples[clean_name] = final_info
 
+    lanes = defaultdict(list)
+    for sample in final_samples:
+        match = re.fullmatch(r"(.+)_L[0-9]{3}", sample)
+        if match:
+            lanes[match[1]].append(sample)
+    for base, names in lanes.items():
+        if len(names) > 1:
+            warnings.warn(f"FASTQ discovery keeps lanes {names} as separate samples for {base}; "
+                          "use an explicit run manifest to group ATAC lanes.", stacklevel=2)
     return final_samples
 
 def prepare_sample_data(config):
