@@ -1,5 +1,5 @@
 # Snakemake parses this entire file, including sections for inactive pipelines.
-pipeline: "wgbs"  # Change to "rnaseq", "wgbs", "chip_cr", or "atacseq".
+pipeline: "wgbs"  # rnaseq, wgbs, chip_cr, atacseq, or amplicon.
 
 rnaseq:
   raw_fastqs_dir: "data/rnaseq_raw_fastqs"
@@ -16,7 +16,7 @@ rnaseq:
   trimmed_dir: "results/rnaseq/trimmed_fastqs"
   qc_trimmed_dir: "results/rnaseq/qc_trimmed"
   # Reference files are user-managed and must already exist.
-  # The parent directory of kallisto_index must already exist; hisat2_index_dir is created if needed.
+  # Missing kallisto/HISAT2 indexes are built; their output directories are created if needed.
   transcriptome_fasta: "ref/transcriptome.fa"
   kallisto_index: "ref/kallisto/transcriptome.idx"
   kallisto_output_dir: "results/rnaseq/kallisto"

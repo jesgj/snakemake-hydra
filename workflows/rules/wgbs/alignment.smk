@@ -4,7 +4,7 @@ from snakemake.io import touch
 
 # --- CONFIGURATION ---
 REF_GENOME = config["ref_genome"]
-REF_DIR = os.path.dirname(REF_GENOME)
+REF_DIR = os.path.dirname(os.path.abspath(REF_GENOME))
 TRIMMED_DIR = config["trimmed_dir"]
 ALIGN_DIR = config["alignment_dir"]
 DEDUP_DIR = config["dedup_dir"]
@@ -20,9 +20,6 @@ if BISMARK_THREADS < BISMARK_PARALLEL:
         "WGBS bismark.threads must be greater than or equal to bismark.parallel so each "
         "parallel Bismark worker receives at least one Bowtie2 thread."
     )
-
-BISMARK_BOWTIE2_THREADS = max(1, BISMARK_THREADS // BISMARK_PARALLEL)
-
 
 # --- RULES ---
 
@@ -41,7 +38,7 @@ rule bismark_genome_preparation:
         os.path.join(LOG_DIR, "bismark_genome_preparation", "bismark_genome_preparation.log")
     shell:
         """
-        pixi run bismark_genome_preparation --bowtie2 --verbose {params.ref_dir} > {log}.out 2> {log}.err
+        pixi run bismark_genome_preparation --bowtie2 --verbose {params.ref_dir:q} > {log:q}.out 2> {log:q}.err
         """
 
 rule bismark_alignment:
@@ -57,8 +54,12 @@ rule bismark_alignment:
         report = os.path.join(ALIGN_DIR, "{sample}_pe_report.txt")
     params:
         ref_dir = REF_DIR,
-        parallel = BISMARK_PARALLEL,
-        bowtie2_threads = BISMARK_BOWTIE2_THREADS,
+        parallel = lambda wildcards, threads: min(BISMARK_PARALLEL, threads),
+        # Pinned Bismark rejects explicit -p 1; omission uses one thread.
+        bowtie2_args = lambda wildcards, threads: (
+            f"-p {threads // min(BISMARK_PARALLEL, threads)}"
+            if threads // min(BISMARK_PARALLEL, threads) > 1 else ""
+        ),
         align_dir = ALIGN_DIR,
         extra = BISMARK_EXTRA_ARGS
     threads: BISMARK_THREADS
@@ -67,17 +68,17 @@ rule bismark_alignment:
     shell:
         """
         set -euo pipefail
-        R1_BASE=$(basename {input.r1})
+        R1_BASE=$(basename {input.r1:q})
         R1_STEM=${{R1_BASE%%.fastq.gz}}
         R1_STEM=${{R1_STEM%%.fq.gz}}
-        pixi run bismark --bowtie2 --parallel {params.parallel} -p {params.bowtie2_threads} {params.extra} \
-        --genome {params.ref_dir} \
-        -1 {input.r1} -2 {input.r2} \
-        -o {params.align_dir} > {log}.out 2> {log}.err
+        pixi run bismark --bowtie2 --parallel {params.parallel} {params.bowtie2_args} {params.extra} \
+        --genome {params.ref_dir:q} \
+        -1 {input.r1:q} -2 {input.r2:q} \
+        -o {params.align_dir:q} > {log:q}.out 2> {log:q}.err
         # Multicore Bismark does not support --basename, so normalize its default
         # paired-end filenames back to the workflow's stable sample-based outputs.
-        mv {params.align_dir}/${{R1_STEM}}_bismark_bt2_pe.bam {output.bam}
-        mv {params.align_dir}/${{R1_STEM}}_bismark_bt2_PE_report.txt {output.report}
+        mv {params.align_dir:q}/"${{R1_STEM}}_bismark_bt2_pe.bam" {output.bam:q}
+        mv {params.align_dir:q}/"${{R1_STEM}}_bismark_bt2_PE_report.txt" {output.report:q}
         """
 
 rule deduplicate_bismark:

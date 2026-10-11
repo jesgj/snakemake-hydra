@@ -28,7 +28,7 @@ DUPLICATION_QC_DIR = config["duplication_qc_dir"]
 BIGWIG_DIR = config["bigwig_dir"]
 DEEPTOOLS_DIR = config.get("deeptools_dir", os.path.join("results", "rnaseq", "deeptools"))
 GENE_BODY_COVERAGE_CONFIG = config.get("gene_body_coverage", {})
-GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", True)
+GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", False)
 REFGENE_BED = GENE_BODY_COVERAGE_CONFIG.get("refgene_bed")
 GENE_BODY_COVERAGE_DIR = config.get(
     "gene_body_coverage_dir", os.path.join("results", "rnaseq", "gene_body_coverage")

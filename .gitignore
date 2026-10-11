@@ -2,11 +2,10 @@
 .snakemake
 .pixi
 config/config.local.yaml
-logs/rnaseq/
-results/rnaseq/
+/data/
+/logs/
+/results/
 ref/
 src/__pycache__/
 
 scripts/__pycache__/
-logs/amplicon/
-results/amplicon/

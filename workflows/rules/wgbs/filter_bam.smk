@@ -27,7 +27,7 @@ rule sambamba_filter:
     input:
         bam=os.path.join(DEDUP_DIR, "{sample}_pe.deduplicated.bam")
     output:
-        filtered_bam=os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.bam")
+        filtered_bam=temp(os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.bam"))
     params:
         extra=SAMBAMBA_EXTRA_ARGS
     threads: SAMBAMBA_FILTER_THREADS
