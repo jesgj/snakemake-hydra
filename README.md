@@ -131,7 +131,26 @@ peak callers are documented in [test_data/README.md](test_data/README.md).
 The preparer retains seeded random subsets, removes temporary source FASTQs,
 and generates separate configs without editing production paths.
 
-There is no configured CI, formatter, linter, typechecker, or unit-test suite in this repository. Use Snakemake dry-runs as the main validation path:
+GitHub Actions runs patch whitespace checks, Python syntax checks, and the existing
+16S smoke suite on pull requests and pushes to `main`, using the committed Pixi
+lockfile. The smoke suite covers PE/SE, archive headers, primers, taxonomy,
+sequencing batches, expected overlap failure, repeatability, and deleted-directory
+reconstruction. Validation logs and reports are retained as CI artifacts for seven
+days. A manual **Run workflow** invocation can also enable the public ENA V4 test
+with RDP 19 taxonomy.
+
+A separate real-data matrix executes RNA-seq, WGBS chromosome 5 and full TAIR10,
+ChIP-seq PE/SE, CUT&RUN, and ATAC-seq with MACS3 and Genrich. Each job downloads
+only its selected assay/reference, checks the DAG, executes the complete workflow,
+and verifies mapped BAMs, assay outputs and MultiQC. ChIP SE and ATAC Genrich use
+one core; other variants use two cores, with one scheduled job at a time. At most
+two matrix jobs run concurrently. Source checksums and execution evidence are
+stored in the diagnostic artifacts, alongside logs and reports. Raw FASTQs, BAMs,
+indexes and bigWigs are excluded from uploads. These small fixtures check software
+behavior; they do not validate biological accuracy.
+
+There is no configured formatter, typechecker, or general unit-test framework.
+Use focused Snakemake dry-runs while developing changes:
 - Snakemake parses every section of `config/config.yaml`, including inactive pipelines, so the complete YAML document must remain valid.
 - Sambamba filter expressions for the selected pipeline are parsed by Sambamba during workflow construction, before any jobs run.
 - Config-only changes: run `pixi run snakemake -n --cores 1` for the selected pipeline.

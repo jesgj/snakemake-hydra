@@ -13,10 +13,48 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 
 
+def verify_final_outputs(config):
+    """Check selected assay outputs in addition to the shared BAM/report checks."""
+    mode = config["pipeline"]
+    section = config[mode]
+    required = []
+    for sample, info in section["samples_info"].items():
+        if mode == "rnaseq":
+            required.append(Path(section["kallisto_output_dir"]) / sample / "abundance.tsv")
+        elif mode == "wgbs":
+            required.append(Path(section["methyldackel_dir"]) / f"{sample}_CpG.methylKit")
+        else:
+            read_type = info["type"].lower()
+            required.append(Path(section["bigwig_dir"]) / f"{sample}_{read_type}.bw")
+        if mode == "atacseq":
+            # An empty peak set is legitimate, but the declared file must exist.
+            peak = Path(section["peaks_dir"]) / f"{sample}_peaks.narrowPeak"
+            if not peak.is_file():
+                raise ValueError(f"Missing peak output: {peak}")
+    if mode == "atacseq":
+        required.extend([
+            Path(section["featurecounts_dir"]) / "consensus_peak_counts.txt",
+            Path(section["qc_summary_dir"]) / "sample_qc_summary.tsv",
+        ])
+    if mode == "rnaseq" and section["gene_body_coverage"]["enabled"]:
+        prefix = Path(section["gene_body_coverage_dir"]) / "all_samples"
+        fmt = section["gene_body_coverage"].get("format", "pdf")
+        required.extend([Path(f"{prefix}.geneBodyCoverage.txt"), Path(f"{prefix}.geneBodyCoverage.curves.{fmt}")])
+        if len(section["samples_info"]) >= 3:
+            required.append(Path(f"{prefix}.geneBodyCoverage.heatMap.{fmt}"))
+    for path in required:
+        if not path.is_file() or path.stat().st_size == 0:
+            raise ValueError(f"Missing or empty assay output: {path}")
+    return [str(path.relative_to(ROOT)) for path in required]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("variant", choices=[p.stem for p in (ROOT / "configs").glob("*.yaml")])
     parser.add_argument("--cores", type=int, default=2)
+    parser.add_argument("--keep-outputs", action="store_true", help="Retain verified results for CI artifacts")
+    parser.add_argument("--evidence", type=Path, default=ROOT / "execution.json",
+                        help="Destination for execution checks and artifact hashes")
     args = parser.parse_args()
     config = yaml.safe_load((ROOT / "configs" / (args.variant + ".yaml")).read_text())
     section = config[config["pipeline"]]
@@ -24,6 +62,7 @@ def main():
     report = Path(section["multiqc_results_dir"]) / "multiqc_report.html"
     if not report.is_file() or report.stat().st_size == 0:
         raise ValueError(f"Missing or empty final report: {report}")
+    assay_outputs = verify_final_outputs(config)
     files = sorted(p for p in work.rglob("*") if p.is_file())
     bams = [p for p in files if p.suffix == ".bam"]
     if not bams:
@@ -57,11 +96,16 @@ def main():
              "scheduler_cores": args.cores, "scheduler_jobs": 1,
              "multiqc_report_verified": True, "bam_quickcheck": True, "mapped_alignment_records": mapped,
              "peak_counts": peak_counts,
+             "assay_outputs_verified": assay_outputs,
              "artifacts": artifacts, "output_bytes": sum(p["bytes"] for p in artifacts), "outputs_deleted": False}
-    evidence = ROOT / "execution.json"
+    evidence = args.evidence
+    evidence.parent.mkdir(parents=True, exist_ok=True)
     results = json.loads(evidence.read_text()) if evidence.exists() else {"runs": []}
     results["runs"].append(entry)
     evidence.write_text(json.dumps(results, indent=2) + "\n")
+    if args.keep_outputs:
+        print(f"{args.variant}: verified {len(bams)} BAMs, assay outputs and MultiQC; retained results")
+        return
     # Work is selected from known configs and is always inside this fixture tree.
     shutil.rmtree(work)
     if config["pipeline"] == "wgbs":

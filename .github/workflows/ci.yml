@@ -1,0 +1,188 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      public_data:
+        description: Also run the downloaded ENA V4 fixture with RDP 19 taxonomy
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  amplicon:
+    name: Locked environment and 16S smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PIXI_LOCKED: "true"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Check patch whitespace
+        run: git diff --check HEAD^ HEAD
+
+      - name: Install locked environment
+        uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          pixi-version: v0.81.0
+          locked: true
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+      - name: Check Python syntax
+        run: |
+          pixi run --locked python - <<'PY'
+          import ast
+          import subprocess
+          from pathlib import Path
+
+          files = subprocess.check_output(["git", "ls-files", "-z", "*.py"]).decode().split("\0")
+          for filename in filter(None, files):
+              ast.parse(Path(filename).read_text(), filename=filename)
+          PY
+
+      - name: Run 16S smoke and regression checks
+        shell: bash
+        run: |
+          mkdir -p test_data/work
+          pixi run --locked python test_data/amplicon_smoke.py 2>&1 | tee test_data/work/amplicon_smoke_driver.log
+
+      - name: Run public ENA fixture
+        if: github.event_name == 'workflow_dispatch' && inputs.public_data
+        shell: bash
+        run: |
+          pixi run --locked python test_data/amplicon_public.py
+          HYDRA_CONFIG=test_data/configs/amplicon_public.yaml pixi run --locked snakemake --cores 2
+          pixi run --locked python test_data/amplicon_public.py --verify
+
+      - name: Upload validation logs and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: amplicon-validation
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            test_data/work/amplicon_smoke_driver.log
+            test_data/work/amplicon_smoke/**/*.log*
+            test_data/work/amplicon_smoke/**/*.json
+            test_data/work/amplicon_smoke/**/*.tsv
+            test_data/work/amplicon_smoke/**/*.fasta
+            test_data/work/amplicon_smoke/**/multiqc_report.html
+            test_data/work/amplicon_public/logs/**/*.log*
+            test_data/work/amplicon_public/*.json
+            test_data/work/amplicon_public/results/*.json
+            test_data/work/amplicon_public/results/*.tsv
+            test_data/work/amplicon_public/results/*.fasta
+            test_data/work/amplicon_public/results/multiqc/multiqc_report.html
+
+  pipelines:
+    name: ${{ matrix.variant }} real-data smoke (${{ matrix.cores }} cores)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - variant: rnaseq
+            cores: 2
+          - variant: wgbs
+            cores: 2
+          - variant: wgbs_full
+            cores: 2
+          - variant: chipseq
+            cores: 2
+          - variant: chipseq_se
+            cores: 1
+          - variant: cutrun
+            cores: 2
+          - variant: atacseq_macs3
+            cores: 2
+          - variant: atacseq_genrich
+            cores: 1
+    env:
+      PIXI_LOCKED: "true"
+      VARIANT: ${{ matrix.variant }}
+      CORES: ${{ matrix.cores }}
+      HYDRA_CONFIG: test_data/configs/${{ matrix.variant }}.yaml
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install locked environment
+        uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          pixi-version: v0.81.0
+          locked: true
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+      - name: Prepare selected real-data fixture
+        shell: bash
+        run: |
+          mkdir -p "test_data/work/ci/$VARIANT"
+          pixi run --locked python test_data/prepare.py --variants "$VARIANT" \
+            --provenance "test_data/work/ci/$VARIANT/provenance.json" \
+            2>&1 | tee "test_data/work/ci/$VARIANT/prepare.log"
+
+      - name: Check selected workflow DAG
+        shell: bash
+        run: |
+          pixi run --locked snakemake --dry-run --cores "$CORES" --jobs 1 \
+            --resources ci_slots=1 --default-resources ci_slots=1 \
+            --replace-workflow-config --configfile "$HYDRA_CONFIG" \
+            2>&1 | tee "test_data/work/ci/$VARIANT/dry-run.log"
+
+      - name: Execute selected workflow
+        shell: bash
+        run: |
+          pixi run --locked snakemake --cores "$CORES" --jobs 1 \
+            --resources ci_slots=1 --default-resources ci_slots=1 \
+            --replace-workflow-config --configfile "$HYDRA_CONFIG" \
+            --printshellcmds --latency-wait 60 \
+            2>&1 | tee "test_data/work/ci/$VARIANT/run.log"
+
+      - name: Verify BAMs, assay outputs and report
+        shell: bash
+        run: |
+          pixi run --locked python test_data/finish_run.py "$VARIANT" --cores "$CORES" \
+            --keep-outputs --evidence "test_data/work/ci/$VARIANT/execution.json" \
+            2>&1 | tee "test_data/work/ci/$VARIANT/verify.log"
+
+      - name: Upload validation logs and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ matrix.variant }}-validation
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            test_data/work/ci/${{ matrix.variant }}/
+            test_data/configs/${{ matrix.variant }}.yaml
+            test_data/work/${{ matrix.variant }}/**/*.log*
+            test_data/work/${{ matrix.variant }}/**/*.txt
+            test_data/work/${{ matrix.variant }}/**/*.tsv
+            test_data/work/${{ matrix.variant }}/**/*.json
+            test_data/work/${{ matrix.variant }}/**/*.narrowPeak
+            test_data/work/${{ matrix.variant }}/**/*.methylKit
+            test_data/work/${{ matrix.variant }}/**/*.png
+            test_data/work/${{ matrix.variant }}/**/*.pdf
+            test_data/work/${{ matrix.variant }}/**/multiqc_report.html
+            logs/

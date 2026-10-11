@@ -26,6 +26,16 @@ Run from the repository root:
 pixi run python test_data/prepare.py
 ```
 
+To prepare one CI variant without downloading the other assays, use:
+
+```bash
+pixi run --locked python test_data/prepare.py --variants rnaseq --provenance test_data/work/ci/rnaseq/provenance.json
+```
+
+`--variants` accepts one or more config names from the table below. Its default
+still prepares all variants. `--provenance` can redirect checksums into ignored
+work space without overwriting the committed provenance record.
+
 `datasets.json` records source URLs, pinned nf-core repository revisions, the
 retained pair counts, and seed `20261002`. RNA-seq, ATAC-seq, and ChIP-seq use
 small real-data subsets already hosted by nf-core; the RNA-seq source is enriched
@@ -111,6 +121,17 @@ read counts, and peak record structure, record hashes, then delete that run:
 ```bash
 pixi run python test_data/finish_run.py wgbs --cores 2
 ```
+
+CI retains results for artifact collection and writes fresh evidence separately:
+
+```bash
+pixi run --locked python test_data/finish_run.py rnaseq --cores 2 --keep-outputs --evidence test_data/work/ci/rnaseq/execution.json
+```
+
+Verification also checks each selected assay's terminal outputs: RNA-seq abundance
+and enabled gene body coverage, WGBS methylKit tables, ChIP/CUT&RUN bigWigs, and
+ATAC bigWigs, peak files, consensus counts and QC summary. Empty peak sets are
+allowed. `--keep-outputs` skips deletion only after every verification passes.
 
 Use the variant name and actual scheduler core count. This helper refuses cleanup
 if required checks fail. It deletes the variant work directory and generated
