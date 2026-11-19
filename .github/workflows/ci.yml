@@ -19,8 +19,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Lightweight checks and pipeline selection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      has_fixtures: ${{ steps.select.outputs.has_fixtures }}
+      run_amplicon: ${{ steps.select.outputs.run_amplicon }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate planner
+        run: python3 -B .github/ci/test_plan.py
+
+      - name: Check whitespace and syntax, then select fixtures
+        id: select
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push && -n "$BASE_SHA" && "$BASE_SHA" != 0000000000000000000000000000000000000000 ]] && ! git cat-file -e "${BASE_SHA}^{commit}"; then
+            git fetch --no-tags origin "$BASE_SHA"
+          fi
+          python3 .github/ci/plan.py --event "$GITHUB_EVENT_NAME" --base "$BASE_SHA" --head "$HEAD_SHA"
+
   amplicon:
     name: Locked environment and 16S smoke
+    needs: plan
+    if: needs.plan.outputs.run_amplicon == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -29,23 +61,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          fetch-depth: 0
           persist-credentials: false
-
-      - name: Check patch whitespace
-        shell: bash
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
-            BASE_SHA=$(git hash-object -t tree /dev/null)
-          elif [[ -z "$BASE_SHA" ]]; then
-            BASE_SHA=$(git rev-parse --verify HEAD^ 2>/dev/null || git hash-object -t tree /dev/null)
-          fi
-          if ! git cat-file -e "$BASE_SHA"; then
-            git fetch --no-tags origin "$BASE_SHA"
-          fi
-          git diff --check "$BASE_SHA" HEAD
 
       - name: Install locked environment
         uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
@@ -54,18 +70,6 @@ jobs:
           locked: true
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-
-      - name: Check Python syntax
-        run: |
-          pixi run --locked python - <<'PY'
-          import ast
-          import subprocess
-          from pathlib import Path
-
-          files = subprocess.check_output(["git", "ls-files", "-z", "*.py"]).decode().split("\0")
-          for filename in filter(None, files):
-              ast.parse(Path(filename).read_text(), filename=filename)
-          PY
 
       - name: Run 16S smoke and regression checks
         shell: bash
@@ -112,29 +116,14 @@ jobs:
 
   pipelines:
     name: ${{ matrix.variant }} real-data smoke (${{ matrix.cores }} cores)
+    needs: plan
+    if: needs.plan.outputs.has_fixtures == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 2
-      matrix:
-        include:
-          - variant: rnaseq
-            cores: 2
-          - variant: wgbs
-            cores: 1
-          - variant: wgbs_full
-            cores: 2
-          - variant: chipseq
-            cores: 2
-          - variant: chipseq_se
-            cores: 1
-          - variant: cutrun
-            cores: 2
-          - variant: atacseq_macs3
-            cores: 2
-          - variant: atacseq_genrich
-            cores: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       PIXI_LOCKED: "true"
       VARIANT: ${{ matrix.variant }}
@@ -222,3 +211,32 @@ jobs:
             test_data/work/${{ matrix.variant }}/**/*.pdf
             test_data/work/${{ matrix.variant }}/**/multiqc_report.html
             logs/
+
+  gate:
+    name: CI gate
+    needs: [plan, amplicon, pipelines]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require successful selected jobs
+        shell: bash
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          RUN_AMPLICON: ${{ needs.plan.outputs.run_amplicon }}
+          AMPLICON_RESULT: ${{ needs.amplicon.result }}
+          HAS_FIXTURES: ${{ needs.plan.outputs.has_fixtures }}
+          FIXTURES_RESULT: ${{ needs.pipelines.result }}
+        run: |
+          if [[ "$PLAN_RESULT" != success ]]; then
+            echo "Pipeline planning did not succeed: $PLAN_RESULT" >&2
+            exit 1
+          fi
+          check_result() {
+            case "$2:$3" in
+              true:success|false:skipped) return 0 ;;
+              *) echo "$1: selected=$2, result=$3" >&2; return 1 ;;
+            esac
+          }
+          check_result '16S smoke' "$RUN_AMPLICON" "$AMPLICON_RESULT"
+          check_result 'Real-data matrix' "$HAS_FIXTURES" "$FIXTURES_RESULT"

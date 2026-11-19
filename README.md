@@ -131,13 +131,20 @@ peak callers are documented in [test_data/README.md](test_data/README.md).
 The preparer retains seeded random subsets, removes temporary source FASTQs,
 and generates separate configs without editing production paths.
 
-GitHub Actions runs patch whitespace checks, Python syntax checks, and the existing
-16S smoke suite on pull requests and pushes to `main`, using the committed Pixi
-lockfile. The smoke suite covers PE/SE, archive headers, primers, taxonomy,
-sequencing batches, expected overlap failure, repeatability, and deleted-directory
-reconstruction. Validation logs and reports are retained as CI artifacts for seven
-days. A manual **Run workflow** invocation can also enable the public ENA V4 test
-with RDP 19 taxonomy.
+GitHub Actions always runs lightweight checks for patch whitespace, Python syntax,
+and CI selection. On pull requests, it runs only the pipeline fixtures affected by the
+full PR diff. Changes to shared files select all their registered consumers;
+changes to global or unrecognized files select the full suite. Documentation-only
+PRs run the lightweight checks without installing Pixi. Pushes to `main` and manual
+runs still execute the full suite. See the CI selection summary for the reasons a
+pipeline was selected. If configuring branch protection, require the `CI gate`
+check rather than individual fixture jobs, which may be intentionally skipped.
+
+Selected fixtures use the committed Pixi lockfile. The bundled 16S smoke suite
+covers PE/SE, archive headers, primers, taxonomy, sequencing batches, expected
+overlap failure, repeatability, and output reconstruction. A manual **Run workflow**
+invocation can also enable the public ENA V4 test with RDP 19 taxonomy.
+Validation logs and reports are retained as CI artifacts for seven days.
 
 A separate real-data matrix executes RNA-seq, WGBS chromosome 5 and full TAIR10,
 ChIP-seq PE/SE, CUT&RUN, and ATAC-seq with MACS3 and Genrich. Each job downloads
@@ -152,7 +159,11 @@ behavior; they do not validate biological accuracy.
 The ATAC MACS3 fixture splits each sample into two disjoint run fixtures and
 verifies merged read-group metadata and record counts. Genrich keeps the legacy
 single-run input path. Whitespace checks cover the complete PR or pushed commit
-range, including multi-commit pushes.
+range, including multi-commit pushes. The [CI pipeline registry](.github/ci/pipelines.json)
+records fixture variants and shared file dependencies. When adding a pipeline,
+register its fixture jobs and any shared dependencies there. To preview selection
+locally for committed changes, run
+`python3 .github/ci/plan.py --event pull_request --base origin/main`.
 
 CI also checks ambiguous FASTQ discovery and ATAC quantification with empty peak
 sets or insufficient consensus support. An empty consensus produces a zero-row

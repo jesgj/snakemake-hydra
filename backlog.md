@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- 2026-11-19: Select PR fixture jobs by pipeline impact, with shared dependency mapping, a fail-safe full suite for unmapped changes, and a stable CI gate. Keep full checks on main and manual runs.
 - 2026-11-19: Retry interrupted CI fixture downloads with bounded curl retries while retaining size limits and pinned source checksums.
 - 2026-10-11: Reject ambiguous/orphan discovered FASTQs, warn on separate lanes, support empty ATAC consensus/count/report outputs, correct shared Picard reference/bisulfite options, scale Bismark allocation to effective threads (including its implicit single-thread mode), default RNA gene-body coverage off, and fix MultiQC path quoting, ChIP control selection, generated-data ignores, amplicon JSON tracking (including rebuilding deleted Cutadapt JSON reports from the default target), and config diagnostics. Add discovery/empty-peak regressions and pin expected fixture source SHA-256 values from committed provenance.
 - 2026-10-11: Cover full PR/push ranges in CI whitespace checks, and exercise ATAC multi-run merging with disjoint partitions of real reads plus merged read-group metadata and record-count verification; retain legacy single-run coverage with Genrich.
