@@ -64,8 +64,7 @@ rule sort_peak_bed:
         r"""
         set -euo pipefail
         (cut -f 1-3 {input.peak:q} | \
-        pixi run bedtools sort -i - > {output.bed}) > {log}.out 2> {log}.err
-        test -s {output.bed}
+        pixi run bedtools sort -i - > {output.bed:q}) > {log:q}.out 2> {log:q}.err
         """
 
 
@@ -78,22 +77,28 @@ rule consensus_peaks:
     output:
         bed = CONSENSUS_BED
     params:
-        minimum_support = CONSENSUS_MINIMUM_SUPPORT,
-        sample_count = len(SAMPLES)
+        minimum_support = CONSENSUS_MINIMUM_SUPPORT
     threads: 1
     log:
         os.path.join("logs", config["pipeline"], "consensus_peaks", "consensus_peaks.log")
     shell:
         r"""
         set -euo pipefail
-        if [ {params.sample_count} -eq 1 ]; then
-            (pixi run bedtools merge -i {input.peaks:q} > {output.bed}) > {log}.out 2> {log}.err
-        else
-            (pixi run bedtools multiinter -i {input.peaks:q} | \
-            awk -v minimum_support={params.minimum_support} 'BEGIN {{OFS="\t"}} $4 >= minimum_support {{print $1, $2, $3}}' | \
-            pixi run bedtools merge -i - > {output.bed}) > {log}.out 2> {log}.err
-        fi
-        test -s {output.bed}
+        (
+            peaks=()
+            for peak in {input.peaks:q}; do
+                if [ -s "$peak" ]; then peaks+=("$peak"); fi
+            done
+            if [ "${{#peaks[@]}}" -lt {params.minimum_support} ]; then
+                : > {output.bed:q}
+            elif [ "${{#peaks[@]}}" -eq 1 ]; then
+                pixi run bedtools merge -i "${{peaks[0]}}" > {output.bed:q}
+            else
+                pixi run bedtools multiinter -i "${{peaks[@]}}" | \
+                awk -v minimum_support={params.minimum_support} 'BEGIN {{OFS="\t"}} $4 >= minimum_support {{print $1, $2, $3}}' | \
+                pixi run bedtools merge -i - > {output.bed:q}
+            fi
+        ) > {log:q}.out 2> {log:q}.err
         """
 
 
@@ -117,8 +122,6 @@ rule consensus_peaks_to_saf:
                 destination.write(
                     f"peak_{peak_number}\t{fields[0]}\t{int(fields[1]) + 1}\t{fields[2]}\t.\n"
                 )
-        if peak_number == 0:
-            raise ValueError("The ATAC-seq consensus peak BED contains no intervals.")
 
 
 rule featurecounts:
@@ -127,6 +130,7 @@ rule featurecounts:
     """
     input:
         saf = CONSENSUS_SAF,
+        empty_counts_script = "scripts/atac_empty_counts.py",
         bams = expand(
             os.path.join(FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"),
             sample=SAMPLES,
@@ -146,9 +150,14 @@ rule featurecounts:
         os.path.join("logs", config["pipeline"], "featurecounts", "featurecounts.log")
     shell:
         r"""
-        TMP_DIR=$(mktemp -d)
-        trap 'rm -rf "$TMP_DIR"' EXIT
-        pixi run featureCounts \
+        if [ "$(wc -l < {input.saf:q})" -eq 1 ]; then
+            pixi run python {input.empty_counts_script:q} \
+                --matrix {output.matrix:q} --summary {output.summary:q} {input.bams:q} \
+                > {log:q}.out 2> {log:q}.err
+        else
+            TMP_DIR=$(mktemp -d)
+            trap 'rm -rf "$TMP_DIR"' EXIT
+            pixi run featureCounts \
             -p --countReadPairs -B -C \
             -Q {params.minimum_mapping_quality} \
             -F SAF \
@@ -157,7 +166,8 @@ rule featurecounts:
             -a {input.saf:q} \
             -o {output.matrix:q} \
             {params.extra} \
-            {input.bams:q} > {log:q}.out 2> {log:q}.err
+                {input.bams:q} > {log:q}.out 2> {log:q}.err
+        fi
         """
 
 

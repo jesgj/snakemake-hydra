@@ -11,7 +11,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/testdata/GSE110004/SRR6357070_2.fastq.gz"
       ],
       "source": "https://github.com/nf-core/test-datasets/blob/626c8fab639062eade4b10747e919341cbf9b41a/README.md",
-      "sampling_scope": "published chrI-enriched 50000-pair real-data subset"
+      "sampling_scope": "published chrI-enriched 50000-pair real-data subset",
+      "sha256": [
+        "3f50541fa9cf2bedc87e7b682ada0fccfdfcd6d27b9bb81f17be230ff140ebe7",
+        "8590e1e01e568fba256aa7dced40519604cbb111ee44ab106a3dcb869660aaf4"
+      ]
     },
     {
       "category": "rnaseq",
@@ -23,7 +27,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/testdata/GSE110004/SRR6357071_2.fastq.gz"
       ],
       "source": "https://github.com/nf-core/test-datasets/blob/626c8fab639062eade4b10747e919341cbf9b41a/README.md",
-      "sampling_scope": "published chrI-enriched 50000-pair real-data subset"
+      "sampling_scope": "published chrI-enriched 50000-pair real-data subset",
+      "sha256": [
+        "06951c97884df8975d5419a2f0d03d435b9da722564000536524b01926970c93",
+        "00bbbf100ee90c5f681c3b4814637283732cd06e620171bd48718aa02de3a91d"
+      ]
     },
     {
       "category": "rnaseq",
@@ -35,7 +43,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/testdata/GSE110004/SRR6357072_2.fastq.gz"
       ],
       "source": "https://github.com/nf-core/test-datasets/blob/626c8fab639062eade4b10747e919341cbf9b41a/README.md",
-      "sampling_scope": "published chrI-enriched 50000-pair real-data subset"
+      "sampling_scope": "published chrI-enriched 50000-pair real-data subset",
+      "sha256": [
+        "6c92efe43dc8145951c4131cd30e3e169f9877f041fcf20c2577eeeb7ec2b6ed",
+        "4501eb0062d4005cc1a4c836a86c036c15d3c38d685138d02675c5ecef84c0a3"
+      ]
     },
     {
       "category": "atacseq",
@@ -47,7 +59,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/cd022b097372b078a68d8afadb172ad7342fd91f/testdata/SRR1822153_2.fastq.gz"
       ],
       "source": "https://github.com/nf-core/test-datasets/blob/cd022b097372b078a68d8afadb172ad7342fd91f/README.md",
-      "sampling_scope": "published random 100000-pair real-data subset"
+      "sampling_scope": "published random 100000-pair real-data subset",
+      "sha256": [
+        "e94bb94aa3524dff446f405b8979b95304085323a851a33b436fa6511bec9b58",
+        "a7c9455e792e095f5db0f2e27edf912b26bd28398976d8a3ac11ff4a463ada1f"
+      ]
     },
     {
       "category": "atacseq",
@@ -59,7 +75,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/cd022b097372b078a68d8afadb172ad7342fd91f/testdata/SRR1822154_2.fastq.gz"
       ],
       "source": "https://github.com/nf-core/test-datasets/blob/cd022b097372b078a68d8afadb172ad7342fd91f/README.md",
-      "sampling_scope": "published random 100000-pair real-data subset"
+      "sampling_scope": "published random 100000-pair real-data subset",
+      "sha256": [
+        "977e96d46afff3af01527ae8db385c844c9501ed6d239390aa091265a1063159",
+        "95fc1034e236f790a820f5977feb42c0ed895f8fe538ffb3b1643197f6aa7534"
+      ]
     },
     {
       "category": "chipseq",
@@ -71,7 +91,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/dc342f94ec86799d7bd635e7192b1cbb3654b559/testdata/SRR5204807_Spt5-ChIP_IP1_SacCer_ChIP-Seq_ss100k_R2.fastq.gz"
       ],
       "source": "https://www.ncbi.nlm.nih.gov/sra/?term=SRR5204807",
-      "sampling_scope": "published 100000-pair real-data subset"
+      "sampling_scope": "published 100000-pair real-data subset",
+      "sha256": [
+        "219e94aa3ee50dc244ac7e9f32735c78472845d638e3c07946babce2a2ef6580",
+        "563c8daa9c04f84702bbe9c6da8ae2c4a948ff124e7758949220de22b10185df"
+      ]
     },
     {
       "category": "chipseq",
@@ -83,7 +107,11 @@
         "https://raw.githubusercontent.com/nf-core/test-datasets/dc342f94ec86799d7bd635e7192b1cbb3654b559/testdata/SRR5204809_Spt5-ChIP_Input1_SacCer_ChIP-Seq_ss100k_R2.fastq.gz"
       ],
       "source": "https://www.ncbi.nlm.nih.gov/sra/?term=SRR5204809",
-      "sampling_scope": "published 100000-pair real-data subset"
+      "sampling_scope": "published 100000-pair real-data subset",
+      "sha256": [
+        "162b7459f4f0eb61c6a64e3c23352d32ec8a81aacf3ce07296639539a533e17f",
+        "2627804ae3ce35b04777433affa9149a090d428a88f444ef3da40011014e6209"
+      ]
     },
     {
       "category": "wgbs",
@@ -99,6 +127,10 @@
       "md5": [
         "180a9764e5c14283d268e0aec7f9b089",
         "02c6e76f97946489e6a87ec95bc92b68"
+      ],
+      "sha256": [
+        "be2ad9d4033c015e0bfed45fc470db7ff7db598690e27ba43a777526d5c42abc",
+        "956b3d8607f61721f27f6f5ff1c41980c350bae42dd45a99dc08e90b8e872818"
       ]
     },
     {
@@ -111,37 +143,48 @@
         "https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR507/005/SRR5071545/SRR5071545_2.fastq.gz"
       ],
       "source": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM2413650",
-      "sampling_scope": "entire original library"
+      "sampling_scope": "entire original library",
+      "sha256": [
+        "0311b58080af40cc86d7a5f002a8d5e0590e5bbaedf9131dd9e2265132a9a7e2",
+        "d703163531722e2506970e9f71174994e7b38d9da95161ea11112ce2f0fb7272"
+      ]
     }
   ],
   "references": [
     {
       "path": "rnaseq/genome.fa",
-      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genome.fasta"
+      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genome.fasta",
+      "sha256": "df70973809f672aa58a414fef3f01e0e465bf26f10159174a616b0dee2d458e1"
     },
     {
       "path": "rnaseq/transcriptome.fa",
-      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/transcriptome.fasta"
+      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/transcriptome.fasta",
+      "sha256": "4f6a6733546b01a96a71f13c63215d9b854dfb1873c2fa484ed69707d6443ac3"
     },
     {
       "path": "rnaseq/genes.gtf",
-      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genes.gtf"
+      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genes.gtf",
+      "sha256": "8d9e66311d90f14517cdb8683066d4b376547ea7c2153b05b510fb9ba7988835"
     },
     {
       "path": "yeast/genome.fa",
-      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/cd022b097372b078a68d8afadb172ad7342fd91f/reference/genome.fa"
+      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/cd022b097372b078a68d8afadb172ad7342fd91f/reference/genome.fa",
+      "sha256": "c0b7305c230b550c3d8ccc692df52338afc7a297b43d965868c285b98aa64ae1"
     },
     {
       "path": "yeast/genes.bed",
-      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/dc342f94ec86799d7bd635e7192b1cbb3654b559/reference/genes.bed"
+      "url": "https://raw.githubusercontent.com/nf-core/test-datasets/dc342f94ec86799d7bd635e7192b1cbb3654b559/reference/genes.bed",
+      "sha256": "6161ebb1f3bd584e43dc69d3b3308083f12aa2dfcf513978f60938fc859dba80"
     },
     {
       "path": "wgbs/genome.fa",
-      "url": "https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.chromosome.5.fa.gz"
+      "url": "https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.chromosome.5.fa.gz",
+      "sha256": "22637081d2969777105e1764fb833c1684dbbd05cedaed97b5a201076247a82c"
     },
     {
       "path": "tair10/genome.fa",
-      "url": "https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz"
+      "url": "https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz",
+      "sha256": "80a13166003333ba4982b57abdb3d2b62037bc831f4da29ea378c1b776fff8e2"
     }
   ]
 }

@@ -13,6 +13,39 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 
 
+def verify_atac_run_merges(section):
+    """Check that every run contributes all records with its original RG metadata."""
+    evidence = {}
+    for sample, info in section["samples_info"].items():
+        if "runs" not in info:
+            continue
+        merged = Path(section["alignment_dir"]) / f"{sample}_pe.sorted.bam"
+        header = subprocess.check_output(["samtools", "view", "-H", str(merged)], text=True)
+        groups = [dict(field.split(":", 1) for field in line.split("\t")[1:])
+                  for line in header.splitlines() if line.startswith("@RG\t")]
+        expected = [run["read_group"] for run in info["runs"].values()]
+        if len(groups) != len(expected) or {g["ID"] for g in groups} != {g["id"] for g in expected}:
+            raise ValueError(f"Merged read-group IDs differ for {sample}")
+        counts = {}
+        for run, run_info in info["runs"].items():
+            rg = run_info["read_group"]
+            observed = next(g for g in groups if g["ID"] == rg["id"])
+            for field, key in (("SM", "sample"), ("LB", "library"), ("PL", "platform"), ("PU", "platform_unit")):
+                if observed.get(field) != rg[key]:
+                    raise ValueError(f"Merged {sample}/{run} changed RG {field}")
+            bam = Path(section["alignment_dir"]) / "runs" / f"{sample}__{run}.sorted.bam"
+            original = int(subprocess.check_output(["samtools", "view", "-c", str(bam)], text=True))
+            retained = int(subprocess.check_output(["samtools", "view", "-c", "-r", rg["id"], str(merged)], text=True))
+            if original == 0 or retained != original:
+                raise ValueError(f"Merged {sample}/{run} lost or duplicated records: {original} -> {retained}")
+            counts[rg["id"]] = retained
+        total = int(subprocess.check_output(["samtools", "view", "-c", str(merged)], text=True))
+        if total != sum(counts.values()):
+            raise ValueError(f"Merged {sample} has missing or unexpected RG tags")
+        evidence[sample] = {"records_by_read_group": counts, "merged_records": total}
+    return evidence
+
+
 def verify_final_outputs(config):
     """Check selected assay outputs in addition to the shared BAM/report checks."""
     mode = config["pipeline"]
@@ -63,6 +96,7 @@ def main():
     if not report.is_file() or report.stat().st_size == 0:
         raise ValueError(f"Missing or empty final report: {report}")
     assay_outputs = verify_final_outputs(config)
+    run_merges = verify_atac_run_merges(section) if config["pipeline"] == "atacseq" else {}
     files = sorted(p for p in work.rglob("*") if p.is_file())
     bams = [p for p in files if p.suffix == ".bam"]
     if not bams:
@@ -97,6 +131,7 @@ def main():
              "multiqc_report_verified": True, "bam_quickcheck": True, "mapped_alignment_records": mapped,
              "peak_counts": peak_counts,
              "assay_outputs_verified": assay_outputs,
+             "atac_run_merges_verified": run_merges,
              "artifacts": artifacts, "output_bytes": sum(p["bytes"] for p in artifacts), "outputs_deleted": False}
     evidence = args.evidence
     evidence.parent.mkdir(parents=True, exist_ok=True)

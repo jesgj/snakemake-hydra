@@ -143,11 +143,20 @@ A separate real-data matrix executes RNA-seq, WGBS chromosome 5 and full TAIR10,
 ChIP-seq PE/SE, CUT&RUN, and ATAC-seq with MACS3 and Genrich. Each job downloads
 only its selected assay/reference, checks the DAG, executes the complete workflow,
 and verifies mapped BAMs, assay outputs and MultiQC. ChIP SE and ATAC Genrich use
-one core; other variants use two cores, with one scheduled job at a time. At most
+one core, as does chromosome-5 WGBS; other variants use two cores, with one scheduled job at a time. At most
 two matrix jobs run concurrently. Source checksums and execution evidence are
 stored in the diagnostic artifacts, alongside logs and reports. Raw FASTQs, BAMs,
 indexes and bigWigs are excluded from uploads. These small fixtures check software
 behavior; they do not validate biological accuracy.
+
+The ATAC MACS3 fixture splits each sample into two disjoint run fixtures and
+verifies merged read-group metadata and record counts. Genrich keeps the legacy
+single-run input path. Whitespace checks cover the complete PR or pushed commit
+range, including multi-commit pushes.
+
+CI also checks ambiguous FASTQ discovery and ATAC quantification with empty peak
+sets or insufficient consensus support. An empty consensus produces a zero-row
+count matrix; no fragments are processed by featureCounts and FRiP is `NA`.
 
 There is no configured formatter, typechecker, or general unit-test framework.
 Use focused Snakemake dry-runs while developing changes:
@@ -169,6 +178,7 @@ include a reproducible public ENA V4 fixture with random paired subsampling,
 verified checksums, documented primers, and RDP 19 taxonomy.
 
 ### RNA-seq
+- Gene body coverage defaults to disabled when its configuration is omitted.
 - Requires paired-end samples.
 - Required config values include `transcriptome_fasta`, `kallisto_index`, `ref_genome`, and `hisat2_index_dir`.
 - The pipeline can build the Kallisto index and HISAT2 indexes at the configured paths.

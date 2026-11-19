@@ -5,7 +5,7 @@ GENE_BODY_COVERAGE_DIR = config["gene_body_coverage_dir"]
 SAMPLES_INFO = config["samples_info"]
 
 GENE_BODY_COVERAGE_CONFIG = config.get("gene_body_coverage", {})
-GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", True)
+GENE_BODY_COVERAGE_ENABLED = GENE_BODY_COVERAGE_CONFIG.get("enabled", False)
 REFGENE_BED = GENE_BODY_COVERAGE_CONFIG.get("refgene_bed")
 MIN_MRNA_LENGTH = GENE_BODY_COVERAGE_CONFIG.get("minimum_length", 100)
 OUTPUT_FORMAT = GENE_BODY_COVERAGE_CONFIG.get("format", "pdf")

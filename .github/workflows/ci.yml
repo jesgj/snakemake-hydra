@@ -29,11 +29,23 @@ jobs:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Check patch whitespace
-        run: git diff --check HEAD^ HEAD
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA=$(git hash-object -t tree /dev/null)
+          elif [[ -z "$BASE_SHA" ]]; then
+            BASE_SHA=$(git rev-parse --verify HEAD^ 2>/dev/null || git hash-object -t tree /dev/null)
+          fi
+          if ! git cat-file -e "$BASE_SHA"; then
+            git fetch --no-tags origin "$BASE_SHA"
+          fi
+          git diff --check "$BASE_SHA" HEAD
 
       - name: Install locked environment
         uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
@@ -69,6 +81,13 @@ jobs:
           HYDRA_CONFIG=test_data/configs/amplicon_public.yaml pixi run --locked snakemake --cores 2
           pixi run --locked python test_data/amplicon_public.py --verify
 
+      - name: Collect amplicon lint recommendations
+        continue-on-error: true
+        shell: bash
+        run: |
+          HYDRA_CONFIG=test_data/work/amplicon_smoke/paired.yaml pixi run --locked snakemake --lint \
+            2>&1 | tee test_data/work/amplicon_lint.log
+
       - name: Upload validation logs and reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -78,6 +97,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             test_data/work/amplicon_smoke_driver.log
+            test_data/work/amplicon_lint.log
             test_data/work/amplicon_smoke/**/*.log*
             test_data/work/amplicon_smoke/**/*.json
             test_data/work/amplicon_smoke/**/*.tsv
@@ -102,7 +122,7 @@ jobs:
           - variant: rnaseq
             cores: 2
           - variant: wgbs
-            cores: 2
+            cores: 1
           - variant: wgbs_full
             cores: 2
           - variant: chipseq
@@ -159,12 +179,28 @@ jobs:
             --printshellcmds --latency-wait 60 \
             2>&1 | tee "test_data/work/ci/$VARIANT/run.log"
 
+      - name: Collect workflow lint recommendations
+        continue-on-error: true
+        shell: bash
+        run: |
+          pixi run --locked snakemake --lint \
+            --replace-workflow-config --configfile "$HYDRA_CONFIG" \
+            2>&1 | tee "test_data/work/ci/$VARIANT/lint.log"
+
       - name: Verify BAMs, assay outputs and report
         shell: bash
         run: |
           pixi run --locked python test_data/finish_run.py "$VARIANT" --cores "$CORES" \
             --keep-outputs --evidence "test_data/work/ci/$VARIANT/execution.json" \
             2>&1 | tee "test_data/work/ci/$VARIANT/verify.log"
+
+      - name: Check discovery and empty ATAC peak regressions
+        if: matrix.variant == 'atacseq_macs3'
+        shell: bash
+        run: |
+          pixi run --locked python test_data/review_regressions.py \
+            --atac-config "$HYDRA_CONFIG" --workdir "test_data/work/ci/$VARIANT/regressions" \
+            2>&1 | tee "test_data/work/ci/$VARIANT/regressions.log"
 
       - name: Upload validation logs and reports
         if: always()

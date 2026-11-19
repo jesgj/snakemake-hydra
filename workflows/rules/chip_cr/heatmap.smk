@@ -20,7 +20,7 @@ def get_heatmap_input_bigwigs(wildcards):
     subtracted_samples = {pair['sample'] for pair in config.get('subtraction_pairs', [])}
 
     for sample, info in SAMPLES_INFO.items():
-        if 'input' not in sample:
+        if not INPUT_SAMPLE_PATTERN.fullmatch(sample):
             read_type = 'pe' if info['type'] == 'PE' else 'se'
             if sample in subtracted_samples:
                 bws.append(os.path.join(SUBTRACTED_BIGWIG_DIR, f"{sample}_{read_type}.subtracted.bw"))

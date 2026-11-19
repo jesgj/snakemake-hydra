@@ -122,6 +122,27 @@ def main():
     else:
         raise AssertionError("Missing primers must be rejected")
     invalid = copy.deepcopy(a)
+    invalid["sample_sheet"] = str(work / "unused.tsv")
+    try:
+        normalize(invalid)
+    except ValueError as exc:
+        assert "not both" in str(exc)
+    else:
+        raise AssertionError("TSV plus samples_info must be rejected")
+    orphan = work / "orphan_inputs"
+    orphan.mkdir(exist_ok=True)
+    link = orphan / "orphan_R2.fastq.gz"
+    if not link.exists():
+        link.symlink_to(ext / "sam1R.fastq.gz")
+    invalid = copy.deepcopy(a)
+    invalid.update(samples_info={}, raw_fastqs_dir=str(orphan))
+    try:
+        normalize(invalid)
+    except ValueError as exc:
+        assert "orphan R2" in str(exc)
+    else:
+        raise AssertionError("Discovered orphan R2 must be rejected")
+    invalid = copy.deepcopy(a)
     invalid["samples_info"]["sam2"].pop("R2")
     try:
         normalize(invalid)
@@ -166,7 +187,7 @@ def main():
             a["samples_info"] = {}
             a["raw_fastqs_dir"] = str(raw)
         elif variant == "reverse":
-            # Test TSV manifests and the explicit R2 fallback with reverse-complemented ASVs.
+            # Test TSV manifests and explicit R2 analysis with reverse-complemented ASVs.
             sheet = work / "reverse_samples.tsv"
             sheet.write_text("sample\tR1\tR2\tmode\tbatch\n" + "".join(f"sam{i}\t{ext / f'sam{i}F.fastq.gz'}\t{ext / f'sam{i}R.fastq.gz'}\treverse\tdefault\n" for i in (1, 2)))
             a["samples_info"] = {}
@@ -225,6 +246,11 @@ def main():
         verify(root, True)
         assert all((root / name).read_bytes() == data for name, data in stable.items())
         report["checks"][f"rebuild_{directory}"] = "passed; scientific outputs unchanged"
+    cutadapt_json = root / "primers/sam1.cutadapt.json"
+    cutadapt_json.unlink()
+    assert run(work / "paired.yaml", 2, work / "rebuild_cutadapt_json.log") == 0
+    assert json.loads(cutadapt_json.read_text())["status"] == "not_requested"
+    report["checks"]["rebuild_cutadapt_json"] = "passed"
     (work / "validation.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"Checks passed; current-run evidence: {work / 'validation.json'}", flush=True)
 

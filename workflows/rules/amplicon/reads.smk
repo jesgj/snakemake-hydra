@@ -25,7 +25,8 @@ rule remove_primers_se:
     output:
         reads=os.path.join(OUT, "primers", "{sample}_R1.fastq.gz"),
         stats=os.path.join(OUT, "primers", "{sample}.reads.json"),
-        cutadapt_report=os.path.join(OUT, "primers", "{sample}.cutadapt.txt")
+        cutadapt_report=os.path.join(OUT, "primers", "{sample}.cutadapt.txt"),
+        cutadapt_json=os.path.join(OUT, "primers", "{sample}.cutadapt.json")
     wildcard_constraints:
         sample=SE_PATTERN
     params:
@@ -42,6 +43,7 @@ use rule remove_primers_se as remove_primers_pe with:
         reads=os.path.join(OUT, "primers", "{sample}_R1.fastq.gz"),
         stats=os.path.join(OUT, "primers", "{sample}.reads.json"),
         cutadapt_report=os.path.join(OUT, "primers", "{sample}.cutadapt.txt"),
+        cutadapt_json=os.path.join(OUT, "primers", "{sample}.cutadapt.json"),
         r2=os.path.join(OUT, "primers", "{sample}_R2.fastq.gz")
     wildcard_constraints:
         sample=PE_PATTERN

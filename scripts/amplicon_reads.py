@@ -88,6 +88,8 @@ def main():
             subprocess.run(command + raw, check=True, stdout=report)
     else:
         (root / "primers" / f"{args.sample}.cutadapt.txt").write_text("Primer trimming not requested: inputs declared already_removed.\n")
+        (root / "primers" / f"{args.sample}.cutadapt.json").write_text(
+            json.dumps({"status": "not_requested", "primer_mode": "already_removed"}) + "\n")
         for source, destination in zip(raw, prepared):
             if str(source).endswith(".gz"):
                 shutil.copyfile(source, destination)

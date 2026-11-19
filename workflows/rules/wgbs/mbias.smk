@@ -39,6 +39,9 @@ rule methyldackel_mbias:
         pixi run MethylDackel mbias -@ {threads} {params.extra} {input.ref} {input.bam} {params.prefix} > {output.mbias} 2> {log}.err
         awk -F'Suggested inclusion options: ' '/Suggested inclusion options:/ {{print $2}}' {log}.err | tail -n 1 | tr -d '\n' > {output.options}
         printf "Saved mbias suggestions to %s\n" "{output.options}" > {log}.out
+        if [ ! -s {output.options:q} ]; then
+            echo "No MethylDackel inclusion suggestion was emitted; extraction will use configured options only." >> {log:q}.err
+        fi
         """
 
 rule aggregate_mbias_options:

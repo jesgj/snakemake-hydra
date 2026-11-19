@@ -108,7 +108,9 @@ HYDRA_CONFIG=/path/to/config.yaml pixi run snakemake --cores 4 --until amplicon_
 ```
 
 `mode: auto` detects layout: paired inputs use `merge`, single-end inputs use
-`forward`. DADA2 requires enough post-trimming overlap (`min_overlap`, default
+`forward`. A cohort mixing PE and SE therefore needs explicit `mode: forward`
+for all samples, with a comparable region; mixed auto-selected modes are rejected.
+DADA2 requires enough post-trimming overlap (`min_overlap`, default
 12) with at most `max_mismatch` differences (default zero). If a sample has no
 merged reads, the workflow fails with a diagnostic; it does not silently analyse
 one mate. Explicit `forward` or `reverse` modes let paired samples use one mate.
