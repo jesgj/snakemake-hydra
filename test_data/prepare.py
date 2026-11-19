@@ -45,9 +45,11 @@ def digest(path, algorithm="sha256"):
 
 def fetch(url, path):
     # Catalog sources are under 100 MiB per file. Reject accidental large downloads.
+    # Retry interrupted transfers (e.g. curl exit 56); -o lets curl reset partial files.
     subprocess.run([
         "curl", "-L", "-f", "-sS", "--connect-timeout", "20", "--max-time", "180",
-        "--max-filesize", str(100 * 1024 * 1024), "--retry", "2", "-o", str(path), url,
+        "--max-filesize", str(100 * 1024 * 1024), "--retry", "2", "--retry-all-errors",
+        "-o", str(path), url,
     ], check=True)
 
 

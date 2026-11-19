@@ -48,7 +48,8 @@ identifiers and FASTQ records, and uniformly samples pairs without replacement
 using reservoir sampling. R1/R2 remain synchronized and retain their original
 sequences and qualities. Both temporary source files are deleted when that sample
 finishes, including on failure. Full source FASTQs are never pipeline inputs.
-The script rejects downloads larger than 100 MiB per file.
+The script rejects downloads larger than 100 MiB per file and retries failed
+transfers up to twice, including connection drops during a download.
 
 Only the sampled FASTQs and small references remain under this directory.
 `provenance.json` records actual source/retained counts, source and output SHA-256
