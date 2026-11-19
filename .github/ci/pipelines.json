@@ -1,0 +1,31 @@
+{
+  "pipelines": {
+    "rnaseq": {"fixtures": [{"variant": "rnaseq", "cores": 2}]},
+    "wgbs": {"fixtures": [{"variant": "wgbs", "cores": 1}, {"variant": "wgbs_full", "cores": 2}]},
+    "chip_cr": {"fixtures": [{"variant": "chipseq", "cores": 2}, {"variant": "chipseq_se", "cores": 1}, {"variant": "cutrun", "cores": 2}]},
+    "atacseq": {"fixtures": [{"variant": "atacseq_macs3", "cores": 2}, {"variant": "atacseq_genrich", "cores": 1}]},
+    "amplicon": {"bundled_16s": true}
+  },
+  "dependencies": {
+    "workflows/rules/qc.smk": ["rnaseq", "wgbs", "chip_cr"],
+    "workflows/rules/trimming_and_qc.smk": ["rnaseq", "wgbs", "chip_cr"],
+    "workflows/rules/bam_qc.smk": ["wgbs", "chip_cr", "atacseq"],
+    "workflows/rules/deeptools_qc.smk": ["rnaseq", "chip_cr", "atacseq"],
+    "workflows/rules/multiqc.smk": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
+    "src/utils.py": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
+    "src/amplicon_config.py": ["amplicon"],
+    "src/validate_bam_read_group.py": ["atacseq"],
+    "src/validate_merged_bam_read_groups.py": ["atacseq"],
+    "scripts/validate_fastq_pairs.py": ["atacseq", "amplicon"],
+    "scripts/atac_empty_counts.py": ["atacseq"],
+    "scripts/amplicon_reads.py": ["amplicon"],
+    "scripts/amplicon_dada2.R": ["amplicon"],
+    "scripts/amplicon_taxonomy.R": ["amplicon"],
+    "test_data/amplicon_smoke.py": ["amplicon"],
+    "test_data/amplicon_public.py": ["amplicon"],
+    "test_data/review_regressions.py": ["atacseq"],
+    "test_data/prepare.py": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
+    "test_data/finish_run.py": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
+    "test_data/datasets.json": ["rnaseq", "wgbs", "chip_cr", "atacseq"]
+  }
+}
