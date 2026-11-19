@@ -1,5 +1,6 @@
 PREPARED_READS = [os.path.join(OUT, "primers", f"{s}_{m}.fastq.gz") for s in SAMPLES for m in ("R1", "R2") if SAMPLES_INFO[s].get(m)]
 PREPARED_STATS = expand(os.path.join(OUT, "primers", "{sample}.reads.json"), sample=SAMPLES)
+CUTADAPT_JSON = expand(os.path.join(OUT, "primers", "{sample}.cutadapt.json"), sample=SAMPLES)
 
 rule denoise:
     input:
@@ -46,7 +47,7 @@ rule multiqc:
         retention=os.path.join(OUT, "amplicon_read_retention_mqc.tsv"),
         stats=PREPARED_STATS,
         cutadapt=expand(os.path.join(OUT, "primers", "{sample}.cutadapt.txt"), sample=SAMPLES),
-        cutadapt_json=expand(os.path.join(OUT, "primers", "{sample}.cutadapt.json"), sample=SAMPLES),
+        cutadapt_json=CUTADAPT_JSON,
         taxonomy=os.path.join(OUT, "taxonomy.tsv")
     output:
         report=os.path.join(OUT, "multiqc", "multiqc_report.html")

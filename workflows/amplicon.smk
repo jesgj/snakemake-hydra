@@ -25,4 +25,6 @@ rule all:
         os.path.join(OUT, "run_metadata.json"),
         os.path.join(OUT, "filtered"),
         os.path.join(OUT, "errors"),
+        # Rebuild missing JSON reports even if the MultiQC HTML already exists.
+        CUTADAPT_JSON,
         os.path.join(OUT, "multiqc", "multiqc_report.html")
