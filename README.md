@@ -160,8 +160,11 @@ a current release run.
 
 A separate real-data matrix executes RNA-seq, WGBS chromosome 5 and full TAIR10,
 ChIP-seq PE/SE, CUT&RUN, and ATAC-seq with MACS3 and Genrich. Each job downloads
-only its selected assay/reference, checks the DAG, executes the complete workflow,
-and verifies mapped BAMs, assay outputs and MultiQC. ChIP SE and ATAC Genrich use
+only its selected assay/reference on a cache miss. On a hit it verifies the
+prepared inputs against recorded hashes before reusing them. Each job checks the
+DAG, executes the complete workflow, and verifies mapped BAMs, assay outputs,
+and MultiQC. CI caches only prepared inputs and provenance, never workflow
+results or generated indexes. Lint remains nonblocking and runs once per workflow. ChIP SE and ATAC Genrich use
 one core, as does chromosome-5 WGBS; other variants use two cores, with one scheduled job at a time. At most
 two matrix jobs run concurrently. Source checksums and execution evidence are
 stored in the diagnostic artifacts, alongside logs and reports. Raw FASTQs, BAMs,

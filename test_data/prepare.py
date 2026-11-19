@@ -130,6 +130,44 @@ def split_atac_runs(catalog):
     return evidence
 
 
+def prepared_paths(catalog, variants):
+    """List the prepared inputs needed by the selected fixture variants."""
+    samples, references = fixture_selection(catalog, variants)
+    paths = [ROOT / "fastqs" / sample["category"] / f"{sample['sample']}_R{mate}.fastq.gz"
+             for sample in samples for mate in (1, 2)]
+    paths.extend(ROOT / "references" / reference["path"] for reference in references)
+    if "rnaseq" in variants:
+        paths.append(ROOT / "references/rnaseq/genes.bed12")
+    if "atacseq_macs3" in variants:
+        for sample in samples:
+            if sample["category"] == "atacseq":
+                for run in ("part1", "part2"):
+                    paths.extend(atac_run_paths(sample["sample"], run))
+    return paths
+
+
+def prepared_checksums(catalog, variants):
+    return {path.relative_to(ROOT).as_posix(): digest(path) for path in prepared_paths(catalog, variants)}
+
+
+def verify_prepared(catalog, variants, provenance):
+    """Require the exact selected inputs and the hashes recorded at preparation."""
+    report = json.loads(provenance.read_text())
+    if not isinstance(report, dict):
+        raise ValueError(f"Invalid prepared fixture provenance: {provenance}")
+    expected = report.get("prepared_sha256")
+    paths = prepared_paths(catalog, variants)
+    if report.get("seed") != catalog["seed"] or not isinstance(expected, dict) or (
+        set(expected) != {path.relative_to(ROOT).as_posix() for path in paths}
+    ):
+        raise ValueError(f"Prepared fixture provenance does not match selected inputs: {provenance}")
+    for path in paths:
+        key = path.relative_to(ROOT).as_posix()
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f"Missing or invalid prepared fixture input: {path}")
+        verify_source(path, expected[key])
+
+
 def make_configs(catalog, variants=None):
     import copy
     import yaml  # Already provided by the committed Pixi environment.
@@ -231,14 +269,20 @@ def bed12_from_gtf():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--configs-only", action="store_true", help="Regenerate isolated configs without downloads")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--configs-only", action="store_true", help="Regenerate isolated configs without downloads")
+    mode.add_argument("--verify-prepared", action="store_true",
+                      help="Verify prepared inputs against provenance and regenerate configs without downloads")
     parser.add_argument("--variants", nargs="+", choices=VARIANTS, default=list(VARIANTS),
                         help="Prepare only the selected variants (default: all)")
     parser.add_argument("--provenance", type=Path, default=ROOT / "work" / "evidence" / "provenance.json",
                         help="Destination for source and sample checksums")
     args = parser.parse_args()
     catalog = json.loads((ROOT / "datasets.json").read_text())
-    if args.configs_only:
+    if args.verify_prepared:
+        verify_prepared(catalog, args.variants, args.provenance)
+        print(f"Verified cached fixture inputs: {', '.join(args.variants)}", flush=True)
+    if args.configs_only or args.verify_prepared:
         make_configs(catalog, args.variants)
         return
     samples, references = fixture_selection(catalog, args.variants)
@@ -283,6 +327,7 @@ def main():
         bed12_from_gtf()
     if "atacseq_macs3" in args.variants:
         report["atac_split_runs"] = split_atac_runs(catalog)
+    report["prepared_sha256"] = prepared_checksums(catalog, args.variants)
     args.provenance.write_text(json.dumps(report, indent=2) + "\n")
     make_configs(catalog, args.variants)
     print(f"Ready: {', '.join(args.variants)}; provenance: {args.provenance}", flush=True)

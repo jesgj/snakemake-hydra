@@ -3,6 +3,7 @@
 Track notable changes and implementation work here.
 
 ## Implemented
+- Cache verified prepared fixture inputs in CI and collect lint once per workflow without reducing fixture or replay coverage.
 - 2026-11-19: Track isolated WGBS reference/index outputs and ATAC prebuilt index provenance; verify explicit fixture output contracts, compare clean RNA-seq and paired 16S replays, and retain locked run/input identities for CI and release evidence.
 - 2026-11-19: Add shared FASTQ synchronization/SE audit rules across the pipelines, deterministic Bowtie2/HISAT2/Bismark read groups with shared per-BAM validation, declared validator scripts as rule inputs, and fixed bare-mate discovery so `sample1`/`sample2` remain single-end samples. Amplicon keeps its existing shared-reader audit; merged read-group validation remains ATAC-only.
 - 2026-11-19: Make the shared original-pipeline MultiQC report consume an exact current-cohort source list instead of scanning analysis directories. Track parsed FastQC/FastP/alignment/BAM-QC/deepTools/peak files plus the exact Kallisto, Bowtie2, and Sambamba markdup logs; keep the amplicon separate reporting path. Add repeat and stale-cohort source regressions.

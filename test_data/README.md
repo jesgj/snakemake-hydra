@@ -37,6 +37,14 @@ still prepares all variants. Fresh provenance and execution evidence default to
 `test_data/work/evidence/`; `--provenance` and `--evidence` override those destinations.
 The committed JSON records are historical.
 
+CI caches prepared FASTQs and references, including the derived RNA BED12 and
+ATAC run partitions, alongside their SHA-256 manifest. Cache keys include the
+fixture variant, runner OS/architecture, dataset catalog, preparation code,
+and Pixi lockfile. Only pushes to `main` populate the cache, before workflow
+execution. A hit must pass `prepare.py --verify-prepared` to be reused; a failed
+check causes CI to prepare clean inputs from source. Configs are generated
+fresh, and results and generated indexes are not cached.
+
 `datasets.json` records source URLs, pinned nf-core repository revisions, the
 retained pair counts, and seed `20261002`. RNA-seq, ATAC-seq, and ChIP-seq use
 small real-data subsets already hosted by nf-core; the RNA-seq source is enriched
@@ -115,8 +123,9 @@ featureCounts processes zero fragments, and FRiP is `NA`. CI runs these checks
 after MACS3 verification. Omitting `--atac-config` runs discovery checks only.
 CI exercises chromosome-5 WGBS with one scheduler core to cover implicit
 single-thread Bismark execution; full-genome WGBS remains at two cores.
-Snakemake lint recommendations are collected as nonblocking diagnostic steps
-because the existing Pixi/layout recommendations are not a clean lint baseline.
+Snakemake lint recommendations are collected once per workflow, not per fixture
+variant. They remain nonblocking because the existing Pixi/layout recommendations
+are not a clean lint baseline.
 RNA-seq exercises two kallisto bootstraps with a fixed seed; Picard heaps are
 limited to 1 GB, and ATAC MACS3 uses a yeast genome size. Configs inherit other current tool options
 from `config/config.yaml`; regenerate them after changing defaults:

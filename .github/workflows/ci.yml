@@ -38,6 +38,7 @@ jobs:
         run: |
           python3 -B .github/ci/test_plan.py
           python3 -B test_data/test_finish_run.py
+          python3 -B test_data/test_prepared_inputs.py
           python3 -B test_data/atac_bowtie2_manifest_test.py
           python3 -B test_data/test_replay_evidence.py
 
@@ -163,13 +164,48 @@ jobs:
               2>&1 | tee "test_data/work/ci/$VARIANT/reference_regression_$format.log"
           done
 
-      - name: Prepare selected real-data fixture
+      - name: Restore prepared fixture inputs
+        id: fixture-cache
+        continue-on-error: true
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            test_data/fastqs
+            test_data/references
+            test_data/work/ci/${{ matrix.variant }}/provenance.json
+          key: hydra-inputs-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.variant }}-${{ hashFiles('test_data/datasets.json', 'test_data/prepare.py', 'pixi.lock') }}
+
+      - name: Verify restored inputs or prepare fixture from source
         shell: bash
+        env:
+          FIXTURE_CACHE_HIT: ${{ steps.fixture-cache.outputs.cache-hit }}
         run: |
-          mkdir -p "test_data/work/ci/$VARIANT"
-          pixi run --locked python test_data/prepare.py --variants "$VARIANT" \
-            --provenance "test_data/work/ci/$VARIANT/provenance.json" \
-            2>&1 | tee "test_data/work/ci/$VARIANT/prepare.log"
+          evidence="test_data/work/ci/$VARIANT"
+          mkdir -p "$evidence"
+          prepare=(pixi run --locked python test_data/prepare.py --variants "$VARIANT"
+            --provenance "$evidence/provenance.json")
+          if [[ "$FIXTURE_CACHE_HIT" == true ]] &&
+             "${prepare[@]}" --verify-prepared 2>&1 | tee "$evidence/cache-verify.log"; then
+            echo 'Reused verified fixture inputs.'
+          else
+            if [[ "$FIXTURE_CACHE_HIT" == true ]]; then
+              echo '::warning::Prepared fixture cache failed verification; preparing from source.'
+            fi
+            # These directories contain only generated fixture inputs on the CI runner.
+            rm -rf -- test_data/fastqs test_data/references
+            "${prepare[@]}" 2>&1 | tee "$evidence/prepare.log"
+          fi
+
+      - name: Save verified fixture inputs before running the workflow
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.fixture-cache.outputs.cache-hit != 'true' && steps.fixture-cache.outputs.cache-primary-key != ''
+        continue-on-error: true
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            test_data/fastqs
+            test_data/references
+            test_data/work/ci/${{ matrix.variant }}/provenance.json
+          key: ${{ steps.fixture-cache.outputs.cache-primary-key }}
 
       - name: Check selected workflow DAG
         shell: bash
@@ -201,7 +237,8 @@ jobs:
             --baseline "$evidence/inputs-before.json" --current "$evidence/inputs-after.json" \
             | tee "$evidence/input-recheck.log"
 
-      - name: Collect workflow lint recommendations
+      - name: Collect lint recommendations once per workflow
+        if: contains(fromJSON('["rnaseq", "wgbs", "chipseq", "atacseq_macs3"]'), matrix.variant)
         continue-on-error: true
         shell: bash
         run: |

@@ -31,6 +31,7 @@
     "test_data/validation_regressions.py": ["rnaseq", "wgbs", "chip_cr", "atacseq", "amplicon"],
     "test_data/wgbs_reference_regression.py": ["wgbs"],
     "test_data/prepare.py": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
+    "test_data/test_prepared_inputs.py": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
     "test_data/finish_run.py": ["rnaseq", "wgbs", "chip_cr", "atacseq"],
     "test_data/rnaseq_replay.py": ["rnaseq"],
     "test_data/datasets.json": ["rnaseq", "wgbs", "chip_cr", "atacseq"]
