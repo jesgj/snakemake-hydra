@@ -15,6 +15,7 @@ SAMPLES_INFO = config["samples_info"]
 BOWTIE2_CONFIG = config.get("bowtie2", {})
 BOWTIE2_EXTRA_ARGS = BOWTIE2_CONFIG.get("extra_args", "")
 ACTIVE_ATAC_PIPELINE = config.get("pipeline") == "atacseq"
+BOWTIE2_MANIFEST_HELPER = os.path.join("src", "atac_bowtie2_manifest.py")
 
 
 def _atac_alignment_run_info(wildcards):
@@ -75,6 +76,11 @@ def _bowtie2_index_files(prefix, suffixes):
 
 
 PREBUILT_BOWTIE2_INDEX = CONFIGURED_BOWTIE2_INDEX_PREFIX is not None
+PREBUILT_BOWTIE2_INDEX_MANIFEST = (
+    f"{CONFIGURED_BOWTIE2_INDEX_PREFIX}.manifest.json"
+    if PREBUILT_BOWTIE2_INDEX
+    else None
+)
 
 if PREBUILT_BOWTIE2_INDEX:
     BOWTIE2_INDEX_PREFIX = CONFIGURED_BOWTIE2_INDEX_PREFIX
@@ -147,11 +153,24 @@ else:
             BOWTIE2_INDEX_PREFIX, STANDARD_INDEX_SUFFIXES
         )
 
+if PREBUILT_BOWTIE2_INDEX and ACTIVE_ATAC_PIPELINE:
+    if not os.path.isfile(PREBUILT_BOWTIE2_INDEX_MANIFEST):
+        raise ValueError(
+            "ATAC-seq prebuilt bowtie2_index_prefix requires a provenance manifest. "
+            f"Missing manifest: {PREBUILT_BOWTIE2_INDEX_MANIFEST}. Create it from "
+            "known index provenance with: pixi run --locked python3 "
+            f"{BOWTIE2_MANIFEST_HELPER} create --prefix "
+            f"{BOWTIE2_INDEX_PREFIX!r} --reference {REF_GENOME!r} "
+            f"--format {BOWTIE2_INDEX_FORMAT} --builder-version <bowtie2 version>"
+        )
+
 index_identity = hashlib.sha256(
     f"{os.path.abspath(BOWTIE2_INDEX_PREFIX)}|{BOWTIE2_INDEX_FORMAT}".encode()
 ).hexdigest()[:12]
+validation_scope = "_manifest" if PREBUILT_BOWTIE2_INDEX else ""
 BOWTIE2_VALIDATION_MARKER = os.path.join(
-    REFERENCE_DIR, f"bowtie2_index_{index_identity}.validated.OK"
+    REFERENCE_DIR,
+    f"bowtie2_index_{index_identity}{validation_scope}.validated.OK",
 )
 
 
@@ -183,19 +202,35 @@ rule bowtie2_validate:
     Validates the complete generated or prebuilt Bowtie2 index once.
     """
     input:
-        index = BOWTIE2_INDEX_FILES
+        index = BOWTIE2_INDEX_FILES,
+        manifest = PREBUILT_BOWTIE2_INDEX_MANIFEST if PREBUILT_BOWTIE2_INDEX else [],
+        ref_genome = REF_GENOME if PREBUILT_BOWTIE2_INDEX else [],
+        helper = BOWTIE2_MANIFEST_HELPER if PREBUILT_BOWTIE2_INDEX else []
     output:
         marker = BOWTIE2_VALIDATION_MARKER
     params:
-        prefix = BOWTIE2_INDEX_PREFIX
+        prefix = BOWTIE2_INDEX_PREFIX,
+        prebuilt = "true" if PREBUILT_BOWTIE2_INDEX else "false",
+        index_format = BOWTIE2_INDEX_FORMAT
     threads: 1
     log:
         os.path.join("logs", config["pipeline"], "bowtie2_validate", "bowtie2_validate.log")
     shell:
         """
         set -euo pipefail
-        pixi run bowtie2-inspect -n "{params.prefix}" > {log}.out 2> {log}.err
-        touch "{output.marker}"
+        if {params.prebuilt}; then
+            pixi run python3 {input.helper:q} validate \
+                --manifest {input.manifest:q} \
+                --prefix {params.prefix:q} \
+                --reference {input.ref_genome:q} \
+                --format {params.index_format:q} --check-dictionary \
+                > {log}.out 2> {log}.err
+        else
+            : > {log}.out
+            : > {log}.err
+        fi
+        pixi run bowtie2-inspect -n {params.prefix:q} >> {log}.out 2>> {log}.err
+        touch {output.marker:q}
         """
 
 
@@ -226,7 +261,8 @@ rule bowtie2_align_run_pe:
         sort_extra_threads = lambda wildcards, threads: max(0, threads - max(1, threads // 2) - 1)
     threads: 4
     log:
-        os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}__{run}.log")
+        out=os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}__{run}.log.out"),
+        err=os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}__{run}.log.err")
     shell:
         """
         set -euo pipefail
@@ -245,7 +281,7 @@ rule bowtie2_align_run_pe:
             "${{BOWTIE_CMD[@]}}" | \
             pixi run samtools sort -@ {params.sort_extra_threads} -o {output.bam:q} -
           fi
-        ) > {log:q}.out 2> {log:q}.err
+        ) > {log.out:q} 2> {log.err:q}
         """
 
 
@@ -254,7 +290,8 @@ rule validate_bowtie2_run_read_group:
     Validates the ATAC BAM read-group header and every alignment RG tag.
     """
     input:
-        bam = os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam")
+        bam = os.path.join(ALIGNMENT_DIR, "runs", "{sample}__{run}.sorted.bam"),
+        validator = "src/validate_bam_read_group.py"
     output:
         report = os.path.join(
             READ_GROUP_QC_DIR, "{sample}__{run}.read_group_validation.tsv"
@@ -289,7 +326,8 @@ rule samtools_merge_runs:
     """
     input:
         bams=_atac_sample_run_bams,
-        read_group_validations=_atac_sample_run_validations
+        read_group_validations=_atac_sample_run_validations,
+        validator="src/validate_merged_bam_read_groups.py"
     output:
         bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"),
         read_group_validation=os.path.join(

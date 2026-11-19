@@ -3,7 +3,8 @@ import os
 
 # --- CONFIGURATION ---
 SORTED_FILTERED_BAM_DIR = config["sorted_filtered_bam_dir"]
-REF_GENOME = config["ref_genome"]
+REF_GENOME = config["reference_fasta"]
+REF_FAI = config["reference_fasta_fai"]
 MBIAS_DIR = config["mbias_dir"]
 METHYLDACKEL_DIR = config["methyldackel_dir"]
 METHYLDACKEL_MERGECONTEXT_DIR = config["methyldackel_mergecontext_dir"]
@@ -25,6 +26,7 @@ rule methyldackel_extract_methylkit:
         bam=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"),
         bai=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai"),
         ref=REF_GENOME,
+        ref_fai=REF_FAI,
         options=os.path.join(MBIAS_DIR, "{sample}.options.txt")
     output:
         methylkit_file=os.path.join(METHYLDACKEL_DIR, "{sample}_CpG.methylKit")
@@ -54,6 +56,7 @@ rule methyldackel_extract_mergecontext:
         bam=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"),
         bai=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai"),
         ref=REF_GENOME,
+        ref_fai=REF_FAI,
         options=os.path.join(MBIAS_DIR, "{sample}.options.txt")
     output:
         bedgraph=os.path.join(METHYLDACKEL_MERGECONTEXT_DIR, "{sample}_CpG.bedGraph")

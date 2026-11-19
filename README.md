@@ -30,10 +30,13 @@ DADA2 denoising, optional reference-based taxonomy, and ASV/read-retention outpu
 ```bash
 git clone <repo-url>
 cd snakemake-hydra
-pixi install
+pixi install --locked
 ```
 
-`pixi.toml` defines dependencies but no tasks, so run tools explicitly with `pixi run ...`.
+`pixi.toml` defines dependencies but no tasks. Use `pixi run --locked ...` to
+reject a stale lockfile; Hydra enforces this for its nested Pixi commands too.
+When changing `pixi.lock`, start a new results directory or rebuild all old
+outputs before combining them with results from the new environment.
 
 ## Configure
 Edit `config/config.yaml` before running.
@@ -69,7 +72,9 @@ chip_cr:
 
 If `samples_info` is missing or empty, `src/utils.py` discovers FASTQs in `raw_fastqs_dir` using these patterns:
 - Paired-end: `_R1/_R2`, `_1/_2`, `.R1/.R2`.
-- Single-end: `<sample>.fastq.gz` or `<sample>.fq.gz`.
+- Single-end: `<sample>.fastq.gz` or `<sample>.fq.gz`. A bare trailing digit is
+  part of the sample name (`sample1.fastq.gz`), so numeric mates require a
+  separator (`sample_1.fastq.gz`, `sample.1.fastq.gz`, or `sample-1.fastq.gz`).
 
 Sample support differs by pipeline:
 - `rnaseq` and `wgbs` require paired-end samples with `R1` and `R2`.
@@ -82,38 +87,38 @@ Sample support differs by pipeline:
 Dry-run the selected pipeline:
 
 ```bash
-pixi run snakemake -n --cores 1
+pixi run --locked snakemake -n --cores 1
 ```
 
 Run the selected pipeline:
 
 ```bash
-pixi run snakemake --cores 8 --printshellcmds --latency-wait 60
+pixi run --locked snakemake --cores 8 --printshellcmds --latency-wait 60
 ```
 
 Re-run incomplete jobs:
 
 ```bash
-pixi run snakemake --cores 8 --rerun-incomplete
+pixi run --locked snakemake --cores 8 --rerun-incomplete
 ```
 
 Dry-run one imported rule path:
 
 ```bash
-pixi run snakemake -n --cores 1 --until <prefixed_rule_name>
+pixi run --locked snakemake -n --cores 1 --until <prefixed_rule_name>
 ```
 
 Dry-run one concrete output:
 
 ```bash
-pixi run snakemake -n --cores 1 <path/to/output>
+pixi run --locked snakemake -n --cores 1 <path/to/output>
 ```
 
 Generate a DAG:
 
 ```bash
-pixi run snakemake --dag --cores 1
-pixi run snakemake --dag --cores 1 | dot -Tpng > dag.png
+pixi run --locked snakemake --dag --cores 1
+pixi run --locked snakemake --dag --cores 1 | dot -Tpng > dag.png
 ```
 
 Focused rules must belong to the current `pipeline` value because `Snakefile` imports only the selected workflow. Imported rule names are prefixed, for example `rnaseq_hisat2_align_pe`, `wgbs_bismark_alignment`, `chip_cr_fastqc_raw_pe`, or `atacseq_bowtie2_align_pe`.
@@ -144,7 +149,14 @@ Selected fixtures use the committed Pixi lockfile. The bundled 16S smoke suite
 covers PE/SE, archive headers, primers, taxonomy, sequencing batches, expected
 overlap failure, repeatability, and output reconstruction. A manual **Run workflow**
 invocation can also enable the public ENA V4 test with RDP 19 taxonomy.
-Validation logs and reports are retained as CI artifacts for seven days.
+Validation logs and reports are retained as CI artifacts for seven days (90 days
+when started with **Run workflow**). For a release, run the complete suite on the
+release commit and copy the current-run evidence into the release assets or a
+durable archive before CI artifacts expire. Retain the commit and lockfile,
+fixture provenance and expected hashes, generated configs, verifier results,
+and the exact replay commands. Archive inputs only where redistribution is
+permitted. Historical evidence checked into `test_data/` is not a substitute for
+a current release run.
 
 A separate real-data matrix executes RNA-seq, WGBS chromosome 5 and full TAIR10,
 ChIP-seq PE/SE, CUT&RUN, and ATAC-seq with MACS3 and Genrich. Each job downloads
@@ -173,10 +185,44 @@ There is no configured formatter, typechecker, or general unit-test framework.
 Use focused Snakemake dry-runs while developing changes:
 - Snakemake parses every section of `config/config.yaml`, including inactive pipelines, so the complete YAML document must remain valid.
 - Sambamba filter expressions for the selected pipeline are parsed by Sambamba during workflow construction, before any jobs run.
-- Config-only changes: run `pixi run snakemake -n --cores 1` for the selected pipeline.
+- Config-only changes: run `pixi run --locked snakemake -n --cores 1` for the selected pipeline.
 - Rule changes: dry-run through the affected prefixed rule with `--until`.
 - Filename/path changes: dry-run a concrete output target.
 - MultiQC dependency changes: dry-run the final `multiqc_report.html` path.
+
+## Replaying and comparing runs
+
+For a replay, use the same commit and lockfile, configure an explicit ordered
+sample/run manifest, and run into a new output directory. Fixture configs
+include `replay_evidence.roles`: an ordered list of `{role, path}` entries for
+the config, reads, and references. For production, add that list explicitly to
+an audit YAML or the workflow config; the recorder does not rediscover files.
+Include annotations, external indexes and their manifests, and any taxonomy
+training set used by the selected assay. A dirty tracked tree is recorded but
+not reconstructible from its commit alone; keep the patch or use a clean checkout.
+
+Capture the input identity before and after processing with the same command
+and a different `--output` each time, then compare both documents:
+
+```bash
+pixi run --locked python scripts/replay_evidence.py record --stage pre \
+  --config test_data/configs/rnaseq.yaml --output test_data/work/before.json \
+  --invocation '<exact run command>'
+pixi run --locked python scripts/replay_evidence.py compare \
+  --baseline test_data/work/before.json --current test_data/work/after.json
+```
+
+For outputs, compare selected scientific files from both runs with `compare`,
+or create two ordered role lists with the same role names and capture them with
+`record --stage post`. Comparisons are exact after normalization: BAM/SAM
+content is decoded and records are sorted for comparison, ignoring `@PG`
+metadata; tables preserve row order and JSON keys are sorted. Compare scientific
+artifacts rather than whole directories containing path- and time-dependent
+metadata. CI replays paired 16S and compares ASV counts, sequences, read tracking,
+and taxonomy. It also replays RNA-seq alignment and quantification in a new
+results tree and compares decoded alignments and abundance tables. WGBS,
+ChIP/CUT&RUN, and ATAC check input identity and output contracts but do not yet
+run a second clean analysis automatically.
 
 ## Pipeline Notes
 
@@ -196,14 +242,23 @@ verified checksums, documented primers, and RDP 19 taxonomy.
 - Gene body coverage is controlled by `rnaseq.gene_body_coverage.enabled`; `refgene_bed` is required only when enabled.
 - Gene body coverage heatmap output is tracked only when at least 3 samples are analyzed.
 - The deepTools correlation heatmap is generated only when at least 2 aligned BAMs are available.
+- Every R1/R2 pair is audited by the shared FASTQ validator before trimming.
+  `rnaseq.fastq_validation` controls whether all records are checked; reports are
+  written to `fastq_pair_validation_dir`.
+- HISAT2 emits deterministic `@RG` metadata (`ID`, `SM`, `LB`, `PL`, `PU`) from
+  `samples_info.<sample>.read_group`; aligned BAMs are validated into
+  `read_group_qc_dir` before Picard duplicate marking.
 
 ### WGBS
 - Requires paired-end samples.
-- `ref_genome` must point to the reference used by Bismark; Bismark creates `Bisulfite_Genome/` next to it.
+- `ref_genome` must point to the source FASTA. Hydra copies it into the dedicated `reference_dir` (default `results/wgbs/reference`) and tracks the generated Bismark index components and FASTA index there. Keep that directory separate from the source FASTA and use a different staging directory for each reference. Set `bismark.large_index: true` when the reference requires Bowtie2’s large `.bt2l` index format.
 - `wgbs.log_dir` overrides the default `logs/wgbs` location.
 - `wgbs.sambamba.extra_args` is a Sambamba filter expression, not a generic command-line argument string.
 - Bismark Bowtie2 threads are derived from `wgbs.bismark.threads / wgbs.bismark.parallel`; keep `threads >= parallel`.
 - MethylDackel outputs include `<sample>_CpG.methylKit` and merged-context `<sample>_CpG.bedGraph`.
+- R1/R2 pairs are audited before trimming. Bismark output is annotated with
+  deterministic `@RG` metadata through `samtools addreplacerg`, then validated
+  into `read_group_qc_dir` before deduplication.
 
 ### ChIP-seq/CUT&RUN
 
@@ -212,6 +267,9 @@ Duplicate marking writes a temporary BAM; filtering pipes into Sambamba sorting
 with a shared thread budget. One-core filtering jobs run the tools sequentially.
 
 - Supports paired-end and single-end samples.
+- PE pairs are checked for synchronized mates and SE files use the shared FASTQ
+  reader/audit before trimming. Bowtie2 emits deterministic `@RG` metadata and
+  each aligned BAM is validated into `read_group_qc_dir` before duplicate marking.
 - Requires `ref_genome`, `gene_bed`, and `bowtie2_index_dir` config values.
 - Bowtie2 indexes are created in `bowtie2_index_dir` when needed.
 - `chip_cr.sambamba.view_extra_args` is validated as a Sambamba filter expression before execution.
@@ -226,7 +284,7 @@ pipes into Sambamba sort; one-core jobs use temporary files to run sequentially.
 
 - Requires paired-end samples.
 - Requires `ref_genome` and either a writable `bowtie2_index_dir` or a complete prebuilt `bowtie2_index_prefix`.
-- `bowtie2_index_prefix` is the shared prefix passed to Bowtie2 `-x`, without `.1.bt2`, `.rev.1.bt2`, or another index suffix. A configured prebuilt prefix takes precedence over `bowtie2_index_dir`.
+- `bowtie2_index_prefix` is the shared prefix passed to Bowtie2 `-x`, without `.1.bt2`, `.rev.1.bt2`, or another index suffix. A configured prebuilt prefix takes precedence over `bowtie2_index_dir` and requires `<prefix>.manifest.json`. Use `pixi run --locked python src/atac_bowtie2_manifest.py create --prefix <prefix> --reference <source.fa> --builder-version <version>` only for an index with known build provenance. Hydra checks the source FASTA and all six component hashes, plus the contig dictionary. A manifest cannot prove the history of an index whose origin is unknown; rebuild such indexes.
 - Prebuilt indexes may use either the six `.bt2` files or the six `.bt2l` files. Partial, mixed, or simultaneously complete families are rejected before the ATAC DAG runs.
 - Without a prebuilt prefix, Hydra builds and tracks all six index files in `bowtie2_index_dir`; set `bowtie2.large_index: true` to generate `.bt2l` instead of `.bt2` files.
 - The index is checked once with `bowtie2-inspect`, and a prefix-specific marker is written under `reference_dir`; prebuilt index directories are never created or modified.
@@ -255,6 +313,8 @@ Output paths are config-driven. Common defaults and examples include:
 - MultiQC report: `<pipeline>.multiqc_results_dir/multiqc_report.html`.
 - RNA-seq Kallisto: `results/rnaseq/kallisto/<sample>/abundance.tsv`.
 - RNA-seq aligned BAM: `results/rnaseq/aligned_bams/<sample>_pe.sorted.bam`.
+- Shared FASTQ audit: `<pipeline>.fastq_pair_validation_dir/<sample>.fastq_pair_validation.tsv`.
+- Shared BAM read-group audit: `<pipeline>.read_group_qc_dir/<sample>_pe.read_group_validation.tsv` (or `_se` for ChIP SE).
 - WGBS MethylDackel: `results/wgbs/methyldackel/<sample>_CpG.methylKit`.
 - ChIP/CUT&RUN bigWig: `results/chipseq_cutrun/bigwigs/<sample>_pe.bw` or `<sample>_se.bw`.
 - ATAC-seq peaks: `results/atacseq/peaks/<sample>_peaks.narrowPeak`.

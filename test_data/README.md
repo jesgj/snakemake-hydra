@@ -15,7 +15,7 @@ accuracy or production-scale performance. No simulated reads are used.
 The complete TAIR10 genome (~120 Mb, including organelles) is also downloaded to
 `references/tair10/genome.fa`. Use `wgbs_full.yaml` to align the same subset across
 the full genome. Full and chromosome-only WGBS FASTAs are kept in separate
-directories because Bismark indexes all FASTAs in the reference directory.
+directories. Hydra stages each configured FASTA alone and tracks its index files in that variant’s `reference_dir`.
 The complete yeast genome is shared by ATAC-seq, ChIP-seq, and CUT&RUN.
 
 ## Sampling and provenance
@@ -23,7 +23,7 @@ The complete yeast genome is shared by ATAC-seq, ChIP-seq, and CUT&RUN.
 Run from the repository root:
 
 ```bash
-pixi run python test_data/prepare.py
+pixi run --locked python test_data/prepare.py
 ```
 
 To prepare one CI variant without downloading the other assays, use:
@@ -33,8 +33,9 @@ pixi run --locked python test_data/prepare.py --variants rnaseq --provenance tes
 ```
 
 `--variants` accepts one or more config names from the table below. Its default
-still prepares all variants. `--provenance` can redirect checksums into ignored
-work space without overwriting the committed provenance record.
+still prepares all variants. Fresh provenance and execution evidence default to
+`test_data/work/evidence/`; `--provenance` and `--evidence` override those destinations.
+The committed JSON records are historical.
 
 `datasets.json` records source URLs, pinned nf-core repository revisions, the
 retained pair counts, and seed `20261002`. RNA-seq, ATAC-seq, and ChIP-seq use
@@ -116,12 +117,12 @@ CI exercises chromosome-5 WGBS with one scheduler core to cover implicit
 single-thread Bismark execution; full-genome WGBS remains at two cores.
 Snakemake lint recommendations are collected as nonblocking diagnostic steps
 because the existing Pixi/layout recommendations are not a clean lint baseline.
-RNA-seq bootstraps are disabled for speed; Picard heaps are limited to 1 GB, and
-ATAC MACS3 uses a yeast genome size. Configs inherit other current tool options
+RNA-seq exercises two kallisto bootstraps with a fixed seed; Picard heaps are
+limited to 1 GB, and ATAC MACS3 uses a yeast genome size. Configs inherit other current tool options
 from `config/config.yaml`; regenerate them after changing defaults:
 
 ```bash
-pixi run python test_data/prepare.py --configs-only
+pixi run --locked python test_data/prepare.py --configs-only
 ```
 
 `--configs-only` does not create missing split FASTQs. Prepare the MACS3 fixture
@@ -132,28 +133,28 @@ Snakemake subprocesses also use the fixture instead of a production local config
 Inspect the DAG first; choose one variant per invocation:
 
 ```bash
-HYDRA_CONFIG=test_data/configs/wgbs.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml
-HYDRA_CONFIG=test_data/configs/atacseq_genrich.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml
+HYDRA_CONFIG=test_data/configs/wgbs.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run --locked snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/wgbs.yaml
+HYDRA_CONFIG=test_data/configs/atacseq_genrich.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run --locked snakemake -n --cores 2 --replace-workflow-config --configfile test_data/configs/atacseq_genrich.yaml
 ```
 
 For a real smoke run, use a single job at a time and two scheduler cores:
 
 ```bash
-HYDRA_CONFIG=test_data/configs/wgbs.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs.yaml --printshellcmds --latency-wait 60
+HYDRA_CONFIG=test_data/configs/wgbs.yaml XDG_CACHE_HOME=/tmp/hydra-cache pixi run --locked snakemake --cores 2 --jobs 1 --replace-workflow-config --configfile test_data/configs/wgbs.yaml --printshellcmds --latency-wait 60
 ```
 
 These options limit scheduled concurrency, not every tool's physical memory or
 subprocess count. In particular, Bismark starts multiple aligner processes; do
 not infer a hard OS CPU/RAM cap from `--cores`. No execution-time promise is made.
 Keep runs sequential. `validation.json` records preparation and DAG checks;
-`execution.json` records actual execution checks, artifact hashes, tool versions,
-and cleanup. Dry-run success alone does not confirm tool execution.
+The execution verifier records actual checks, artifact hashes, and cleanup.
+Dry-run success alone does not confirm tool execution.
 
 After Snakemake exits successfully, verify the final report, BAM integrity, mapped
 read counts, and peak record structure, record hashes, then delete that run:
 
 ```bash
-pixi run python test_data/finish_run.py wgbs --cores 2
+pixi run --locked python test_data/finish_run.py wgbs --cores 2
 ```
 
 CI retains results for artifact collection and writes fresh evidence separately:
@@ -168,8 +169,8 @@ ATAC bigWigs, peak files, consensus counts and QC summary. Empty peak sets are
 allowed. `--keep-outputs` skips deletion only after every verification passes.
 
 Use the variant name and actual scheduler core count. This helper refuses cleanup
-if required checks fail. It deletes the variant work directory and generated
-WGBS reference indexes, while retaining original reference FASTAs and FASTQs.
+if required checks fail. It deletes the variant work directory, including staged WGBS index files, while
+retaining original reference FASTAs and FASTQs.
 
 Generated FASTQs, references, configs, and results are locally ignored by Git;
 the catalog, preparer, and provenance records remain reviewable. The preparer

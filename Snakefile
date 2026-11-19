@@ -1,6 +1,11 @@
 import os
 
 
+# `pixi run --locked` does not export this setting to nested Pixi commands.
+os.environ["PIXI_LOCKED"] = "true"
+envvars:
+    "PIXI_LOCKED"
+
 # Prefer an ignored machine-local config without recursively merging placeholders.
 CONFIG_FILE = os.environ.get(
     "HYDRA_CONFIG",

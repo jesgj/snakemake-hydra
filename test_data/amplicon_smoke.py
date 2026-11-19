@@ -11,6 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -24,9 +25,10 @@ from amplicon_reads import audit
 
 def run(config, cores, log, target=None):
     env = {**os.environ, "HYDRA_CONFIG": str(config)}
-    command = ["pixi", "run", "--locked", "snakemake", "--cores", str(cores), "--jobs", "1", "--rerun-incomplete"]
+    command = ["pixi", "run", "--locked", "snakemake", "--cores", str(cores), "--jobs", "1",
+               "--rerun-incomplete", "--replace-workflow-config", "--configfile", str(config)]
     if target:
-        command.append(str(target))
+        command.extend(["--", str(target)])
     with log.open("w") as handle:
         return subprocess.run(command, cwd=REPO, env=env, stdout=handle, stderr=subprocess.STDOUT).returncode
 
@@ -214,7 +216,10 @@ def main():
         print(f"Checking {variant}...", flush=True)
         code = run(config, 1 if variant == "single" else 2, log, root / "asv_counts.tsv" if variant == "no_overlap" else None)
         if variant == "no_overlap":
-            assert code != 0 and "No merged reads" in (work / "no_overlap-logs/dada2.log.err").read_text()
+            error_log = work / "no_overlap-logs/dada2.log.err"
+            assert code != 0 and error_log.is_file() and "No merged reads" in error_log.read_text(), (
+                f"Expected a DADA2 overlap failure; inspect {log} and {error_log}"
+            )
             report["checks"][variant] = "expected failure (no silent fallback)"
         else:
             if code:
@@ -251,6 +256,24 @@ def main():
     assert run(work / "paired.yaml", 2, work / "rebuild_cutadapt_json.log") == 0
     assert json.loads(cutadapt_json.read_text())["status"] == "not_requested"
     report["checks"]["rebuild_cutadapt_json"] = "passed"
+
+    # Run the complete paired analysis again in a new output/log tree, rather
+    # than only checking Snakemake's up-to-date or missing-output behavior.
+    replay_root = Path(tempfile.mkdtemp(prefix="paired-replay-", dir=work))
+    replay_cfg = yaml.safe_load((work / "paired.yaml").read_text())
+    replay_cfg["amplicon"].update(output_dir=str(replay_root / "results"),
+                                  log_dir=str(replay_root / "logs"))
+    replay_config = replay_root / "config.yaml"
+    replay_config.write_text(yaml.safe_dump(replay_cfg, sort_keys=False))
+    replay_output = replay_root / "results"
+    if run(replay_config, 2, work / "paired-clean-replay.log"):
+        raise RuntimeError(f"Clean paired replay failed; inspect {replay_root}")
+    verify(replay_output, True)
+    for name in (*stable, "taxonomy.tsv"):
+        expected = (root / name).read_bytes()
+        assert (replay_output / name).read_bytes() == expected, f"Clean replay changed {name}"
+    shutil.rmtree(replay_root)
+    report["checks"]["clean_paired_replay"] = "passed; scientific TSV and FASTA outputs unchanged"
     (work / "validation.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"Checks passed; current-run evidence: {work / 'validation.json'}", flush=True)
 

@@ -2,6 +2,9 @@ import os
 
 ALIGNMENT_DIR = config["alignment_dir"]
 MARKED_BAM_DIR = config["marked_bam_dir"]
+READ_GROUP_QC_DIR = config.get(
+    "read_group_qc_dir", os.path.join("results", "rnaseq", "read_group_qc")
+)
 DUPLICATION_QC_DIR = config["duplication_qc_dir"]
 PICARD_CONFIG = config.get("picard", {})
 PICARD_JAVA_OPTS = PICARD_CONFIG.get("java_opts", "-Xmx4g")
@@ -13,7 +16,10 @@ rule picard_markduplicates:
     Marks duplicate reads in RNA-seq BAM files and writes duplication metrics.
     """
     input:
-        bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
+        bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"),
+        read_group_validation=os.path.join(
+            READ_GROUP_QC_DIR, "{sample}_pe.read_group_validation.tsv"
+        )
     output:
         bam=os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bam"),
         bai=os.path.join(MARKED_BAM_DIR, "{sample}_pe.markdup.bai"),

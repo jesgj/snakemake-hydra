@@ -15,6 +15,8 @@ rnaseq:
   qc_dir: "results/rnaseq/qc_raw"
   trimmed_dir: "results/rnaseq/trimmed_fastqs"
   qc_trimmed_dir: "results/rnaseq/qc_trimmed"
+  fastq_pair_validation_dir: "results/rnaseq/fastq_pair_validation"
+  read_group_qc_dir: "results/rnaseq/read_group_qc"
   # Reference files are user-managed and must already exist.
   # Missing kallisto/HISAT2 indexes are built; their output directories are created if needed.
   transcriptome_fasta: "ref/transcriptome.fa"
@@ -52,6 +54,9 @@ rnaseq:
     refgene_bed: "ref/genes.bed12"
     minimum_length: 100
     format: "pdf"
+  fastq_validation:
+    all_records: true
+    records: 100
 
 wgbs:
   raw_fastqs_dir: "data/wgbs_raw_fastqs"
@@ -65,8 +70,12 @@ wgbs:
   qc_dir: "results/wgbs/qc"
   trimmed_dir: "results/wgbs/trimmed_fastqs"
   qc_trimmed_dir: "results/wgbs/qc_trimmed"
-  # ref_genome must already exist; Bismark creates Bisulfite_Genome next to it.
+  fastq_pair_validation_dir: "results/wgbs/fastq_pair_validation"
+  read_group_qc_dir: "results/wgbs/read_group_qc"
+  # ref_genome must already exist. Hydra copies it into reference_dir before
+  # indexing so Bismark never indexes or writes into the source reference folder.
   ref_genome: "ref/genome.fa"
+  reference_dir: "results/wgbs/reference"
   alignment_dir: "results/wgbs/raw_bams"
   dedup_dir: "results/wgbs/dedup_bams"
   dedup_bam_qc_dir: "results/wgbs/dedup_bam_qc"
@@ -83,6 +92,7 @@ wgbs:
   bismark:
     threads: 8
     parallel: 2
+    large_index: false  # Force and track the .bt2l family when true.
     extra_args: "--local -X 2000"
   sambamba:
     filter_threads: 2
@@ -98,6 +108,9 @@ wgbs:
     extra_opts: "--minOppositeDepth 10 --maxVariantFrac 0.5"
   picard:
     java_opts: "-Xmx4g"
+  fastq_validation:
+    all_records: true
+    records: 100
 
 chip_cr:
   raw_fastqs_dir: "data/chip_test_pipeline"
@@ -118,6 +131,8 @@ chip_cr:
   ref_genome: "ref/genome.fa"
   trimmed_dir: "results/chipseq_cutrun/trimmed_fastqs"
   qc_trimmed_dir: "results/chipseq_cutrun/qc_trimmed"
+  fastq_pair_validation_dir: "results/chipseq_cutrun/fastq_pair_validation"
+  read_group_qc_dir: "results/chipseq_cutrun/read_group_qc"
   alignment_dir: "results/chipseq_cutrun/aligned_bams"
   bowtie2_index_dir: "ref/bowtie2/chip_cr"
   bam_qc_dir: "results/chipseq_cutrun/bam_qc"
@@ -156,6 +171,9 @@ chip_cr:
       extra_args: ""
   picard:
     java_opts: "-Xmx4g"
+  fastq_validation:
+    all_records: true
+    records: 100
 
 atacseq:
   raw_fastqs_dir: "data/atacseq_raw_fastqs"
@@ -182,7 +200,8 @@ atacseq:
   trimmed_dir: "results/atacseq/trimmed_fastqs"
   qc_trimmed_dir: "results/atacseq/qc_trimmed"
   # ref_genome must already exist. Set bowtie2_index_prefix to reuse a complete
-  # prebuilt index; otherwise Hydra builds one inside bowtie2_index_dir.
+  # prebuilt index with <prefix>.manifest.json; otherwise Hydra builds one
+  # inside bowtie2_index_dir.
   ref_genome: "ref/genome.fa"
   bowtie2_index_prefix: null  # Prefix passed to bowtie2 -x, without a .bt2/.bt2l suffix.
   bowtie2_index_dir: "ref/bowtie2/atacseq"

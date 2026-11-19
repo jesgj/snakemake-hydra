@@ -40,9 +40,10 @@ rule kallisto_quant:
         output_dir=os.path.join(KALLISTO_OUTPUT_DIR, "{sample}")
     threads: 8
     log:
-        os.path.join("logs", config["pipeline"], "kallisto_quant", "{sample}.log")
+        out=os.path.join("logs", config["pipeline"], "kallisto_quant", "{sample}.log.out"),
+        err=os.path.join("logs", config["pipeline"], "kallisto_quant", "{sample}.log.err")
     shell:
         """
         pixi run kallisto quant -i {input.index} -o {params.output_dir} \
-        -t {threads} {params.extra} {input.r1} {input.r2} > {log}.out 2> {log}.err
+        -t {threads} {params.extra} {input.r1} {input.r2} > {log.out:q} 2> {log.err:q}
         """

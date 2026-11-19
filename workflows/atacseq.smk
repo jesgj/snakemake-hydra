@@ -368,38 +368,38 @@ def get_atacseq_outputs(samples):
     return outputs
 
 
-def get_atacseq_multiqc_analysis_dirs():
-    return list(
-        dict.fromkeys(
-            [
-                QC_DIR,
-                TRIMMED_DIR,
-                QC_TRIMMED_DIR,
-                FASTQ_PAIR_VALIDATION_DIR,
-                ALIGNMENT_DIR,
-                READ_GROUP_QC_DIR,
-                DUPLICATION_QC_DIR,
-                BAM_QC_DIR,
-                FILTERED_BAM_DIR,
-                FILTERED_BAM_QC_DIR,
-                DEEPTOOLS_DIR,
-                FRAGMENT_QC_DIR,
-                BIGWIG_DIR,
-                PEAKS_DIR,
-                CONSENSUS_PEAKS_DIR,
-                FEATURECOUNTS_DIR,
-                QC_SUMMARY_DIR,
-                os.path.join("logs", config["pipeline"]),
-            ]
-        )
-    )
+def get_atacseq_multiqc_inputs():
+    inputs = []
+    inputs.extend(get_atac_run_outputs(os.path.join(QC_DIR, "{sample}__{run}_R1_raw_fastqc.zip")))
+    inputs.extend(get_atac_run_outputs(os.path.join(QC_DIR, "{sample}__{run}_R2_raw_fastqc.zip")))
+    inputs.extend(get_atac_run_outputs(os.path.join(TRIMMED_DIR, "{sample}__{run}.fastp.json")))
+    inputs.extend(get_atac_run_outputs(os.path.join(QC_TRIMMED_DIR, "{sample}__{run}_R1_trimmed_fastqc.zip")))
+    inputs.extend(get_atac_run_outputs(os.path.join(QC_TRIMMED_DIR, "{sample}__{run}_R2_trimmed_fastqc.zip")))
+    inputs.extend(get_atac_run_outputs(os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}__{run}.log.err")))
+    inputs.extend(get_atac_run_outputs(os.path.join(BAM_QC_DIR, "runs", "{sample}__{run}.stats.txt")))
+    inputs.extend(get_atac_run_outputs(os.path.join(BAM_QC_DIR, "runs", "{sample}__{run}.flagstat.txt")))
+    inputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.stats.txt"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.flagstat.txt"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(BAM_QC_DIR, "{sample}_pe.idxstats.txt"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.stats.txt"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.flagstat.txt"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(FILTERED_BAM_QC_DIR, "{sample}_pe.filtered.coverage.tsv"), sample=SAMPLES))
+    inputs.extend(expand(os.path.join(FRAGMENT_QC_DIR, "{sample}_pe.insert_size_metrics.txt"), sample=SAMPLES))
+    inputs.append(os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab"))
+    if HAS_MULTI_BAM_DEEPTOOLS:
+        inputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab"))
+    if PEAK_CALLER == "macs3":
+        inputs.extend(expand(os.path.join(PEAKS_DIR, "{sample}_peaks.xls"), sample=SAMPLES))
+    inputs.append(os.path.join(FEATURECOUNTS_DIR, "consensus_peak_counts.txt.summary"))
+    inputs.append(os.path.join(QC_SUMMARY_DIR, "atac_qc_summary_mqc.tsv"))
+    return inputs
 
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "atacseq"
 config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("results", "atacseq"))
-config["multiqc_input_files"] = get_atacseq_outputs(SAMPLES)
-config["multiqc_analysis_dirs"] = get_atacseq_multiqc_analysis_dirs()
+config["multiqc_input_files"] = get_atacseq_multiqc_inputs()
 
 
 # --- MODULE INCLUSION ---
@@ -544,5 +544,5 @@ if HAS_MULTI_BAM_DEEPTOOLS:
 rule all:
     input:
         get_atacseq_outputs(SAMPLES),
-        os.path.join(config["multiqc_results_dir"], "multiqc_report.html")
+        rules.multiqc.output
     default_target: True

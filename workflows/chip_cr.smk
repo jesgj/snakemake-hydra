@@ -4,7 +4,12 @@ from collections import defaultdict
 import sys
 
 sys.path.insert(0, os.path.abspath("src"))
-from utils import prepare_sample_data, validate_required_path
+from utils import (
+    fastq_validation_scope,
+    normalize_read_group_metadata,
+    prepare_sample_data,
+    validate_required_path,
+)
 
 # --- CONFIGURATION ---
 # Define directories from config
@@ -12,6 +17,16 @@ RAW_DIR = config["raw_fastqs_dir"]
 QC_DIR = config["qc_dir"]
 TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
+FASTQ_PAIR_VALIDATION_DIR = config.get(
+    "fastq_pair_validation_dir",
+    os.path.join("results", "chipseq_cutrun", "fastq_pair_validation"),
+)
+READ_GROUP_QC_DIR = config.get(
+    "read_group_qc_dir", os.path.join("results", "chipseq_cutrun", "read_group_qc")
+)
+FASTQ_VALIDATION_SCOPE = fastq_validation_scope(
+    config, "chip_cr.fastq_validation"
+)
 REF_GENOME = config.get("ref_genome")
 GENE_BED = config.get("gene_bed")
 ALIGNMENT_DIR = config["alignment_dir"]
@@ -33,6 +48,9 @@ config["raw_fastqs_dir"] = RAW_DIR
 config["qc_dir"] = QC_DIR
 config["trimmed_dir"] = TRIMMED_DIR
 config["qc_trimmed_dir"] = QC_TRIMMED_DIR
+config["fastq_pair_validation_dir"] = FASTQ_PAIR_VALIDATION_DIR
+config["read_group_qc_dir"] = READ_GROUP_QC_DIR
+config["fastq_validation_scope"] = FASTQ_VALIDATION_SCOPE
 config["ref_genome"] = REF_GENOME
 config["gene_bed"] = GENE_BED
 config["alignment_dir"] = ALIGNMENT_DIR
@@ -49,6 +67,8 @@ config["subtracted_bigwig_dir"] = SUBTRACTED_BIGWIG_DIR
 os.makedirs(QC_DIR, exist_ok=True)
 os.makedirs(TRIMMED_DIR, exist_ok=True)
 os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
+os.makedirs(FASTQ_PAIR_VALIDATION_DIR, exist_ok=True)
+os.makedirs(READ_GROUP_QC_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
 os.makedirs(BOWTIE2_INDEX_DIR, exist_ok=True)
 os.makedirs(BAM_QC_DIR, exist_ok=True)
@@ -60,6 +80,8 @@ os.makedirs(SUBTRACTED_BIGWIG_DIR, exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "fastq_pair_validation"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "read_group_validation"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bowtie2_align"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "bam_qc"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "samtools_index_filtered"), exist_ok=True)
@@ -116,6 +138,7 @@ def normalize_chip_cr_samples(samples_info):
 
 
 SAMPLES_INFO = normalize_chip_cr_samples(SAMPLES_INFO)
+SAMPLES_INFO = normalize_read_group_metadata(SAMPLES_INFO, "chip_cr.samples_info")
 SAMPLES = list(SAMPLES_INFO.keys())
 config["samples_info"] = SAMPLES_INFO
 
@@ -166,6 +189,7 @@ config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("
 
 pe_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'PE']
 se_samples = [s for s, i in SAMPLES_INFO.items() if i['type'] == 'SE']
+PE_SAMPLE_PATTERN = "|".join(re.escape(sample) for sample in pe_samples) or r"(?!)"
 
 
 def get_all_filtered_bams(samples_info):
@@ -185,24 +209,39 @@ ALL_FILTERED_BAIS = get_all_filtered_bais(SAMPLES_INFO)
 HAS_MULTI_BAM_DEEPTOOLS = len(ALL_FILTERED_BAMS) >= 2
 
 
-def get_chip_cr_multiqc_analysis_dirs():
-    return list(
-        dict.fromkeys(
-            [
-                QC_DIR,
-                TRIMMED_DIR,
-                QC_TRIMMED_DIR,
-                ALIGNMENT_DIR,
-                BAM_QC_DIR,
-                FILTERED_BAM_DIR,
-                FILTERED_BAM_QC_DIR,
-                DEEPTOOLS_DIR,
-                BIGWIG_DIR,
-                SUBTRACTED_BIGWIG_DIR,
-                os.path.join("logs", config["pipeline"]),
-            ]
-        )
-    )
+def get_chip_cr_multiqc_inputs(samples_info):
+    inputs = []
+    for sample, info in samples_info.items():
+        read_type = "pe" if info["type"] == "PE" else "se"
+        if read_type == "pe":
+            inputs.extend([
+                os.path.join(QC_DIR, f"{sample}_R1_raw_fastqc.zip"),
+                os.path.join(QC_DIR, f"{sample}_R2_raw_fastqc.zip"),
+                os.path.join(TRIMMED_DIR, f"{sample}.fastp.json"),
+                os.path.join(QC_TRIMMED_DIR, f"{sample}_R1_trimmed_fastqc.zip"),
+                os.path.join(QC_TRIMMED_DIR, f"{sample}_R2_trimmed_fastqc.zip"),
+            ])
+        else:
+            inputs.extend([
+                os.path.join(QC_DIR, f"{sample}_raw_fastqc.zip"),
+                os.path.join(TRIMMED_DIR, f"{sample}_se.fastp.json"),
+                os.path.join(QC_TRIMMED_DIR, f"{sample}_SE_trimmed_fastqc.zip"),
+            ])
+        inputs.extend([
+            os.path.join("logs", config["pipeline"], "bowtie2_align", f"{sample}_{read_type}.log.err"),
+            os.path.join("logs", config["pipeline"], "sambamba_markdup", f"{sample}_{read_type}.log.err"),
+            os.path.join(BAM_QC_DIR, f"{sample}_{read_type}.stats.txt"),
+            os.path.join(BAM_QC_DIR, f"{sample}_{read_type}.flagstat.txt"),
+            os.path.join(BAM_QC_DIR, f"{sample}_{read_type}.alignment_summary_metrics.txt"),
+            os.path.join(FILTERED_BAM_QC_DIR, f"{sample}_{read_type}.stats.txt"),
+            os.path.join(FILTERED_BAM_QC_DIR, f"{sample}_{read_type}.flagstat.txt"),
+            os.path.join(FILTERED_BAM_QC_DIR, f"{sample}_{read_type}.alignment_summary_metrics.txt"),
+        ])
+
+    inputs.append(os.path.join(DEEPTOOLS_DIR, "fingerprints.metrics.tab"))
+    if HAS_MULTI_BAM_DEEPTOOLS:
+        inputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab"))
+    return inputs
 
 final_outputs = []
 # Raw QC
@@ -247,13 +286,22 @@ final_outputs.extend(expand(os.path.join(BIGWIG_DIR, "{sample}_se.bw"), sample=s
 # Subtracted Bigwigs
 final_outputs.extend([os.path.join(SUBTRACTED_BIGWIG_DIR, f"{pair['sample']}_{pair['read_type']}.subtracted.bw") for pair in config.get('subtraction_pairs', [])])
 
-config["multiqc_input_files"] = final_outputs
-config["multiqc_analysis_dirs"] = get_chip_cr_multiqc_analysis_dirs()
+validation_outputs = []
+validation_outputs.extend(expand(os.path.join(FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_pair_validation.tsv"), sample=pe_samples))
+validation_outputs.extend(expand(os.path.join(FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_single_validation.tsv"), sample=se_samples))
+validation_outputs.extend(expand(os.path.join(READ_GROUP_QC_DIR, "{sample}_pe.read_group_validation.tsv"), sample=pe_samples))
+validation_outputs.extend(expand(os.path.join(READ_GROUP_QC_DIR, "{sample}_se.read_group_validation.tsv"), sample=se_samples))
+
+config["multiqc_input_files"] = get_chip_cr_multiqc_inputs(SAMPLES_INFO)
 
 
 # --- MODULE INCLUSION ---
 
-# 1. QC on raw files
+# 1. Shared FASTQ and read-group validation
+include: "rules/fastq_validation.smk"
+include: "rules/read_group_validation.smk"
+
+# 2. QC on raw files
 include: "rules/qc.smk"
 
 # 2. Trimming and QC on trimmed files
@@ -279,6 +327,63 @@ include: "rules/chip_cr/heatmap.smk"
 
 # 9. MultiQC report
 include: "rules/multiqc.smk"
+
+
+use rule validate_fastq_pair_generic as validate_fastq_pair with:
+    input:
+        r1=lambda wildcards: SAMPLES_INFO[wildcards.sample]["R1"],
+        r2=lambda wildcards: SAMPLES_INFO[wildcards.sample]["R2"],
+        validator="scripts/validate_fastq_pairs.py"
+    output:
+        report=os.path.join(
+            FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_pair_validation.tsv"
+        )
+    wildcard_constraints:
+        sample=PE_SAMPLE_PATTERN
+    params:
+        scope=FASTQ_VALIDATION_SCOPE
+    log:
+        os.path.join(
+            "logs", config["pipeline"], "fastq_pair_validation", "{sample}.log"
+        )
+
+use rule validate_fastq_single_generic as validate_fastq_single with:
+    input:
+        r1=lambda wildcards: SAMPLES_INFO[wildcards.sample]["R1"],
+        validator="scripts/validate_fastq_pairs.py"
+    output:
+        report=os.path.join(
+            FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_single_validation.tsv"
+        )
+    wildcard_constraints:
+        sample=SE_SAMPLE_PATTERN
+    params:
+        scope=FASTQ_VALIDATION_SCOPE
+    log:
+        os.path.join(
+            "logs", config["pipeline"], "fastq_pair_validation", "{sample}.log"
+        )
+
+use rule validate_bam_read_group_generic as validate_bam_read_group with:
+    input:
+        bam=os.path.join(ALIGNMENT_DIR, "{sample}_{read_type}.sorted.bam"),
+        validator="src/validate_bam_read_group.py"
+    output:
+        report=os.path.join(
+            READ_GROUP_QC_DIR, "{sample}_{read_type}.read_group_validation.tsv"
+        )
+    wildcard_constraints:
+        read_type="pe|se"
+    params:
+        rg_id=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["id"],
+        rg_sm=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["sample"],
+        rg_lb=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["library"],
+        rg_pl=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["platform"],
+        rg_pu=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["platform_unit"]
+    log:
+        os.path.join(
+            "logs", config["pipeline"], "read_group_validation", "{sample}_{read_type}.log"
+        )
 
 
 # --- BAM QC INSTANTIATION ---
@@ -388,5 +493,6 @@ if HAS_MULTI_BAM_DEEPTOOLS:
 rule all:
     input:
         final_outputs,
-        os.path.join(config["multiqc_results_dir"], "multiqc_report.html")
+        validation_outputs,
+        rules.multiqc.output
     default_target: True

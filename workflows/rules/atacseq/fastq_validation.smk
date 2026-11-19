@@ -19,7 +19,8 @@ rule validate_fastq_pair:
     """
     input:
         r1=lambda wildcards: SAMPLES_INFO[wildcards.sample]["runs"][wildcards.run]["R1"],
-        r2=lambda wildcards: SAMPLES_INFO[wildcards.sample]["runs"][wildcards.run]["R2"]
+        r2=lambda wildcards: SAMPLES_INFO[wildcards.sample]["runs"][wildcards.run]["R2"],
+        validator="scripts/validate_fastq_pairs.py"
     output:
         report=os.path.join(
             FASTQ_PAIR_VALIDATION_DIR,

@@ -3,7 +3,8 @@ import os
 
 # --- CONFIGURATION ---
 SORTED_FILTERED_BAM_DIR = config["sorted_filtered_bam_dir"]
-REF_GENOME = config["ref_genome"]
+REF_GENOME = config["reference_fasta"]
+REF_FAI = config["reference_fasta_fai"]
 MBIAS_DIR = config["mbias_dir"]
 SAMPLES = list(config['samples_info'].keys())
 METHYLDACKEL_MBIAS_EXTRA_ARGS = config.get("methyldackel_mbias", {}).get("extra_args", "")
@@ -23,7 +24,8 @@ rule methyldackel_mbias:
     input:
         bam=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam"),
         bai=os.path.join(SORTED_FILTERED_BAM_DIR, "{sample}_pe.filtered.sorted.bam.bai"),
-        ref=REF_GENOME
+        ref=REF_GENOME,
+        ref_fai=REF_FAI
     output:
         mbias=os.path.join(MBIAS_DIR, "{sample}.mbias.txt"),
         options=os.path.join(MBIAS_DIR, "{sample}.options.txt")

@@ -175,7 +175,7 @@ def make_configs(catalog, variants=None):
             section["transcriptome_fasta"] = str(ROOT / "references/rnaseq/transcriptome.fa")
             section["kallisto_index"] = str(ROOT / "work" / variant / "kallisto_index/transcriptome.idx")
             Path(section["kallisto_index"]).parent.mkdir(parents=True, exist_ok=True)
-            section["kallisto"] = {"extra_args": "--bootstrap-samples=0"}
+            section["kallisto"] = {"extra_args": "--bootstrap-samples=2 --seed=42"}
             section["gene_body_coverage"].update(enabled=True, refgene_bed=str(ROOT / "references/rnaseq/genes.bed12"))
         if mode == "wgbs":
             section["bismark"].update(threads=2, parallel=1)
@@ -188,7 +188,20 @@ def make_configs(catalog, variants=None):
             section["peak_caller"] = variant.split("_")[-1]
             section["macs3"]["genome_size"] = "1.2e7"
         config[mode] = section
-        (configs / (variant + ".yaml")).write_text(yaml.safe_dump(config, sort_keys=False))
+        config_path = configs / (variant + ".yaml")
+        roles = [{"role": "config", "path": str(config_path)}]
+        for key in ("ref_genome", "transcriptome_fasta", "gene_bed"):
+            if section.get(key):
+                roles.append({"role": key, "path": section[key]})
+        if mode == "rnaseq" and section["gene_body_coverage"]["enabled"]:
+            roles.append({"role": "refgene_bed", "path": section["gene_body_coverage"]["refgene_bed"]})
+        for sample, info in section["samples_info"].items():
+            for run, reads in info.get("runs", {"run1": info}).items():
+                for mate in ("R1", "R2"):
+                    if mate in reads:
+                        roles.append({"role": f"{sample}/{run}/{mate}", "path": reads[mate]})
+        config["replay_evidence"] = {"roles": roles}
+        config_path.write_text(yaml.safe_dump(config, sort_keys=False))
 
 
 def bed12_from_gtf():
@@ -221,7 +234,7 @@ def main():
     parser.add_argument("--configs-only", action="store_true", help="Regenerate isolated configs without downloads")
     parser.add_argument("--variants", nargs="+", choices=VARIANTS, default=list(VARIANTS),
                         help="Prepare only the selected variants (default: all)")
-    parser.add_argument("--provenance", type=Path, default=ROOT / "provenance.json",
+    parser.add_argument("--provenance", type=Path, default=ROOT / "work" / "evidence" / "provenance.json",
                         help="Destination for source and sample checksums")
     args = parser.parse_args()
     catalog = json.loads((ROOT / "datasets.json").read_text())

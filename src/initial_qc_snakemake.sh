@@ -14,4 +14,4 @@
 #pwd
 
 # run snakemake
-pixi run snakemake --cores 22 -s Snakefile --until chip_cr_fastqc_raw_pe --latency-wait 60 --printshellcmds
+pixi run --locked snakemake --cores 22 -s Snakefile --until chip_cr_fastqc_raw_pe --latency-wait 60 --printshellcmds

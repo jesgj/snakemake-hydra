@@ -6,6 +6,8 @@ import sys
 
 sys.path.insert(0, os.path.abspath("src"))
 from utils import (
+    fastq_validation_scope,
+    normalize_read_group_metadata,
     prepare_sample_data,
     validate_required_path,
 )
@@ -15,6 +17,16 @@ RAW_DIR = config["raw_fastqs_dir"]
 QC_DIR = config["qc_dir"]
 TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
+FASTQ_PAIR_VALIDATION_DIR = config.get(
+    "fastq_pair_validation_dir",
+    os.path.join("results", "rnaseq", "fastq_pair_validation"),
+)
+READ_GROUP_QC_DIR = config.get(
+    "read_group_qc_dir", os.path.join("results", "rnaseq", "read_group_qc")
+)
+FASTQ_VALIDATION_SCOPE = fastq_validation_scope(
+    config, "rnaseq.fastq_validation"
+)
 # Kallisto
 KALLISTO_OUTPUT_DIR = config["kallisto_output_dir"]
 TRANSCRIPTOME_FASTA = config.get("transcriptome_fasta")
@@ -50,6 +62,9 @@ config["raw_fastqs_dir"] = RAW_DIR
 config["qc_dir"] = QC_DIR
 config["trimmed_dir"] = TRIMMED_DIR
 config["qc_trimmed_dir"] = QC_TRIMMED_DIR
+config["fastq_pair_validation_dir"] = FASTQ_PAIR_VALIDATION_DIR
+config["read_group_qc_dir"] = READ_GROUP_QC_DIR
+config["fastq_validation_scope"] = FASTQ_VALIDATION_SCOPE
 config["kallisto_output_dir"] = KALLISTO_OUTPUT_DIR
 config["transcriptome_fasta"] = TRANSCRIPTOME_FASTA
 config["kallisto_index"] = KALLISTO_INDEX
@@ -68,6 +83,8 @@ config["gene_body_coverage"] = GENE_BODY_COVERAGE_CONFIG
 os.makedirs(QC_DIR, exist_ok=True)
 os.makedirs(TRIMMED_DIR, exist_ok=True)
 os.makedirs(QC_TRIMMED_DIR, exist_ok=True)
+os.makedirs(FASTQ_PAIR_VALIDATION_DIR, exist_ok=True)
+os.makedirs(READ_GROUP_QC_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(KALLISTO_INDEX) or ".", exist_ok=True)
 os.makedirs(KALLISTO_OUTPUT_DIR, exist_ok=True)
 os.makedirs(HISAT2_INDEX_DIR, exist_ok=True)
@@ -79,6 +96,8 @@ os.makedirs(DEEPTOOLS_DIR, exist_ok=True)
 if GENE_BODY_COVERAGE_ENABLED:
     os.makedirs(GENE_BODY_COVERAGE_DIR, exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_raw"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "fastq_pair_validation"), exist_ok=True)
+os.makedirs(os.path.join("logs", config["pipeline"], "read_group_validation"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastp"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "fastqc_trimmed"), exist_ok=True)
 os.makedirs(os.path.join("logs", config["pipeline"], "kallisto_quant"), exist_ok=True)
@@ -108,6 +127,7 @@ for sample, info in SAMPLES_INFO.items():
         continue
     invalid_samples.append(sample)
 
+SAMPLES_INFO = normalize_read_group_metadata(SAMPLES_INFO, "rnaseq.samples_info")
 config["samples_info"] = SAMPLES_INFO
 if invalid_samples:
     raise ValueError(
@@ -159,8 +179,10 @@ def get_rnaseq_outputs(samples):
     outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R1_trimmed_fastqc.html"), sample=samples))
     outputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.html"), sample=samples))
     outputs.extend(expand(os.path.join(KALLISTO_OUTPUT_DIR, "{sample}", "abundance.tsv"), sample=samples))
+    outputs.extend(expand(os.path.join(FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_pair_validation.tsv"), sample=samples))
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"), sample=samples))
     outputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.hisat2.summary.txt"), sample=samples))
+    outputs.extend(expand(os.path.join(READ_GROUP_QC_DIR, "{sample}_pe.read_group_validation.tsv"), sample=samples))
     outputs.extend(get_markduplicates_outputs(samples))
     outputs.extend(get_gene_body_coverage_outputs(samples))
     if len(samples) >= 2:
@@ -174,44 +196,36 @@ def get_rnaseq_multiqc_inputs(samples):
     inputs = []
     inputs.extend(expand(os.path.join(QC_DIR, "{sample}_R1_raw_fastqc.zip"), sample=samples))
     inputs.extend(expand(os.path.join(QC_DIR, "{sample}_R2_raw_fastqc.zip"), sample=samples))
-    inputs.extend(expand(os.path.join(TRIMMED_DIR, "{sample}.fastp.html"), sample=samples))
     inputs.extend(expand(os.path.join(TRIMMED_DIR, "{sample}.fastp.json"), sample=samples))
     inputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R1_trimmed_fastqc.zip"), sample=samples))
     inputs.extend(expand(os.path.join(QC_TRIMMED_DIR, "{sample}_R2_trimmed_fastqc.zip"), sample=samples))
-    inputs.extend(expand(os.path.join(KALLISTO_OUTPUT_DIR, "{sample}", "abundance.tsv"), sample=samples))
+    inputs.extend(
+        expand(
+            os.path.join("logs", config["pipeline"], "kallisto_quant", "{sample}.log.err"),
+            sample=samples,
+        )
+    )
     inputs.extend(expand(os.path.join(ALIGNMENT_DIR, "{sample}_pe.hisat2.summary.txt"), sample=samples))
     inputs.extend(expand(os.path.join(DUPLICATION_QC_DIR, "{sample}_pe.markdup.metrics.txt"), sample=samples))
-    inputs.extend(get_gene_body_coverage_outputs(samples))
-    return inputs
-
-
-def get_rnaseq_multiqc_analysis_dirs():
-    analysis_dirs = [
-        QC_DIR,
-        TRIMMED_DIR,
-        QC_TRIMMED_DIR,
-        KALLISTO_OUTPUT_DIR,
-        ALIGNMENT_DIR,
-        MARKED_BAM_DIR,
-        DUPLICATION_QC_DIR,
-        BIGWIG_DIR,
-        DEEPTOOLS_DIR,
-        os.path.join("logs", config["pipeline"]),
-    ]
     if GENE_BODY_COVERAGE_ENABLED:
-        analysis_dirs.append(GENE_BODY_COVERAGE_DIR)
-    return list(dict.fromkeys(analysis_dirs))
+        inputs.append(os.path.join(GENE_BODY_COVERAGE_DIR, "all_samples.geneBodyCoverage.txt"))
+    if HAS_MULTI_BAM_DEEPTOOLS:
+        inputs.append(os.path.join(DEEPTOOLS_DIR, "bam_correlation_matrix.tab"))
+    return inputs
 
 # --- MultiQC Configuration ---
 config["pipeline_name"] = "rnaseq"
 config["multiqc_results_dir"] = config.get("multiqc_results_dir", os.path.join("results", "rnaseq"))
 config["multiqc_input_files"] = get_rnaseq_multiqc_inputs(SAMPLES)
-config["multiqc_analysis_dirs"] = get_rnaseq_multiqc_analysis_dirs()
 
 
 # --- MODULE INCLUSION ---
 
-# 1. QC on raw files (using the generic rule)
+# 1. Shared FASTQ and read-group validation
+include: "rules/fastq_validation.smk"
+include: "rules/read_group_validation.smk"
+
+# 2. QC on raw files (using the generic rule)
 include: "rules/qc.smk"
 
 # 2. Trimming and QC on trimmed files (using the generic rule)
@@ -238,6 +252,42 @@ include: "rules/rnaseq/bigwig.smk"
 
 # 9. MultiQC report
 include: "rules/multiqc.smk"
+
+
+use rule validate_fastq_pair_generic as validate_fastq_pair with:
+    input:
+        r1=lambda wildcards: SAMPLES_INFO[wildcards.sample]["R1"],
+        r2=lambda wildcards: SAMPLES_INFO[wildcards.sample]["R2"],
+        validator="scripts/validate_fastq_pairs.py"
+    output:
+        report=os.path.join(
+            FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_pair_validation.tsv"
+        )
+    params:
+        scope=FASTQ_VALIDATION_SCOPE
+    log:
+        os.path.join(
+            "logs", config["pipeline"], "fastq_pair_validation", "{sample}.log"
+        )
+
+use rule validate_bam_read_group_generic as validate_bam_read_group with:
+    input:
+        bam=os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam"),
+        validator="src/validate_bam_read_group.py"
+    output:
+        report=os.path.join(
+            READ_GROUP_QC_DIR, "{sample}_pe.read_group_validation.tsv"
+        )
+    params:
+        rg_id=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["id"],
+        rg_sm=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["sample"],
+        rg_lb=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["library"],
+        rg_pl=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["platform"],
+        rg_pu=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["platform_unit"]
+    log:
+        os.path.join(
+            "logs", config["pipeline"], "read_group_validation", "{sample}_pe.log"
+        )
 
 
 MBS_ARGS = config.get("deeptools", {}).get("multiBamSummary", {}).get("extra_args", "--binSize 10000")
@@ -273,4 +323,4 @@ rule all:
     input:
         get_rnaseq_outputs(SAMPLES),
         # MultiQC report
-        os.path.join(config["multiqc_results_dir"], "multiqc_report.html")
+        rules.multiqc.output

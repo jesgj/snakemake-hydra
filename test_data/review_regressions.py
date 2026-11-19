@@ -5,6 +5,7 @@ import copy
 import csv
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -54,6 +55,15 @@ def check_discovery():
             found = discover_samples(root)
         assert "lane_L001" in found and "lane_L002" in found
         assert any("separate samples" in str(w.message) for w in caught)
+    with tempfile.TemporaryDirectory(prefix="hydra-bare-mates-") as directory:
+        root = Path(directory)
+        for name in ("sample1.fastq.gz", "sample2.fastq.gz"):
+            (root / name).touch()
+        found = discover_samples(root)
+        assert list(found) == ["sample1", "sample2"]
+        assert {sample: info["type"] for sample, info in found.items()} == {
+            "sample1": "SE", "sample2": "SE"
+        }
 
 
 def check_atac(config_path, work):
@@ -77,8 +87,10 @@ def check_atac(config_path, work):
         for sample, content in zip(samples, (first, second)):
             (peakdir / f"{sample}_peaks.narrowPeak").write_text(content)
         summary = Path(section["qc_summary_dir"]) / "sample_qc_summary.tsv"
-        section["multiqc_input_files"] = [str(summary)]
-        section["multiqc_analysis_dirs"] = [section["featurecounts_dir"], section["qc_summary_dir"]]
+        section["multiqc_input_files"] = [
+            str(Path(section["qc_summary_dir"]) / "atac_qc_summary_mqc.tsv"),
+            str(Path(section["featurecounts_dir"]) / "consensus_peak_counts.txt.summary"),
+        ]
         cfg = root / "config.yaml"
         cfg.write_text(yaml.safe_dump(section))
         snakefile = root / "Snakefile"
@@ -107,6 +119,113 @@ def check_atac(config_path, work):
         print(f"Passed ATAC {name}", flush=True)
 
 
+def _write_fastp_json(path, sample):
+    payload = {
+        "command": f"fastp --in1 {sample}.fastq.gz --out1 {sample}.trimmed.fastq.gz",
+        "summary": {
+            "before_filtering": {
+                "total_reads": 1000,
+                "total_bases": 100000,
+                "q20_bases": 90000,
+                "q30_bases": 80000,
+                "q20_rate": 0.9,
+                "q30_rate": 0.8,
+                "read1_mean_length": 100,
+                "gc_content": 0.5,
+            },
+            "after_filtering": {
+                "total_reads": 900,
+                "total_bases": 90000,
+                "q20_bases": 85000,
+                "q30_bases": 80000,
+                "q20_rate": 0.94,
+                "q30_rate": 0.88,
+                "read1_mean_length": 100,
+                "gc_content": 0.5,
+            },
+            "filtering_result": {
+                "passed_filter_reads": 900,
+                "low_quality_reads": 50,
+                "too_many_N_reads": 0,
+                "too_short_reads": 0,
+                "too_long_reads": 0,
+            },
+            "duplication": {"rate": 0.1},
+            "insert_size": {"peak": 200},
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload))
+
+
+def _run_multiqc_rule(root, sources, result_dir):
+    log_dir = root / "logs" / "multiqc_regression"
+    (log_dir / "multiqc").mkdir(parents=True, exist_ok=True)
+    config_path = root / "config.yaml"
+    config_path.write_text(yaml.safe_dump({
+        "pipeline": "multiqc_regression",
+        "pipeline_name": "multiqc_regression",
+        "log_dir": str(log_dir),
+        "multiqc_results_dir": str(result_dir),
+        "multiqc_input_files": [str(source) for source in sources],
+        # Deliberately broad: exact-source selection must ignore stale files here.
+        "multiqc_analysis_dirs": [str(root / "inputs")],
+    }))
+    snakefile = root / "Snakefile"
+    snakefile.write_text(
+        f"configfile: {str(config_path)!r}\n"
+        f"include: {str(REPO / 'workflows/rules/multiqc.smk')!r}\n"
+        "rule all:\n    default_target: True\n    input: rules.multiqc.output\n"
+    )
+    with (root / f"{sources[0].name}.log").open("w") as log:
+        subprocess.run(
+            ["pixi", "run", "--locked", "snakemake", "--snakefile", str(snakefile),
+             "--cores", "2", "--jobs", "1", "--printshellcmds"],
+            cwd=REPO,
+            env={**os.environ, "HYDRA_CONFIG": str(config_path)},
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            check=True,
+        )
+    data_dir = result_dir / "multiqc_report_data"
+    with (data_dir / "multiqc_fastp.txt").open() as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    sources_text = (data_dir / "multiqc_sources.txt").read_text()
+    return {row["Sample"] for row in rows}, sources_text
+
+
+def check_multiqc_exact_sources(work):
+    root = work / "multiqc_exact_sources"
+    if root.exists():
+        shutil.rmtree(root)
+    inputs = root / "inputs"
+    current = inputs / "current.fastp.json"
+    stale = inputs / "stale.fastp.json"
+    _write_fastp_json(current, "current")
+    _write_fastp_json(stale, "stale")
+
+    report_a = root / "report_current"
+    samples, sources_text = _run_multiqc_rule(root, [current], report_a)
+    assert samples == {"current"}, samples
+    assert str(current) in sources_text and str(stale) not in sources_text
+
+    # Repeating the same cohort must not pick up the sibling stale report.
+    samples_again, sources_again = _run_multiqc_rule(root, [current], report_a)
+    assert samples_again == {"current"}, samples_again
+    assert sources_again == sources_text
+
+    # Replacing the cohort in the same results directory must rebuild the
+    # report and drop the previous sample even though its input still exists.
+    samples, sources_text = _run_multiqc_rule(root, [stale], report_a)
+    assert samples == {"stale"}, samples
+    assert str(stale) in sources_text and str(current) not in sources_text
+
+    shutil.rmtree(report_a / "multiqc_report_data")
+    rebuilt_samples, rebuilt_sources = _run_multiqc_rule(root, [stale], report_a)
+    assert rebuilt_samples == samples and rebuilt_sources == sources_text
+    print("Passed MultiQC exact-source, stale-cohort and report-data rebuild regressions", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--atac-config", type=Path)
@@ -114,11 +233,18 @@ def main():
     args = parser.parse_args()
     check_discovery()
     print("Passed discovery regressions", flush=True)
+    args.workdir.mkdir(parents=True, exist_ok=True)
+    check_multiqc_exact_sources(args.workdir.resolve())
     if args.atac_config:
         check_atac(args.atac_config, args.workdir.resolve())
-    args.workdir.mkdir(parents=True, exist_ok=True)
     (args.workdir / "validation.json").write_text(json.dumps(
-        {"discovery": "passed", "atac_empty_peak_cases": "passed" if args.atac_config else "not_run"}, indent=2) + "\n")
+        {
+            "discovery": "passed",
+            "multiqc_exact_sources": "passed",
+            "atac_empty_peak_cases": "passed" if args.atac_config else "not_run",
+        },
+        indent=2,
+    ) + "\n")
 
 
 if __name__ == "__main__":

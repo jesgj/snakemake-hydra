@@ -9,6 +9,10 @@ SE_SAMPLE_PATTERN = "|".join(
 ) or r"(?!)"
 TRIMMED_DIR = config["trimmed_dir"]
 QC_TRIMMED_DIR = config["qc_trimmed_dir"]
+FASTQ_PAIR_VALIDATION_DIR = config.get(
+    "fastq_pair_validation_dir",
+    os.path.join("results", config["pipeline"], "fastq_pair_validation"),
+)
 FASTP_EXTRA_ARGS = config.get("fastp", {}).get("extra_args", "")
 LOG_DIR = config.get("log_dir", os.path.join("logs", config["pipeline"]))
 
@@ -20,7 +24,10 @@ rule fastp_trim:
     """
     input:
         r1 = lambda wildcards: SAMPLES_INFO[wildcards.sample]['R1'],
-        r2 = lambda wildcards: SAMPLES_INFO[wildcards.sample]['R2']
+        r2 = lambda wildcards: SAMPLES_INFO[wildcards.sample]['R2'],
+        pair_validation = os.path.join(
+            FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_pair_validation.tsv"
+        )
     output:
         trimmed_r1 = os.path.join(TRIMMED_DIR, "{sample}_R1.trimmed.fq.gz"),
         trimmed_r2 = os.path.join(TRIMMED_DIR, "{sample}_R2.trimmed.fq.gz"),
@@ -45,7 +52,10 @@ rule fastp_trim_se:
     Trims single-end reads using fastp.
     """
     input:
-        r1 = lambda wildcards: SAMPLES_INFO[wildcards.sample]['R1']
+        r1 = lambda wildcards: SAMPLES_INFO[wildcards.sample]['R1'],
+        single_validation = os.path.join(
+            FASTQ_PAIR_VALIDATION_DIR, "{sample}.fastq_single_validation.tsv"
+        )
     output:
         trimmed_r1 = os.path.join(TRIMMED_DIR, "{sample}_SE.trimmed.fq.gz"),
         html = os.path.join(TRIMMED_DIR, "{sample}_se.fastp.html"),

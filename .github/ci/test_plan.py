@@ -53,7 +53,9 @@ class SelectionTests(unittest.TestCase):
     def test_shared_rules_and_helpers(self):
         self.check_selection(["workflows/rules/bam_qc.smk"],
                              ["wgbs", "wgbs_full", "chipseq", "chipseq_se", "cutrun", "atacseq_macs3", "atacseq_genrich"])
-        self.check_selection(["scripts/validate_fastq_pairs.py"], ["atacseq_macs3", "atacseq_genrich"], amplicon=True)
+        self.check_selection(["scripts/validate_fastq_pairs.py"], self.all_real_fixtures(), amplicon=True)
+        self.check_selection(["src/validate_bam_read_group.py"], self.all_real_fixtures())
+        self.check_selection(["src/validate_merged_bam_read_groups.py"], ["atacseq_macs3", "atacseq_genrich"])
         self.check_selection(["test_data/prepare.py"], self.all_real_fixtures())
 
     def all_real_fixtures(self):

@@ -102,9 +102,12 @@ def discover_samples(raw_fastqs_dir):
     """
     samples = defaultdict(lambda: {'R1': None, 'R2': None})
     
-    # Regex to capture sample name, read number, and extension
-    # It can handle _R1, _R2, _1, _2, and other common separators.
-    pattern = re.compile(r"(.+?)[_.-]?(R[12]|[12])(_001)?\.(fastq|fq)\.gz")
+    # Capture a sample name plus an explicit mate marker. R1/R2 may follow the
+    # sample directly, but a bare digit must be separated so names such as
+    # sample1.fastq.gz and sample2.fastq.gz remain two single-end samples.
+    pattern = re.compile(
+        r"(.+?)(?:(?:[_.-]?R([12]))|(?:[_.-]([12])))(_001)?\.(fastq|fq)\.gz"
+    )
 
     files = sorted(f for f in os.listdir(raw_fastqs_dir)
                    if os.path.isfile(os.path.join(raw_fastqs_dir, f)))
@@ -115,8 +118,8 @@ def discover_samples(raw_fastqs_dir):
         match = pattern.fullmatch(filename)
         if match:
             sample_name = match.group(1).rstrip('-_.')
-            read_identifier = match.group(2)
-            read = 'R1' if read_identifier in ['R1', '1'] else 'R2'
+            read_identifier = match.group(2) or match.group(3)
+            read = 'R1' if read_identifier == '1' else 'R2'
             
             if samples[sample_name][read] is not None:
                 raise ValueError(f"Ambiguous FASTQs for {sample_name}/{read}; use an explicit samples_info manifest.")
@@ -179,6 +182,32 @@ def prepare_sample_data(config):
     samples = list(samples_info.keys())
     config['samples_info'] = samples_info
     return samples_info, samples
+
+
+def fastq_validation_scope(config, config_name):
+    """
+    Returns the command-line scope for shared FASTQ validation.
+
+    FastQ validation is a complete audit by default. Sampling must be requested
+    explicitly because it cannot prove equal full-file mate counts.
+    """
+    options = config.get("fastq_validation", {})
+    if options is None:
+        options = {}
+    if not isinstance(options, dict):
+        raise ValueError(f"Config '{config_name}' must be a mapping.")
+    unknown = set(options) - {"all_records", "records"}
+    if unknown:
+        raise ValueError(
+            f"Config '{config_name}' has unsupported options: {', '.join(sorted(unknown))}."
+        )
+    all_records = options.get("all_records", True)
+    records = options.get("records", 100)
+    if not isinstance(all_records, bool):
+        raise ValueError(f"Config '{config_name}.all_records' must be true or false.")
+    if type(records) is not int or records < 1:
+        raise ValueError(f"Config '{config_name}.records' must be a positive integer.")
+    return "--all" if all_records else f"--records {records}"
 
 
 def normalize_read_group_metadata(samples_info, config_name):

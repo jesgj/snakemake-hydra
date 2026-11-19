@@ -104,7 +104,7 @@ The JSON records full-read length distributions and input/primer-retained counts
 To prepare reads and inspect QC without denoising:
 
 ```bash
-HYDRA_CONFIG=/path/to/config.yaml pixi run snakemake --cores 4 --until amplicon_fastqc
+HYDRA_CONFIG=/path/to/config.yaml pixi run --locked snakemake --cores 4 --until amplicon_fastqc
 ```
 
 `mode: auto` detects layout: paired inputs use `merge`, single-end inputs use
@@ -149,8 +149,8 @@ Run from the repository root:
 
 ```bash
 pixi install --locked
-HYDRA_CONFIG=/path/to/config.yaml pixi run snakemake -n --cores 4
-HYDRA_CONFIG=/path/to/config.yaml pixi run snakemake --cores 4 --jobs 1 --printshellcmds
+HYDRA_CONFIG=/path/to/config.yaml pixi run --locked snakemake -n --cores 4
+HYDRA_CONFIG=/path/to/config.yaml pixi run --locked snakemake --cores 4 --jobs 1 --printshellcmds
 ```
 
 Under `amplicon.output_dir`:

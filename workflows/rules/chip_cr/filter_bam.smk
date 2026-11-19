@@ -7,6 +7,9 @@ from utils import validate_sambamba_filter
 # --- CONFIGURATION ---
 ALIGNMENT_DIR = config["alignment_dir"]
 FILTERED_BAM_DIR = config["filtered_bam_dir"]
+READ_GROUP_QC_DIR = config.get(
+    "read_group_qc_dir", os.path.join("results", "chipseq_cutrun", "read_group_qc")
+)
 SAMBAMBA_MARKDUP_EXTRA_ARGS = config.get("sambamba", {}).get("markdup_extra_args", "")
 SAMBAMBA_VIEW_EXTRA_ARGS = validate_sambamba_filter(
     config.get("sambamba", {}).get("view_extra_args", ""),
@@ -26,16 +29,20 @@ def get_aligned_bam(wildcards):
 rule sambamba_markdup:
     """Mark or remove duplicates using a regular BAM output."""
     input:
-        bam = get_aligned_bam
+        bam = get_aligned_bam,
+        read_group_validation = os.path.join(
+            READ_GROUP_QC_DIR, "{sample}_{read_type}.read_group_validation.tsv"
+        )
     output:
         bam = temp(os.path.join(FILTERED_BAM_DIR, "{sample}_{read_type}.dedup.bam"))
     params:
         extra = SAMBAMBA_MARKDUP_EXTRA_ARGS
     threads: 8
     log:
-        os.path.join("logs", config["pipeline"], "sambamba_markdup", "{sample}_{read_type}.log")
+        out=os.path.join("logs", config["pipeline"], "sambamba_markdup", "{sample}_{read_type}.log.out"),
+        err=os.path.join("logs", config["pipeline"], "sambamba_markdup", "{sample}_{read_type}.log.err")
     shell:
-        "pixi run sambamba markdup -t {threads} {params.extra} {input.bam:q} {output.bam:q} > {log}.out 2> {log}.err"
+        "pixi run sambamba markdup -t {threads} {params.extra} {input.bam:q} {output.bam:q} > {log.out:q} 2> {log.err:q}"
 
 
 rule sambamba_filter_dedup_sort:

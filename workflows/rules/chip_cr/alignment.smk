@@ -6,6 +6,7 @@ REF_GENOME = config["ref_genome"]
 BOWTIE2_INDEX_DIR = config["bowtie2_index_dir"]
 TRIMMED_DIR = config["trimmed_dir"]
 ALIGNMENT_DIR = config["alignment_dir"]
+SAMPLES_INFO = config["samples_info"]
 BOWTIE2_EXTRA_ARGS = config.get("bowtie2", {}).get("extra_args", "")
 
 # The basename for the index, derived from the genome file name
@@ -51,15 +52,26 @@ rule bowtie2_align_pe:
         bam = os.path.join(ALIGNMENT_DIR, "{sample}_pe.sorted.bam")
     params:
         extra = BOWTIE2_EXTRA_ARGS,
-        index_prefix = BOWTIE2_INDEX_PREFIX
+        index_prefix = BOWTIE2_INDEX_PREFIX,
+        rg_id = lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["id"],
+        rg_sm = lambda wildcards: f"SM:{SAMPLES_INFO[wildcards.sample]['read_group']['sample']}",
+        rg_lb = lambda wildcards: f"LB:{SAMPLES_INFO[wildcards.sample]['read_group']['library']}",
+        rg_pl = lambda wildcards: f"PL:{SAMPLES_INFO[wildcards.sample]['read_group']['platform']}",
+        rg_pu = lambda wildcards: f"PU:{SAMPLES_INFO[wildcards.sample]['read_group']['platform_unit']}"
     threads: 8
     log:
-        os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log")
+        out=os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log.out"),
+        err=os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_pe.log.err")
     shell:
         """
-        (pixi run bowtie2 -p {threads} {params.extra} -x "{params.index_prefix}" -1 "{input.r1}" -2 "{input.r2}" | \
+        set -euo pipefail
+        (pixi run bowtie2 -p {threads} {params.extra} -x {params.index_prefix:q} \
+        --rg-id {params.rg_id:q} \
+        --rg {params.rg_sm:q} --rg {params.rg_lb:q} \
+        --rg {params.rg_pl:q} --rg {params.rg_pu:q} \
+        -1 {input.r1:q} -2 {input.r2:q} | \
         pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
+        pixi run samtools sort -@ {threads} - -o {output.bam:q}) > {log.out:q} 2> {log.err:q}
         """
 
 rule bowtie2_align_se:
@@ -74,13 +86,24 @@ rule bowtie2_align_se:
         bam = os.path.join(ALIGNMENT_DIR, "{sample}_se.sorted.bam")
     params:
         extra = BOWTIE2_EXTRA_ARGS,
-        index_prefix = BOWTIE2_INDEX_PREFIX
+        index_prefix = BOWTIE2_INDEX_PREFIX,
+        rg_id = lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["id"],
+        rg_sm = lambda wildcards: f"SM:{SAMPLES_INFO[wildcards.sample]['read_group']['sample']}",
+        rg_lb = lambda wildcards: f"LB:{SAMPLES_INFO[wildcards.sample]['read_group']['library']}",
+        rg_pl = lambda wildcards: f"PL:{SAMPLES_INFO[wildcards.sample]['read_group']['platform']}",
+        rg_pu = lambda wildcards: f"PU:{SAMPLES_INFO[wildcards.sample]['read_group']['platform_unit']}"
     threads: 8
     log:
-        os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_se.log")
+        out=os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_se.log.out"),
+        err=os.path.join("logs", config["pipeline"], "bowtie2_align", "{sample}_se.log.err")
     shell:
         """
-        (pixi run bowtie2 -p {threads} {params.extra} -x "{params.index_prefix}" -U "{input.r1}" | \
+        set -euo pipefail
+        (pixi run bowtie2 -p {threads} {params.extra} -x {params.index_prefix:q} \
+        --rg-id {params.rg_id:q} \
+        --rg {params.rg_sm:q} --rg {params.rg_lb:q} \
+        --rg {params.rg_pl:q} --rg {params.rg_pu:q} \
+        -U {input.r1:q} | \
         pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
+        pixi run samtools sort -@ {threads} - -o {output.bam:q}) > {log.out:q} 2> {log.err:q}
         """

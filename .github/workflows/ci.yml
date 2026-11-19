@@ -34,8 +34,15 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Validate planner
-        run: python3 -B .github/ci/test_plan.py
+      - name: Validate planner and execution verifier
+        run: |
+          python3 -B .github/ci/test_plan.py
+          python3 -B test_data/test_finish_run.py
+          python3 -B test_data/atac_bowtie2_manifest_test.py
+          python3 -B test_data/test_replay_evidence.py
+
+      - name: Run shared validator regressions
+        run: python3 -B test_data/validation_regressions.py
 
       - name: Check whitespace and syntax, then select fixtures
         id: select
@@ -97,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: amplicon-validation
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'workflow_dispatch' && 90 || 7 }}
           if-no-files-found: ignore
           path: |
             test_data/work/amplicon_smoke_driver.log
@@ -143,6 +150,19 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
+      - name: Check synthetic WGBS reference staging and index repair
+        if: matrix.variant == 'wgbs'
+        shell: bash
+        run: |
+          mkdir -p "test_data/work/ci/$VARIANT"
+          for format in standard large; do
+            flags=()
+            if [[ "$format" == large ]]; then flags+=(--large-index); fi
+            pixi run --locked python test_data/wgbs_reference_regression.py \
+              --workdir "test_data/work/ci/$VARIANT/reference_regression/$format" "${flags[@]}" \
+              2>&1 | tee "test_data/work/ci/$VARIANT/reference_regression_$format.log"
+          done
+
       - name: Prepare selected real-data fixture
         shell: bash
         run: |
@@ -159,14 +179,27 @@ jobs:
             --replace-workflow-config --configfile "$HYDRA_CONFIG" \
             2>&1 | tee "test_data/work/ci/$VARIANT/dry-run.log"
 
-      - name: Execute selected workflow
+      - name: Execute selected workflow and recheck input identity
         shell: bash
         run: |
-          pixi run --locked snakemake --cores "$CORES" --jobs 1 \
-            --resources ci_slots=1 --default-resources ci_slots=1 \
-            --replace-workflow-config --configfile "$HYDRA_CONFIG" \
-            --printshellcmds --latency-wait 60 \
-            2>&1 | tee "test_data/work/ci/$VARIANT/run.log"
+          evidence="test_data/work/ci/$VARIANT"
+          command=(pixi run --locked snakemake --cores "$CORES" --jobs 1
+            --resources ci_slots=1 --default-resources ci_slots=1
+            --replace-workflow-config --configfile "$HYDRA_CONFIG"
+            --printshellcmds --latency-wait 60)
+          printf -v invocation ' %q' "${command[@]}"
+          invocation="HYDRA_CONFIG=$HYDRA_CONFIG$invocation"
+          record_inputs() {
+            pixi run --locked python scripts/replay_evidence.py record --stage pre \
+              --config "$HYDRA_CONFIG" --output "$evidence/inputs-$1.json" \
+              --invocation "$invocation"
+          }
+          record_inputs before
+          "${command[@]}" 2>&1 | tee "$evidence/run.log"
+          record_inputs after
+          pixi run --locked python scripts/replay_evidence.py compare \
+            --baseline "$evidence/inputs-before.json" --current "$evidence/inputs-after.json" \
+            | tee "$evidence/input-recheck.log"
 
       - name: Collect workflow lint recommendations
         continue-on-error: true
@@ -183,6 +216,13 @@ jobs:
             --keep-outputs --evidence "test_data/work/ci/$VARIANT/execution.json" \
             2>&1 | tee "test_data/work/ci/$VARIANT/verify.log"
 
+      - name: Replay RNA-seq alignment and quantification in clean results
+        if: matrix.variant == 'rnaseq'
+        shell: bash
+        run: |
+          pixi run --locked python test_data/rnaseq_replay.py --cores "$CORES" \
+            --workdir "test_data/work/ci/$VARIANT/replay"
+
       - name: Check discovery and empty ATAC peak regressions
         if: matrix.variant == 'atacseq_macs3'
         shell: bash
@@ -196,10 +236,13 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.variant }}-validation
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'workflow_dispatch' && 90 || 7 }}
           if-no-files-found: ignore
           path: |
-            test_data/work/ci/${{ matrix.variant }}/
+            test_data/work/ci/${{ matrix.variant }}/**/*.json
+            test_data/work/ci/${{ matrix.variant }}/**/*.log*
+            test_data/work/ci/${{ matrix.variant }}/**/*.tsv
+            test_data/work/ci/${{ matrix.variant }}/**/multiqc_report.html
             test_data/configs/${{ matrix.variant }}.yaml
             test_data/work/${{ matrix.variant }}/**/*.log*
             test_data/work/${{ matrix.variant }}/**/*.txt

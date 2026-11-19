@@ -6,6 +6,7 @@ REF_GENOME = config["ref_genome"]
 HISAT2_INDEX_DIR = config["hisat2_index_dir"]
 TRIMMED_DIR = config["trimmed_dir"]
 ALIGNMENT_DIR = config["alignment_dir"]
+SAMPLES_INFO = config["samples_info"]
 HISAT2_EXTRA_ARGS = config.get("hisat2", {}).get("extra_args", "")
 
 # The basename for the index, derived from the genome file name
@@ -46,25 +47,27 @@ rule hisat2_align_pe:
     params:
         extra=HISAT2_EXTRA_ARGS,
         index_prefix=HISAT2_INDEX_PREFIX,
-        rg_id=lambda wildcards: wildcards.sample,
-        rg_sm=lambda wildcards: wildcards.sample,
-        rg_lb=lambda wildcards: wildcards.sample,
-        rg_pl="ILLUMINA",
-        rg_pu=lambda wildcards: wildcards.sample
+        rg_id=lambda wildcards: SAMPLES_INFO[wildcards.sample]["read_group"]["id"],
+        rg_sm=lambda wildcards: f"SM:{SAMPLES_INFO[wildcards.sample]['read_group']['sample']}",
+        rg_lb=lambda wildcards: f"LB:{SAMPLES_INFO[wildcards.sample]['read_group']['library']}",
+        rg_pl=lambda wildcards: f"PL:{SAMPLES_INFO[wildcards.sample]['read_group']['platform']}",
+        rg_pu=lambda wildcards: f"PU:{SAMPLES_INFO[wildcards.sample]['read_group']['platform_unit']}"
     threads: 8
     log:
         os.path.join("logs", config["pipeline"], "hisat2_align", "{sample}_pe.log")
     shell:
         """
+        set -euo pipefail
         (pixi run hisat2 -p {threads} {params.extra} \
-        --rg-id "{params.rg_id}" \
-        --rg "SM:{params.rg_sm}" \
-        --rg "LB:{params.rg_lb}" \
-        --rg "PL:{params.rg_pl}" \
-        --rg "PU:{params.rg_pu}" \
-        --summary-file "{output.summary}" -x {params.index_prefix} -1 "{input.r1}" -2 "{input.r2}" | \
+        --rg-id {params.rg_id:q} \
+        --rg {params.rg_sm:q} \
+        --rg {params.rg_lb:q} \
+        --rg {params.rg_pl:q} \
+        --rg {params.rg_pu:q} \
+        --summary-file {output.summary:q} -x {params.index_prefix:q} \
+        -1 {input.r1:q} -2 {input.r2:q} | \
         pixi run samtools view -bS - | \
-        pixi run samtools sort -@ {threads} - -o "{output.bam}") > {log}.out 2> {log}.err
+        pixi run samtools sort -@ {threads} - -o {output.bam:q}) > {log:q}.out 2> {log:q}.err
         """
 
 rule samtools_index_aligned_bam:

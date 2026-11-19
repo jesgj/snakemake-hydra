@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate synchronization and provenance of one paired-end FASTQ pair."""
+"""Audit one single-end FASTQ or validate synchronization of a paired-end input."""
 
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def read_record(handle: TextIO, path: Path, record_number: int):
     return header, sequence, separator, quality
 
 
-def normalize_header(header: str, expected_mate: int, record_number: int, path: Path):
+def normalize_header(header: str, expected_mate: int | None, record_number: int, path: Path):
     fields = header[1:].split()
     if not fields or not fields[0]:
         raise FastqValidationError(f"empty header at record {record_number} in {path}")
@@ -75,7 +75,7 @@ def normalize_header(header: str, expected_mate: int, record_number: int, path: 
     slash_match = re.search(r"/([12])$", cluster_id)
     if slash_match:
         observed = int(slash_match.group(1))
-        if observed != expected_mate:
+        if expected_mate is not None and observed != expected_mate:
             raise FastqValidationError(
                 f"record {record_number} in {path} is labelled read {observed}, "
                 f"expected read {expected_mate}"
@@ -86,7 +86,7 @@ def normalize_header(header: str, expected_mate: int, record_number: int, path: 
         casava_match = re.match(r"^([12]):", fields[1])
         if casava_match:
             observed = int(casava_match.group(1))
-            if observed != expected_mate:
+            if expected_mate is not None and observed != expected_mate:
                 raise FastqValidationError(
                     f"record {record_number} in {path} is labelled read {observed}, "
                     f"expected read {expected_mate}"
@@ -108,12 +108,13 @@ def format_values(values: set[str]) -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Compare normalized cluster identifiers in paired FASTQs and validate "
-            "FASTQ structure, mate labels, provenance, and record counts."
+            "Validate FASTQ structure, mate labels, provenance, and record counts. "
+            "Compare normalized cluster identifiers when --r2 is supplied; otherwise "
+            "audit a single-end file."
         )
     )
-    parser.add_argument("--r1", required=True, type=Path, help="R1 FASTQ[.gz]")
-    parser.add_argument("--r2", required=True, type=Path, help="R2 FASTQ[.gz]")
+    parser.add_argument("--r1", required=True, type=Path, help="R1/SE FASTQ[.gz]")
+    parser.add_argument("--r2", type=Path, help="R2 FASTQ[.gz]; omit for single-end audit")
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument(
         "--records",
@@ -137,6 +138,20 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    paired = args.r2 is not None
+    if paired:
+        try:
+            same_file = args.r1.resolve() == args.r2.resolve() or (
+                args.r1.exists() and args.r2.exists() and args.r1.samefile(args.r2)
+            )
+        except OSError as exc:
+            print("status\tERROR")
+            print(f"error\tcannot compare mate paths: {exc}")
+            return 2
+        if same_file:
+            print("status\tERROR")
+            print("error\tR1 and R2 refer to the same file")
+            return 2
     limit = None if args.all else args.records
     records_checked = 0
     mismatches = 0
@@ -146,45 +161,60 @@ def main() -> int:
     complete = False
 
     try:
-        with open_fastq(args.r1) as r1_handle, open_fastq(args.r2) as r2_handle:
-            while limit is None or records_checked < limit:
-                record_number = records_checked + 1
-                r1_record = read_record(r1_handle, args.r1, record_number)
-                r2_record = read_record(r2_handle, args.r2, record_number)
-
-                if r1_record is None and r2_record is None:
-                    complete = True
-                    break
-                if r1_record is None or r2_record is None:
-                    mismatches += 1
-                    missing = "R1" if r1_record is None else "R2"
-                    examples.append(
-                        f"record {record_number}: {missing} ended before its mate"
+        with open_fastq(args.r1) as r1_handle:
+            r2_handle = open_fastq(args.r2) if paired else None
+            try:
+                while limit is None or records_checked < limit:
+                    record_number = records_checked + 1
+                    r1_record = read_record(r1_handle, args.r1, record_number)
+                    r2_record = (
+                        read_record(r2_handle, args.r2, record_number)
+                        if r2_handle is not None else None
                     )
-                    complete = True
-                    break
 
-                records_checked += 1
-                r1_id, r1_run = normalize_header(
-                    r1_record[0], 1, record_number, args.r1
-                )
-                r2_id, r2_run = normalize_header(
-                    r2_record[0], 2, record_number, args.r2
-                )
-                if r1_run:
-                    r1_provenance.add(r1_run)
-                if r2_run:
-                    r2_provenance.add(r2_run)
-
-                if r1_id != r2_id:
-                    mismatches += 1
-                    if len(examples) < args.max_examples:
+                    if r1_record is None:
+                        if r2_record is None:
+                            complete = True
+                        else:
+                            mismatches += 1
+                            examples.append(
+                                f"record {record_number}: R1 ended before R2"
+                            )
+                            complete = True
+                        break
+                    if paired and r2_record is None:
+                        mismatches += 1
                         examples.append(
-                            f"record {record_number}: R1={r1_id} R2={r2_id}"
+                            f"record {record_number}: R2 ended before its mate"
                         )
+                        complete = True
+                        break
 
-            if limit is None and not complete:
-                complete = True
+                    records_checked += 1
+                    r1_id, r1_run = normalize_header(
+                        r1_record[0], 1 if paired else None, record_number, args.r1
+                    )
+                    if r1_run:
+                        r1_provenance.add(r1_run)
+
+                    if paired:
+                        r2_id, r2_run = normalize_header(
+                            r2_record[0], 2, record_number, args.r2
+                        )
+                        if r2_run:
+                            r2_provenance.add(r2_run)
+                        if r1_id != r2_id:
+                            mismatches += 1
+                            if len(examples) < args.max_examples:
+                                examples.append(
+                                    f"record {record_number}: R1={r1_id} R2={r2_id}"
+                                )
+
+                if limit is None and not complete:
+                    complete = True
+            finally:
+                if r2_handle is not None:
+                    r2_handle.close()
 
     except FastqValidationError as exc:
         print("status\tERROR")
@@ -195,7 +225,7 @@ def main() -> int:
         print(f"error\t{exc}")
         return 2
 
-    provenance_matches = r1_provenance == r2_provenance
+    provenance_matches = (not paired) or r1_provenance == r2_provenance
     failed = mismatches > 0 or not provenance_matches
     if failed:
         status = "FAIL"
@@ -205,12 +235,14 @@ def main() -> int:
         status = "PASS_SAMPLED"
 
     print(f"status\t{status}")
+    print(f"mode\t{'paired_end' if paired else 'single_end'}")
     print(f"scope\t{'all_records' if args.all else f'first_{args.records}_records'}")
     print(f"records_checked\t{records_checked}")
     print(f"mismatches\t{mismatches}")
     print(f"r1_provenance\t{format_values(r1_provenance)}")
-    print(f"r2_provenance\t{format_values(r2_provenance)}")
-    print(f"provenance_match\t{'yes' if provenance_matches else 'no'}")
+    if paired:
+        print(f"r2_provenance\t{format_values(r2_provenance)}")
+        print(f"provenance_match\t{'yes' if provenance_matches else 'no'}")
     for index, example in enumerate(examples, start=1):
         print(f"mismatch_example_{index}\t{example}")
     if status == "PASS_SAMPLED":

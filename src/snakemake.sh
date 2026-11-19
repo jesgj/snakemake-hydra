@@ -13,6 +13,6 @@
 #cd $wdir
 #pwd
 # run snakemake
-#pixi run snakemake --cores 32 --until wgbs_picard_collect_alignment_metrics_filtered --printshellcmds --latency-wait 60
+#pixi run --locked snakemake --cores 32 --until wgbs_picard_collect_alignment_metrics_filtered --printshellcmds --latency-wait 60
 
-pixi run snakemake all --cores 26 --printshellcmds --latency-wait 60
+pixi run --locked snakemake all --cores 26 --printshellcmds --latency-wait 60

@@ -14,6 +14,9 @@ from validate_fastq_pairs import open_fastq, read_record, normalize_header
 
 
 def audit(paths):
+    resolved = [Path(path).resolve() for path in paths]
+    if len(resolved) != len(set(resolved)):
+        raise ValueError("R1 and R2 refer to the same file.")
     lengths = [Counter() for _ in paths]
     count = 0
     from contextlib import ExitStack
